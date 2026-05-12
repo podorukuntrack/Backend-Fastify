@@ -3,6 +3,7 @@ import fp from 'fastify-plugin';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import Ajv from 'ajv';
+import { url } from 'zod';
 
 /**
  * Menghapus keyword OpenAPI yang tidak dikenali AJV:
@@ -64,6 +65,10 @@ async function swaggerPlugin(fastify) {
         {
           url: 'http://localhost:3000',
           description: 'Development Server'
+        },
+        {
+          url: 'https://api.podorukuntrack.com',
+          description: 'Production Server'
         }
       ],
 
