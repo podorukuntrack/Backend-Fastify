@@ -2,6 +2,7 @@
 import Fastify from "fastify";
 import dotenv from "dotenv";
 import fastifyMultipart from "@fastify/multipart";
+import fastifyCors from "@fastify/cors";
 
 import authPlugin from "./plugins/auth.js";
 import swaggerPlugin from './plugins/swagger.js'; // <-- Import swagger
@@ -27,6 +28,21 @@ dotenv.config();
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
+
+  await app.register(fastifyCors, {
+    origin: ["https://podorukuntrack.com"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+  });
+
+
 
   await app.register(authPlugin);
   await app.register(swaggerPlugin); 
