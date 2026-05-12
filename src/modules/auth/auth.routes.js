@@ -38,12 +38,12 @@ export default async function authRoutes(fastify, options) {
                   user: {
                     type: "object",
                     properties: {
-                      id: { type: "number" },
+                      id: { type: "string" },
                       name: { type: "string" },
                       email: { type: "string" },
                       role: { type: "string" },
                       companyId: {
-                        type: ["number", "null"],
+                        type: ["string", "null"],
                       },
                     },
                     required: ["id", "email", "role"],
