@@ -37,7 +37,7 @@ async function runSeeder() {
       companyId: null // super_admin tidak terikat ke company manapun
     });
 
-    console.log('🎉 Super Admin berhasil dibuat!');
+    console.log('🎉 Super Admin berhasil dibuat! anjay');
     console.log(`✉️  Email: ${adminEmail}`);
     console.log(`🔑 Password: ${adminPassword}`);
 
