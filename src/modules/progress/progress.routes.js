@@ -9,28 +9,286 @@ export default async function progressRoutes(fastify, options) {
   const readRoles = authorize('super_admin', 'admin', 'customer');
   const writeRoles = authorize('super_admin', 'admin');
 
-  // Customer bisa melihat semua progress & spesifik unit
-  fastify.get('/', { preHandler: [readRoles] }, controller.getAllHandler);
+  // GET - Dapatkan semua progress records
+  fastify.get('/', {
+    schema: {
+      description: 'Mendapatkan daftar semua progress updates unit',
+      tags: ['Progress'],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: {
+            type: 'string',
+            description: 'Nomor halaman (default: 1)',
+            example: '1'
+          },
+          limit: {
+            type: 'string',
+            description: 'Jumlah data per halaman (default: 20)',
+            example: '10'
+          },
+          unitId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'Filter berdasarkan Unit ID',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          minPercentage: {
+            type: 'number',
+            description: 'Filter progress minimal (0-100)',
+            example: '50'
+          },
+          maxPercentage: {
+            type: 'number',
+            description: 'Filter progress maksimal (0-100)',
+            example: '100'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  unitId: { type: 'string', format: 'uuid' },
+                  percentage: { type: 'number' },
+                  notes: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles]
+  }, controller.getAllHandler);
   
-  fastify.get('/:id', { 
-    preHandler: [readRoles, validate(schema.paramIdSchema)] 
+  // GET - Detail progress by ID
+  fastify.get('/:id', {
+    schema: {
+      description: 'Mendapatkan detail progress record berdasarkan ID',
+      tags: ['Progress'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID progress record yang ingin diambil',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', format: 'uuid' },
+                unitId: { type: 'string', format: 'uuid' },
+                percentage: { type: 'number' },
+                notes: { type: 'string' },
+                createdAt: { type: 'string', format: 'date-time' }
+              }
+            }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles, validate(schema.paramIdSchema)]
   }, controller.getByIdHandler);
 
-  // Sesuai desain: GET /units/:id/progress
-  fastify.get('/unit/:id', { 
-    preHandler: [readRoles, validate(schema.paramIdSchema)] 
+  // GET - Dapatkan progress unit spesifik
+  fastify.get('/unit/:id', {
+    schema: {
+      description: 'Mendapatkan semua progress updates untuk unit tertentu',
+      tags: ['Progress'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID unit untuk melihat progress-nya',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  percentage: { type: 'number' },
+                  notes: { type: 'string' },
+                  createdAt: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles, validate(schema.paramIdSchema)]
   }, controller.getByUnitHandler);
 
-  // Write roles
-  fastify.post('/', { 
-    preHandler: [writeRoles, validate(schema.createProgressSchema)] 
+  // POST - Buat progress baru
+  fastify.post('/', {
+    schema: {
+      description: 'Membuat/update progress untuk unit',
+      tags: ['Progress'],
+      body: {
+        type: 'object',
+        required: ['unitId', 'percentage'],
+        properties: {
+          unitId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Unit yang di-update progressnya',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          percentage: {
+            type: 'number',
+            minimum: 0,
+            maximum: 100,
+            description: 'Persentase progress pengerjaan unit (0-100)',
+            example: '75'
+          },
+          notes: {
+            type: 'string',
+            description: 'Catatan atau keterangan progress (opsional)',
+            example: 'Pengecatan dinding sudah 75% selesai'
+          },
+          companyId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Perusahaan (optional untuk admin)',
+            example: '550e8400-e29b-41d4-a716-446655440001'
+          }
+        }
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', format: 'uuid' },
+                unitId: { type: 'string', format: 'uuid' },
+                percentage: { type: 'number' }
+              }
+            }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.createProgressSchema)]
   }, controller.createHandler);
   
-  fastify.patch('/:id', { 
-    preHandler: [writeRoles, validate(schema.updateProgressSchema)] 
+  // PATCH - Update progress
+  fastify.patch('/:id', {
+    schema: {
+      description: 'Mengupdate progress unit yang sudah ada',
+      tags: ['Progress'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID progress record yang ingin diupdate',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          percentage: {
+            type: 'number',
+            minimum: 0,
+            maximum: 100,
+            description: 'Persentase progress baru',
+            example: '85'
+          },
+          notes: {
+            type: 'string',
+            description: 'Catatan progress baru',
+            example: 'Pengecatan sudah 85% selesai, tinggal finishing'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.updateProgressSchema)]
   }, controller.updateHandler);
-  
-  fastify.delete('/:id', { 
-    preHandler: [writeRoles, validate(schema.paramIdSchema)] 
+
+  // DELETE - Hapus progress record
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Menghapus progress record',
+      tags: ['Progress'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID progress record yang ingin dihapus',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.paramIdSchema)]
   }, controller.deleteHandler);
 }

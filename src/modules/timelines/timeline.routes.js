@@ -8,8 +8,220 @@ export default async function timelineRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
   fastify.addHook('preHandler', authorize('super_admin', 'admin'));
 
-  fastify.get('/', controller.getAllHandler);
-  fastify.post('/', { preHandler: [validate(schema.createTimelineSchema)] }, controller.createHandler);
-  fastify.patch('/:id', { preHandler: [validate(schema.updateTimelineSchema)] }, controller.updateHandler);
-  fastify.delete('/:id', { preHandler: [validate(schema.paramIdSchema)] }, controller.deleteHandler);
+  // GET - Dapatkan semua timeline/milestone project
+  fastify.get('/', {
+    schema: {
+      description: 'Mendapatkan daftar semua timeline/milestone dalam project',
+      tags: ['Timelines'],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: {
+            type: 'string',
+            description: 'Nomor halaman (default: 1)',
+            example: '1'
+          },
+          limit: {
+            type: 'string',
+            description: 'Jumlah data per halaman (default: 20)',
+            example: '10'
+          },
+          projectId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'Filter berdasarkan Project ID',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          status: {
+            type: 'string',
+            enum: ['planned', 'on_progress', 'completed', 'delayed'],
+            description: 'Filter berdasarkan status timeline',
+            example: 'on_progress'
+          },
+          search: {
+            type: 'string',
+            description: 'Cari timeline berdasarkan nama task',
+            example: 'Fondasi'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  taskName: { type: 'string' },
+                  status: { type: 'string' },
+                  startDate: { type: 'string', format: 'date-time' },
+                  endDate: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    }
+  }, controller.getAllHandler);
+
+  // POST - Buat timeline baru
+  fastify.post('/', {
+    schema: {
+      description: 'Membuat timeline/milestone baru dalam project',
+      tags: ['Timelines'],
+      body: {
+        type: 'object',
+        required: ['projectId', 'taskName', 'startDate', 'endDate'],
+        properties: {
+          projectId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Project yang memiliki timeline',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          taskName: {
+            type: 'string',
+            minLength: 3,
+            description: 'Nama task/milestone',
+            example: 'Pekerjaan Fondasi & Struktur'
+          },
+          startDate: {
+            type: 'string',
+            format: 'date-time',
+            description: 'Tanggal mulai task (format ISO-8601)',
+            example: '2024-06-01T08:00:00Z'
+          },
+          endDate: {
+            type: 'string',
+            format: 'date-time',
+            description: 'Tanggal target selesai (format ISO-8601)',
+            example: '2024-09-01T17:00:00Z'
+          },
+          status: {
+            type: 'string',
+            enum: ['planned', 'on_progress', 'completed', 'delayed'],
+            description: 'Status awal timeline (default: planned)',
+            example: 'planned'
+          },
+          companyId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Perusahaan (optional untuk admin)',
+            example: '550e8400-e29b-41d4-a716-446655440001'
+          }
+        }
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [validate(schema.createTimelineSchema)]
+  }, controller.createHandler);
+
+  // PATCH - Update timeline
+  fastify.patch('/:id', {
+    schema: {
+      description: 'Mengupdate timeline/milestone',
+      tags: ['Timelines'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID timeline yang ingin diupdate',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          taskName: {
+            type: 'string',
+            minLength: 3,
+            description: 'Nama task baru',
+            example: 'Pekerjaan Fondasi, Struktur & Kolom'
+          },
+          startDate: {
+            type: 'string',
+            format: 'date-time',
+            description: 'Tanggal mulai baru',
+            example: '2024-06-05T08:00:00Z'
+          },
+          endDate: {
+            type: 'string',
+            format: 'date-time',
+            description: 'Tanggal selesai baru',
+            example: '2024-09-15T17:00:00Z'
+          },
+          status: {
+            type: 'string',
+            enum: ['planned', 'on_progress', 'completed', 'delayed'],
+            description: 'Status timeline baru',
+            example: 'on_progress'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [validate(schema.updateTimelineSchema)]
+  }, controller.updateHandler);
+
+  // DELETE - Hapus timeline
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Menghapus timeline/milestone dari project',
+      tags: ['Timelines'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID timeline yang ingin dihapus',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [validate(schema.paramIdSchema)]
+  }, controller.deleteHandler);
 }

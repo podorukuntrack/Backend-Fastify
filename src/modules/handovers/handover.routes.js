@@ -10,21 +10,235 @@ export default async function handoverRoutes(fastify, options) {
   const readRoles = authorize('super_admin', 'admin', 'customer');
   const writeRoles = authorize('super_admin', 'admin');
 
-  // GET Handovers (Customer bisa melihat status serah terima unitnya)
-  fastify.get('/', { preHandler: [readRoles] }, controller.getAllHandler);
-  fastify.get('/:id', { preHandler: [readRoles] }, controller.getByIdHandler);
+  // GET - Dapatkan semua handover/serah terima
+  fastify.get('/', {
+    schema: {
+      description: 'Mendapatkan daftar semua serah terima unit (handover)',
+      tags: ['Handovers'],
+      querystring: {
+        type: 'object',
+        properties: {
+          page: {
+            type: 'string',
+            description: 'Nomor halaman (default: 1)',
+            example: '1'
+          },
+          limit: {
+            type: 'string',
+            description: 'Jumlah data per halaman (default: 20)',
+            example: '10'
+          },
+          status: {
+            type: 'string',
+            enum: ['scheduled', 'completed', 'delayed'],
+            description: 'Filter berdasarkan status serah terima',
+            example: 'completed'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'array' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles]
+  }, controller.getAllHandler);
 
-  // POST / PATCH Handovers (Hanya Admin)
-  fastify.post('/', { 
-    preHandler: [writeRoles, validate(schema.createHandoverSchema)] 
+  // GET - Detail handover by ID
+  fastify.get('/:id', {
+    schema: {
+      description: 'Mendapatkan detail serah terima unit beserta defect reports',
+      tags: ['Handovers'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID handover/serah terima',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles]
+  }, controller.getByIdHandler);
+
+  // POST - Buat handover/serah terima baru
+  fastify.post('/', {
+    schema: {
+      description: 'Membuat jadwal serah terima unit baru',
+      tags: ['Handovers'],
+      body: {
+        type: 'object',
+        required: ['unitId', 'scheduledDate'],
+        properties: {
+          unitId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Unit yang akan diserah terimakan',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          scheduledDate: {
+            type: 'string',
+            format: 'date-time',
+            description: 'Tanggal jadwal serah terima (ISO-8601)',
+            example: '2024-08-15T10:00:00Z'
+          },
+          status: {
+            type: 'string',
+            enum: ['scheduled', 'completed', 'delayed'],
+            description: 'Status awal (default: scheduled)',
+            example: 'scheduled'
+          },
+          notes: {
+            type: 'string',
+            description: 'Catatan atau instruksi serah terima',
+            example: 'Serah terima disertai dengan pemeriksaan kelengkapan fasilitas'
+          },
+          companyId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Perusahaan (optional)',
+            example: '550e8400-e29b-41d4-a716-446655440001'
+          }
+        }
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.createHandoverSchema)]
   }, controller.createHandler);
   
-  fastify.patch('/:id', { 
-    preHandler: [writeRoles] 
+  // PATCH - Update handover
+  fastify.patch('/:id', {
+    schema: {
+      description: 'Mengupdate status dan informasi serah terima',
+      tags: ['Handovers'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID handover yang ingin diupdate',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['scheduled', 'completed', 'delayed'],
+            description: 'Status serah terima baru',
+            example: 'completed'
+          },
+          notes: {
+            type: 'string',
+            description: 'Catatan pembaruan',
+            example: 'Serah terima sudah dilaksanakan, semua fasilitas OK'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles]
   }, controller.updateHandler);
 
-  // POST Defect - Laporan Kerusakan Saat Serah Terima (Admin yang mencatat)
-  fastify.post('/:id/defects', { 
-    preHandler: [writeRoles, validate(schema.defectSchema)] 
+  // POST - Lapor defect/kerusakan saat serah terima
+  fastify.post('/:id/defects', {
+    schema: {
+      description: 'Melaporkan defect/kerusakan yang ditemukan saat serah terima',
+      tags: ['Handovers'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID handover untuk melaporkan defect',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      body: {
+        type: 'object',
+        required: ['description'],
+        properties: {
+          description: {
+            type: 'string',
+            minLength: 5,
+            description: 'Deskripsi detail defect/kerusakan',
+            example: 'Cat dinding di sudut timur ruang tamu terlihat mengelupas'
+          },
+          imageUrl: {
+            type: 'string',
+            format: 'uri',
+            description: 'URL foto bukti defect (optional)',
+            example: 'https://example.com/defect-photo.jpg'
+          },
+          status: {
+            type: 'string',
+            enum: ['reported', 'fixing', 'resolved'],
+            description: 'Status defect (default: reported)',
+            example: 'reported'
+          }
+        }
+      },
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.defectSchema)]
   }, controller.createDefectHandler);
 }
