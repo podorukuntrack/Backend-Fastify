@@ -21,4 +21,4 @@ jobs:
             cd /var/www/Backend-Fastify
             git pull origin main
             npm install
-            pm2 restart proptrack-api
+            pm2 restart api
