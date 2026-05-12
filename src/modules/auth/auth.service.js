@@ -31,10 +31,17 @@ export const loginUser = async (email, password, fastify) => {
 
   await saveRefreshToken(user.id, hashedRefreshToken, expiresAt);
 
-  return {
-    accessToken,
-    refreshToken: rawRefreshToken
-  };
+return {
+  accessToken,
+  refreshToken: rawRefreshToken,
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    companyId: user.companyId,
+  },
+};
 };
 
 export const refreshTokenService = async (oldRefreshToken, fastify) => {
