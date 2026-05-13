@@ -45,15 +45,16 @@ export default async function projectRoutes(fastify, options) {
               success: { type: "boolean" },
               message: { type: "string" },
               data: {
-                type: "array",
+                type: "array", // Untuk GET "/" gunakan array, untuk GET "/:id" gunakan object
                 items: {
                   type: "object",
                   properties: {
                     id: { type: "string", format: "uuid" },
-                    name: { type: "string" },
-                    description: { type: "string" },
+                    nama_proyek: { type: "string" }, // Pastikan namanya sama dengan yang diharapkan frontend
+                    deskripsi: { type: "string" },
+                    lokasi: { type: "string" }, // Tambahkan ini agar muncul
                     status: { type: "string" },
-                    createdAt: { type: "string", format: "date-time" },
+                    created_at: { type: "string", format: "date-time" }, // Tambahkan ini
                   },
                 },
               },
@@ -182,19 +183,24 @@ export default async function projectRoutes(fastify, options) {
         body: {
           type: "object",
           properties: {
-            name: {
+            nama_proyek: {
               type: "string",
               description: "Nama project baru",
               example: "Proyek Pembangunan Toko - Update",
             },
-            description: {
+            deskripsi: {
               type: "string",
               description: "Deskripsi project baru",
               example: "Project untuk pembangunan toko retail - Updated",
             },
+            lokasi: {
+              type: "string",
+              description: "Lokasi project",
+              example: "Jonggol",
+            },
             status: {
               type: "string",
-              enum: ["planning", "ongoing", "completed", "paused"],
+              enum: ["active", "completed", "on_hold"],
               description: "Status project",
               example: "ongoing",
             },

@@ -1,3 +1,4 @@
+// src/modules/projects/project.service.js
 import { db } from "../../config/database.js";
 import { projects } from "../../shared/schemas/schema.js";
 import { eq, and, sql } from "drizzle-orm";
@@ -7,32 +8,34 @@ export const getProjects = async (userContext) => {
   const scope = getTenantScope(projects, userContext);
   const result = await db.select().from(projects).where(scope);
 
-  // Ubah output dari Drizzle agar sesuai dengan Fastify Response Schema
   return result.map((project) => ({
     id: project.id,
-    name: project.namaProyek,        // Map ke 'name'
-    description: project.deskripsi,  // Map ke 'description'
+    nama_proyek: project.namaProyek,
+    deskripsi: project.deskripsi,
+    lokasi: project.lokasi,
     status: project.status,
-    createdAt: project.createdAt.toISOString() // Amankan format tanggal
+    created_at: project.createdAt.toISOString(),
   }));
 };
 
 export const getProject = async (id, userContext) => {
   const scope = getTenantScope(projects, userContext);
-  const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
-  
+  const condition = scope
+    ? and(eq(projects.id, id), scope)
+    : eq(projects.id, id);
+
   const result = await db.select().from(projects).where(condition).limit(1);
-  if (result.length === 0) throw new Error('Project not found');
+  if (result.length === 0) throw new Error("Project not found");
 
   const project = result[0];
-  
-  // Ubah output dari Drizzle
+
   return {
     id: project.id,
-    name: project.namaProyek,
-    description: project.deskripsi,
+    nama_proyek: project.namaProyek,
+    deskripsi: project.deskripsi,
+    lokasi: project.lokasi,
     status: project.status,
-    createdAt: project.createdAt.toISOString()
+    created_at: project.createdAt.toISOString(),
   };
 };
 
@@ -40,11 +43,11 @@ export const createProject = async (data, userContext) => {
   const result = await db
     .insert(projects)
     .values({
-      namaProyek: data.nama_proyek, // Map request body to schema key
+      namaProyek: data.nama_proyek,
       deskripsi: data.deskripsi,
       lokasi: data.lokasi,
       status: data.status || "active",
-      companyId: userContext.companyId, // Gunakan camelCase sesuai log
+      companyId: userContext.companyId,
       createdBy: userContext.sub,
     })
     .returning();
@@ -52,19 +55,44 @@ export const createProject = async (data, userContext) => {
   return result[0];
 };
 
+// Perbaikan fungsi Edit di project.service.js
 export const modifyProject = async (id, data, userContext) => {
   const scope = getTenantScope(projects, userContext);
   const condition = scope
     ? and(eq(projects.id, id), scope)
     : eq(projects.id, id);
 
-  data.updatedAt = new Date();
+  // Mapping Manual: Dari snake_case (frontend) ke camelCase (Drizzle Schema)
+  const updateData = {
+    namaProyek: data.nama_proyek, // Map secara eksplisit
+    deskripsi: data.deskripsi,
+    lokasi: data.lokasi,
+    status: data.status,
+    updatedAt: new Date(),
+  };
+
+  // Hilangkan property yang bernilai undefined agar tidak mengupdate NULL secara tidak sengaja
+  Object.keys(updateData).forEach(
+    (key) => updateData[key] === undefined && delete updateData[key],
+  );
+
   const result = await db
     .update(projects)
-    .set(data)
+    .set(updateData) // Gunakan updateData, BUKAN data langsung
     .where(condition)
     .returning();
-  return result[0];
+
+  // Kembalikan dalam format snake_case agar frontend bisa langsung update UI
+  if (!result[0]) return null;
+
+  return {
+    id: result[0].id,
+    nama_proyek: result[0].namaProyek,
+    deskripsi: result[0].deskripsi,
+    lokasi: result[0].lokasi,
+    status: result[0].status,
+    created_at: result[0].createdAt,
+  };
 };
 
 export const removeProject = async (id, userContext) => {
@@ -78,11 +106,9 @@ export const removeProject = async (id, userContext) => {
 };
 
 export const getProjectStatistics = async (id, userContext) => {
-  // Verifikasi apakah project ada dan user berhak mengaksesnya
   const project = await getProject(id, userContext);
   if (!project) return null;
 
-  // Raw query untuk mengambil statistik dari tabel units dan clusters
   const statsResult = await db.execute(sql`
     SELECT 
       COUNT(u.id) as total_units,

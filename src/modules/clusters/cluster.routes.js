@@ -17,27 +17,10 @@ export default async function clusterRoutes(fastify, options) {
       querystring: {
         type: 'object',
         properties: {
-          page: {
-            type: 'string',
-            description: 'Nomor halaman (default: 1)',
-            example: '1'
-          },
-          limit: {
-            type: 'string',
-            description: 'Jumlah data per halaman (default: 20)',
-            example: '10'
-          },
-          projectId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'Filter berdasarkan Project ID',
-            example: '550e8400-e29b-41d4-a716-446655440000'
-          },
-          search: {
-            type: 'string',
-            description: 'Cari cluster berdasarkan nama',
-            example: 'Cluster A'
-          }
+          page: { type: 'string', description: 'Nomor halaman (default: 1)', example: '1' },
+          limit: { type: 'string', description: 'Jumlah data per halaman (default: 20)', example: '10' },
+          project_id: { type: 'string', format: 'uuid', description: 'Filter berdasarkan Project ID' },
+          search: { type: 'string', description: 'Cari cluster berdasarkan nama', example: 'Cluster A' }
         }
       },
       response: {
@@ -52,9 +35,11 @@ export default async function clusterRoutes(fastify, options) {
                 type: 'object',
                 properties: {
                   id: { type: 'string', format: 'uuid' },
-                  name: { type: 'string' },
-                  projectId: { type: 'string', format: 'uuid' },
-                  companyId: { type: 'string', format: 'uuid' }
+                  project_id: { type: 'string', format: 'uuid' },
+                  nama_cluster: { type: 'string' },
+                  jumlah_unit: { type: 'number' }, // Tambahan jumlah unit
+                  created_at: { type: 'string', format: 'date-time' },
+                  updated_at: { type: 'string', format: 'date-time' }
                 }
               }
             }
@@ -72,26 +57,18 @@ export default async function clusterRoutes(fastify, options) {
       tags: ['Clusters'],
       body: {
         type: 'object',
-        required: ['projectId', 'name'],
+        required: ['project_id', 'nama_cluster'],
         properties: {
-          projectId: {
+          project_id: {
             type: 'string',
             format: 'uuid',
             description: 'ID Project yang memiliki cluster',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
-          name: {
+          nama_cluster: {
             type: 'string',
             minLength: 3,
             maxLength: 255,
             description: 'Nama cluster',
-            example: 'Cluster A - Blok Premium'
-          },
-          companyId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID Perusahaan (optional untuk admin)',
-            example: '550e8400-e29b-41d4-a716-446655440001'
           }
         }
       },
@@ -105,8 +82,9 @@ export default async function clusterRoutes(fastify, options) {
               type: 'object',
               properties: {
                 id: { type: 'string', format: 'uuid' },
-                name: { type: 'string' },
-                projectId: { type: 'string', format: 'uuid' }
+                project_id: { type: 'string', format: 'uuid' },
+                nama_cluster: { type: 'string' },
+                created_at: { type: 'string', format: 'date-time' }
               }
             }
           }
@@ -126,12 +104,7 @@ export default async function clusterRoutes(fastify, options) {
         type: 'object',
         required: ['id'],
         properties: {
-          id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID cluster yang ingin diambil',
-            example: '550e8400-e29b-41d4-a716-446655440000'
-          }
+          id: { type: 'string', format: 'uuid' }
         }
       },
       response: {
@@ -144,9 +117,11 @@ export default async function clusterRoutes(fastify, options) {
               type: 'object',
               properties: {
                 id: { type: 'string', format: 'uuid' },
-                name: { type: 'string' },
-                projectId: { type: 'string', format: 'uuid' },
-                companyId: { type: 'string', format: 'uuid' }
+                project_id: { type: 'string', format: 'uuid' },
+                nama_cluster: { type: 'string' },
+                jumlah_unit: { type: 'number' },
+                created_at: { type: 'string', format: 'date-time' },
+                updated_at: { type: 'string', format: 'date-time' }
               }
             }
           }
@@ -166,35 +141,20 @@ export default async function clusterRoutes(fastify, options) {
         type: 'object',
         required: ['id'],
         properties: {
-          id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID cluster yang ingin diupdate',
-            example: '550e8400-e29b-41d4-a716-446655440000'
-          }
+          id: { type: 'string', format: 'uuid' }
         }
       },
       body: {
         type: 'object',
         properties: {
-          name: {
+          nama_cluster: {
             type: 'string',
             minLength: 3,
             maxLength: 255,
-            description: 'Nama cluster baru',
-            example: 'Cluster A - Blok Premium Updated'
           },
-          projectId: {
+          project_id: {
             type: 'string',
             format: 'uuid',
-            description: 'ID Project baru (opsional)',
-            example: '550e8400-e29b-41d4-a716-446655440000'
-          },
-          companyId: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID Perusahaan baru',
-            example: '550e8400-e29b-41d4-a716-446655440001'
           }
         }
       },
@@ -204,7 +164,7 @@ export default async function clusterRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object' } // Opsional: Bisa dijabarkan propertinya jika butuh strict serialization
           }
         }
       },
@@ -222,12 +182,7 @@ export default async function clusterRoutes(fastify, options) {
         type: 'object',
         required: ['id'],
         properties: {
-          id: {
-            type: 'string',
-            format: 'uuid',
-            description: 'ID cluster yang ingin dihapus',
-            example: '550e8400-e29b-41d4-a716-446655440000'
-          }
+          id: { type: 'string', format: 'uuid' }
         }
       },
       response: {

@@ -1,7 +1,7 @@
 import * as repo from './unit.repository.js';
 
-export const getUnits = async (userContext) => {
-  return await repo.findAllUnits(userContext);
+export const getUnits = async (userContext, filters = {}) => {
+  return await repo.findAllUnits(userContext, filters);
 };
 
 export const getUnit = async (id, userContext) => {
@@ -17,10 +17,21 @@ export const getUnitDetail = async (id, userContext) => {
 };
 
 export const createUnit = async (data, userContext) => {
-  if (userContext.role === 'admin') {
-    data.companyId = userContext.companyId;
-  }
+  // companyId tidak ada di tabel units, tapi cluster sudah terikat ke company
+  // Validasi: pastikan clusterId milik company admin
   return await repo.insertUnit(data);
+};
+
+export const createUnits = async (payload, userContext) => {
+  // payload: { units: [...] }
+  if (!Array.isArray(payload.units) || payload.units.length === 0) {
+    throw new Error('Units array is required and must not be empty');
+  }
+  
+  console.log('Creating units batch:', JSON.stringify(payload.units, null, 2));
+  const result = await repo.insertUnits(payload.units);
+  console.log('Units created successfully:', result);
+  return result;
 };
 
 export const modifyUnit = async (id, data, userContext) => {

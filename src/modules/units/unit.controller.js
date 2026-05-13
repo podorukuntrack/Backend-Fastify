@@ -1,7 +1,7 @@
 import * as service from './unit.service.js';
 
 export const getAllHandler = async (request, reply) => {
-  const data = await service.getUnits(request.user);
+  const data = await service.getUnits(request.user, request.query);
   return reply.code(200).send({ success: true, message: 'Units retrieved', data });
 };
 
@@ -35,6 +35,11 @@ export const updateHandler = async (request, reply) => {
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
+};
+
+export const bulkCreateHandler = async (request, reply) => {
+  const data = await service.createUnits(request.body, request.user);
+  return reply.code(201).send({ success: true, message: 'Units created', data });
 };
 
 export const deleteHandler = async (request, reply) => {
