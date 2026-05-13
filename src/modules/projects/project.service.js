@@ -1,11 +1,20 @@
-import { db } from '../../config/database.js';
-import { projects } from '../../shared/schemas/schema.js';
-import { eq, and, sql } from 'drizzle-orm';
-import { getTenantScope } from '../../shared/utils/scopes.js';
+import { db } from "../../config/database.js";
+import { projects } from "../../shared/schemas/schema.js";
+import { eq, and, sql } from "drizzle-orm";
+import { getTenantScope } from "../../shared/utils/scopes.js";
 
 export const getProjects = async (userContext) => {
   const scope = getTenantScope(projects, userContext);
-  return await db.select().from(projects).where(scope);
+  const result = await db.select().from(projects).where(scope);
+
+  // Ubah output dari Drizzle agar sesuai dengan Fastify Response Schema
+  return result.map((project) => ({
+    id: project.id,
+    name: project.namaProyek,        // Map ke 'name'
+    description: project.deskripsi,  // Map ke 'description'
+    status: project.status,
+    createdAt: project.createdAt.toISOString() // Amankan format tanggal
+  }));
 };
 
 export const getProject = async (id, userContext) => {
@@ -13,26 +22,56 @@ export const getProject = async (id, userContext) => {
   const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
   
   const result = await db.select().from(projects).where(condition).limit(1);
-  return result[0];
+  if (result.length === 0) throw new Error('Project not found');
+
+  const project = result[0];
+  
+  // Ubah output dari Drizzle
+  return {
+    id: project.id,
+    name: project.namaProyek,
+    description: project.deskripsi,
+    status: project.status,
+    createdAt: project.createdAt.toISOString()
+  };
 };
 
-export const createProject = async (data) => {
-  const result = await db.insert(projects).values(data).returning();
+export const createProject = async (data, userContext) => {
+  const result = await db
+    .insert(projects)
+    .values({
+      namaProyek: data.nama_proyek, // Map request body to schema key
+      deskripsi: data.deskripsi,
+      lokasi: data.lokasi,
+      status: data.status || "active",
+      companyId: userContext.companyId, // Gunakan camelCase sesuai log
+      createdBy: userContext.sub,
+    })
+    .returning();
+
   return result[0];
 };
 
 export const modifyProject = async (id, data, userContext) => {
   const scope = getTenantScope(projects, userContext);
-  const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
+  const condition = scope
+    ? and(eq(projects.id, id), scope)
+    : eq(projects.id, id);
 
   data.updatedAt = new Date();
-  const result = await db.update(projects).set(data).where(condition).returning();
+  const result = await db
+    .update(projects)
+    .set(data)
+    .where(condition)
+    .returning();
   return result[0];
 };
 
 export const removeProject = async (id, userContext) => {
   const scope = getTenantScope(projects, userContext);
-  const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
+  const condition = scope
+    ? and(eq(projects.id, id), scope)
+    : eq(projects.id, id);
 
   const result = await db.delete(projects).where(condition).returning();
   return result[0];
