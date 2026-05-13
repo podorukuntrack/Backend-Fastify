@@ -3,12 +3,12 @@ import { projects } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 
-export const findAllProjects = async (userContext) => {
+export const getProjects = async (userContext) => {
   const scope = getTenantScope(projects, userContext);
   return await db.select().from(projects).where(scope);
 };
 
-export const findProjectById = async (id, userContext) => {
+export const getProject = async (id, userContext) => {
   const scope = getTenantScope(projects, userContext);
   const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
   
@@ -16,12 +16,12 @@ export const findProjectById = async (id, userContext) => {
   return result[0];
 };
 
-export const insertProject = async (data) => {
+export const createProject = async (data) => {
   const result = await db.insert(projects).values(data).returning();
   return result[0];
 };
 
-export const updateProject = async (id, data, userContext) => {
+export const modifyProject = async (id, data, userContext) => {
   const scope = getTenantScope(projects, userContext);
   const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
 
@@ -30,7 +30,7 @@ export const updateProject = async (id, data, userContext) => {
   return result[0];
 };
 
-export const deleteProject = async (id, userContext) => {
+export const removeProject = async (id, userContext) => {
   const scope = getTenantScope(projects, userContext);
   const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
 
@@ -38,9 +38,9 @@ export const deleteProject = async (id, userContext) => {
   return result[0];
 };
 
-export const getProjectStats = async (id, userContext) => {
+export const getProjectStatistics = async (id, userContext) => {
   // Verifikasi apakah project ada dan user berhak mengaksesnya
-  const project = await findProjectById(id, userContext);
+  const project = await getProject(id, userContext);
   if (!project) return null;
 
   // Raw query untuk mengambil statistik dari tabel units dan clusters

@@ -39,12 +39,15 @@ export const refreshTokens = pgTable('refresh_tokens', {
 export const projects = pgTable('projects', {
   id: uuid('id').defaultRandom().primaryKey(),
   companyId: uuid('company_id').references(() => companies.id).notNull(),
-  name: varchar('name', { length: 255 }).notNull(),
-  location: text('location'),
-  status: varchar('status', { length: 50 }).default('active'), // active, completed
+  namaProyek: varchar('nama_proyek', { length: 255 }).notNull(),
+  deskripsi: text('deskripsi'),
+  lokasi: text('lokasi'),
+  status: varchar('status', { length: 50 }).default('active'),
+  createdBy: uuid('created_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
 
 export const clusters = pgTable('clusters', {
   id: uuid('id').defaultRandom().primaryKey(),

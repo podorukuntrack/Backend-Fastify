@@ -3,7 +3,7 @@ import fp from 'fastify-plugin';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import Ajv from 'ajv';
-import { url } from 'zod';
+import addFormats from 'ajv-formats'; // ← tambah ini
 
 /**
  * Menghapus keyword OpenAPI yang tidak dikenali AJV:
@@ -41,6 +41,8 @@ async function swaggerPlugin(fastify) {
     allErrors: true,
     strict: false
   });
+
+    addFormats(ajv); // ← tambah ini
 
   /**
    * Compiler global untuk seluruh schema.

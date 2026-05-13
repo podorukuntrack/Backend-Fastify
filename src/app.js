@@ -23,8 +23,18 @@ import whatsappRoutes from "./modules/whatsapp/whatsapp.routes.js";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes.js";
 
 export async function buildApp() {
-  const app = Fastify({ logger: true });
-
+  const app = Fastify({
+    logger: {
+      transport: {
+        target: "pino-pretty",
+        options: {
+          translateTime: "HH:MM:ss",
+          ignore: "pid,hostname",
+          colorize: true,
+        },
+      },
+    },
+  });
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",")
     : [];
@@ -75,13 +85,13 @@ export async function buildApp() {
   await app.register(progressRoutes, { prefix: "/api/v1/progress" });
   await app.register(documentationRoutes, { prefix: "/api/v1/documentations" });
   await app.register(assignmentRoutes, { prefix: "/api/v1/assignments" });
-  await app.register(paymentRoutes, { prefix: "/api/v1" });
+  await app.register(paymentRoutes, { prefix: "/api/v1/payments" });
   await app.register(timelineRoutes, { prefix: "/api/v1/timelines" });
   await app.register(retentionRoutes, { prefix: "/api/v1/retentions" });
   await app.register(handoverRoutes, { prefix: "/api/v1/handovers" });
   await app.register(ticketRoutes, { prefix: "/api/v1/tickets" });
   await app.register(whatsappRoutes, { prefix: "/api/v1/whatsapp" });
-  await app.register(dashboardRoutes, { prefix: "/api/v1" });
+  await app.register(dashboardRoutes, { prefix: "/api/v1/dashboard" });
 
   app.get("/", async () => ({
     success: true,
