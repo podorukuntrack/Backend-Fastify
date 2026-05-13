@@ -25,16 +25,23 @@ export const getUser = async (id, userContext) => {
 };
 
 export const createUser = async (data, userContext) => {
-  // Jika yang membuat adalah admin, pastikan companyId dipaksa ke company admin tersebut
   if (userContext.role === 'admin') {
     data.companyId = userContext.companyId;
   }
 
-  // Hash password
   const salt = await bcrypt.genSalt(10);
-  data.password = await bcrypt.hash(data.password, salt);
+  const hashedPassword = await bcrypt.hash(data.password, salt);
 
-  return await repo.insertUser(data);
+  // Mapping data agar sesuai dengan schema.js sebelum dikirim ke repository
+  const userData = {
+    company_id: data.companyId,
+    nama: data.name,
+    email: data.email,
+    password_hash: hashedPassword, // <--- Sesuaikan dengan properti di schema.js
+    role: data.role
+  };
+
+  return await repo.insertUser(userData);
 };
 
 export const modifyUser = async (id, data, userContext) => {

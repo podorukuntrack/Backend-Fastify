@@ -1,14 +1,14 @@
 // src/modules/auth/auth.service.js
 
-import bcrypt from "bcrypt";
-import crypto from "crypto";
-import { findUserByEmail, saveRefreshToken } from "./auth.repository.js";
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { findUserByEmail, saveRefreshToken } from './auth.repository.js';
 
 export const loginUser = async (email, password, fastify) => {
   const user = await findUserByEmail(email);
 
   if (!user) {
-    throw new Error("Invalid credentials");
+    throw new Error('Invalid credentials');
   }
 
   const isValidPassword = await bcrypt.compare(
@@ -17,7 +17,7 @@ export const loginUser = async (email, password, fastify) => {
   );
 
   if (!isValidPassword) {
-    throw new Error("Invalid credentials");
+    throw new Error('Invalid credentials');
   }
 
   // JWT payload
@@ -30,28 +30,37 @@ export const loginUser = async (email, password, fastify) => {
 
   // Access token
   const accessToken = fastify.jwt.sign(payload, {
-    expiresIn: "15m",
+    expiresIn: '15m',
   });
-
-  // Refresh token
+  
+  // Refresh token raw
   const rawRefreshToken = crypto
     .randomBytes(40)
-    .toString("hex");
+    .toString('hex');
 
+  // Hash refresh token
   const hashedRefreshToken = crypto
-    .createHash("sha256")
+    .createHash('sha256')
     .update(rawRefreshToken)
-    .digest("hex");
+    .digest('hex');
 
-  const expiresAt =
-    Date.now() + 30 * 24 * 60 * 60 * 1000;
+  // Expired 30 hari
+  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
+  console.log('Login user:', {
+    userId: user.id,
+    companyId: user.company_id,
+    expiresAt,
+  });
+
+  // Simpan refresh token
   await saveRefreshToken(
     user.id,
     hashedRefreshToken,
     expiresAt
   );
 
+  // Response
   return {
     accessToken,
     refreshToken: rawRefreshToken,
@@ -63,4 +72,22 @@ export const loginUser = async (email, password, fastify) => {
       companyId: user.company_id,
     },
   };
+};
+
+export const refreshTokenService = async (
+  oldRefreshToken,
+  fastify
+) => {
+  throw new Error('Not implemented');
+};
+
+export const logoutUser = async (refreshToken) => {
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(refreshToken)
+    .digest('hex');
+
+  console.log('Logout token hash:', hashedToken);
+
+  return true;
 };

@@ -1,7 +1,8 @@
 // src/modules/auth/auth.repository.js
-import { db } from "../../config/database.js";
-import { users, refreshTokens } from "../../shared/schemas/schema.js";
-import { eq } from "drizzle-orm";
+
+import { db } from '../../config/database.js';
+import { users, refreshTokens } from '../../shared/schemas/schema.js';
+import { eq } from 'drizzle-orm';
 
 export const findUserByEmail = async (email) => {
   const result = await db
@@ -9,13 +10,24 @@ export const findUserByEmail = async (email) => {
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
-  return result[0];
+
+  return result[0] || null;
 };
 
-export const saveRefreshToken = async (userId, hashedToken, expiresAt) => {
+export const saveRefreshToken = async (
+  userId,
+  tokenHash,
+  expiresAt
+) => {
+  console.log('saveRefreshToken params:', {
+    userId,
+    tokenHash,
+    expiresAt,
+  });
+
   await db.insert(refreshTokens).values({
-    user_id: userId,
-    token: hashedToken,
-    expires_at: new Date(expiresAt),
+    userId,
+    token: tokenHash, // <--- Ubah key di sini menjadi "token"
+    expiresAt: new Date(expiresAt),
   });
 };
