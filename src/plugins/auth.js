@@ -1,13 +1,15 @@
-// src/plugins/auth.js
 import fp from 'fastify-plugin';
 import fastifyJwt from '@fastify/jwt';
 
 export default fp(async function (fastify, opts) {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is missing in environment');
+  }
+
   fastify.register(fastifyJwt, {
-    secret: process.env.JWT_SECRET
+    secret: process.env.JWT_SECRET,
   });
 
-  // Decorator middleware untuk memproteksi endpoint
   fastify.decorate('authenticate', async function (request, reply) {
     try {
       await request.jwtVerify();
@@ -15,7 +17,7 @@ export default fp(async function (fastify, opts) {
       reply.code(401).send({
         success: false,
         message: 'Unauthorized',
-        errors: []
+        errors: [],
       });
     }
   });

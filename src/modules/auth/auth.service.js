@@ -3,7 +3,6 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { findUserByEmail, saveRefreshToken } from "./auth.repository.js";
-import { eq } from "drizzle-orm";
 
 export const loginUser = async (email, password, fastify) => {
   const user = await findUserByEmail(email);
@@ -14,7 +13,7 @@ export const loginUser = async (email, password, fastify) => {
 
   const isValidPassword = await bcrypt.compare(
     password,
-    user.password_hash,
+    user.password_hash
   );
 
   if (!isValidPassword) {
@@ -24,7 +23,7 @@ export const loginUser = async (email, password, fastify) => {
   // JWT payload
   const payload = {
     sub: user.id,
-    companyId: user.companyId,
+    companyId: user.company_id,
     role: user.role,
     email: user.email,
   };
@@ -50,38 +49,18 @@ export const loginUser = async (email, password, fastify) => {
   await saveRefreshToken(
     user.id,
     hashedRefreshToken,
-    expiresAt,
+    expiresAt
   );
 
-  // IMPORTANT:
-  // Return token + user object
   return {
     accessToken,
     refreshToken: rawRefreshToken,
     user: {
       id: user.id,
-      name: user.name,
+      name: user.nama,
       email: user.email,
       role: user.role,
-      companyId: user.companyId,
+      companyId: user.company_id,
     },
   };
-};
-
-export const refreshTokenService = async (
-  oldRefreshToken,
-  fastify,
-) => {
-  // Sesuaikan implementasi Anda
-  throw new Error("Not implemented");
-};
-
-export const logoutUser = async (refreshToken) => {
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(refreshToken)
-    .digest("hex");
-
-  // Sesuaikan implementasi Anda
-  return true;
 };
