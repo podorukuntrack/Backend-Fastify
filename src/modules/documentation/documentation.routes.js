@@ -7,6 +7,15 @@ import * as controller from './documentation.controller.js';
 export default async function documentationRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
 
+  fastify.get('/', {
+    schema: {
+      description: 'Mendapatkan daftar dokumentasi',
+      tags: ['Documentation'],
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: authorize('super_admin', 'admin', 'customer')
+  }, controller.getAllHandler);
+
   // GET - Dapatkan dokumentasi unit
   fastify.get('/units/:id/documentation', {
     schema: {
@@ -65,6 +74,16 @@ export default async function documentationRoutes(fastify, options) {
   }, controller.getByUnitHandler);
 
   // POST - Upload dokumen/file
+  fastify.post('/', {
+    schema: {
+      description: 'Upload dokumen/file untuk unit',
+      tags: ['Documentation'],
+      consumes: ['multipart/form-data'],
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: authorize('super_admin', 'admin')
+  }, controller.uploadHandler);
+
   fastify.post('/documentation/upload', {
     schema: {
       description: 'Upload dokumen/file untuk unit',
@@ -115,6 +134,18 @@ export default async function documentationRoutes(fastify, options) {
   }, controller.uploadHandler);
 
   // DELETE - Hapus dokumen
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Menghapus dokumen/file',
+      tags: ['Documentation'],
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [
+      authorize('super_admin', 'admin'),
+      validate(schema.docIdParamSchema)
+    ]
+  }, controller.deleteHandler);
+
   fastify.delete('/documentation/:id', {
     schema: {
       description: 'Menghapus dokumen/file',

@@ -1,8 +1,11 @@
 import * as repo from './assignment.repository.js';
-import { findProjectById } from '../projects/project.repository.js';
 
-export const getAssignments = async (userContext) => {
-  return await repo.findAllAssignments(userContext);
+export const getAssignments = async (userContext, filters = {}) => {
+  return await repo.findAllAssignments(userContext, filters);
+};
+
+export const getAssignmentsMeta = async (userContext) => {
+  return await repo.countAssignments(userContext);
 };
 
 export const getAssignment = async (id, userContext) => {
@@ -12,17 +15,23 @@ export const getAssignment = async (id, userContext) => {
 };
 
 export const createAssignment = async (data, userContext) => {
-  if (userContext.role === 'admin') data.companyId = userContext.companyId;
-  
-  // Verifikasi kepemilikan project
-  const project = await findProjectById(data.projectId, userContext);
-  if (!project) throw new Error('Project not found or access denied');
-
-  return await repo.insertAssignment(data);
+  return await repo.insertAssignment(data, userContext);
 };
 
 export const modifyAssignment = async (id, data, userContext) => {
   const result = await repo.updateAssignment(id, data, userContext);
+  if (!result) throw new Error('Assignment not found or access denied');
+  return result;
+};
+
+export const getAssignmentPayments = async (id, userContext) => {
+  const result = await repo.findPaymentsByAssignmentId(id, userContext);
+  if (!result) throw new Error('Assignment not found or access denied');
+  return result;
+};
+
+export const createAssignmentPayment = async (id, data, userContext) => {
+  const result = await repo.insertPayment(id, data, userContext);
   if (!result) throw new Error('Assignment not found or access denied');
   return result;
 };

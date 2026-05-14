@@ -2,8 +2,8 @@
 import * as service from './user.service.js';
 
 export const getAllHandler = async (request, reply) => {
-  const { page, limit } = request.query;
-  const result = await service.getUsers(page, limit, request.user);
+  const { page, limit, search, role } = request.query;
+  const result = await service.getUsers(page, limit, request.user, { search, role });
   
   // Custom response untuk pagination
   return reply.code(200).send(result);

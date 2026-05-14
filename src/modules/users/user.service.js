@@ -2,8 +2,8 @@
 import bcrypt from 'bcrypt';
 import * as repo from './user.repository.js';
 
-export const getUsers = async (page, limit, userContext) => {
-  const { data, total } = await repo.findUsers(page, limit, userContext);
+export const getUsers = async (page, limit, userContext, filters = {}) => {
+  const { data, total } = await repo.findUsers(page, limit, userContext, filters);
   
   const totalPages = Math.ceil(total / limit);
   
@@ -26,7 +26,7 @@ export const getUser = async (id, userContext) => {
 
 export const createUser = async (data, userContext) => {
   if (userContext.role === 'admin') {
-    data.companyId = userContext.companyId;
+    data.company_id = userContext.companyId;
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -34,18 +34,34 @@ export const createUser = async (data, userContext) => {
 
   // Mapping data agar sesuai dengan schema.js sebelum dikirim ke repository
   const userData = {
-    company_id: data.companyId,
-    nama: data.name,
+    company_id: data.company_id ?? data.companyId ?? null,
+    nama: data.nama ?? data.name,
     email: data.email,
-    password_hash: hashedPassword, // <--- Sesuaikan dengan properti di schema.js
-    role: data.role
+    password_hash: hashedPassword,
+    nomor_telepon: data.nomor_telepon,
+    role: data.role,
+    status: data.status,
   };
 
   return await repo.insertUser(userData);
 };
 
 export const modifyUser = async (id, data, userContext) => {
-  const user = await repo.updateUser(id, data, userContext);
+  const updateData = {
+    company_id: data.company_id ?? data.companyId,
+    nama: data.nama ?? data.name,
+    email: data.email,
+    nomor_telepon: data.nomor_telepon,
+    role: data.role,
+    status: data.status,
+  };
+
+  if (data.password) {
+    const salt = await bcrypt.genSalt(10);
+    updateData.password_hash = await bcrypt.hash(data.password, salt);
+  }
+
+  const user = await repo.updateUser(id, updateData, userContext);
   if (!user) throw new Error('User not found or access denied');
   return user;
 };

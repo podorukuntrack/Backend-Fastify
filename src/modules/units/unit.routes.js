@@ -21,12 +21,22 @@ const STATUS_PEMBANGUNAN = [
 const baseUnitProperties = {
   id: { type: 'string', format: 'uuid' },
   clusterId: { type: 'string', format: 'uuid' },
+  cluster_id: { type: 'string', format: 'uuid' },
   nomorUnit: { type: 'string' },
+  nomor_unit: { type: 'string' },
   tipeRumah: { type: 'string' },
+  tipe_rumah: { type: 'string' },
   luasTanah: { type: 'number' },
+  luas_tanah: { type: ['number', 'string', 'null'] },
   luasBangunan: { type: 'number' },
+  luas_bangunan: { type: ['number', 'string', 'null'] },
   statusPembangunan: { type: 'string', enum: STATUS_PEMBANGUNAN },
+  status_pembangunan: { type: 'string' },
   progressPercentage: { type: 'integer' },
+  progress_percentage: { type: 'integer' },
+  cluster: { type: ['object', 'null'], additionalProperties: true },
+  created_at: { type: 'string', format: 'date-time' },
+  updated_at: { type: 'string', format: 'date-time' },
 };
 
 const buildResponse = (dataSchema, isArray = false) => ({
@@ -160,6 +170,19 @@ export default async function unitRoutes(fastify) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [writeRoles, validate(schema.bulkCreateUnitsSchema)],
+    },
+    controller.bulkCreateHandler
+  );
+
+  fastify.post(
+    '/bulk',
+    {
+      schema: {
+        description: 'Create multiple units',
+        tags: ['Units'],
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: [writeRoles],
     },
     controller.bulkCreateHandler
   );

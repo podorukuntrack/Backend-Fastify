@@ -2,10 +2,17 @@ import { z } from 'zod';
 
 export const createProgressSchema = {
   body: z.object({
-    companyId: z.string().uuid().optional(),
-    unitId: z.string().uuid("Format Unit ID tidak valid"),
-    percentage: z.number().min(0).max(100, "Persentase maksimal 100"),
+    unitId: z.string().uuid("Format Unit ID tidak valid").optional(),
+    unit_id: z.string().uuid("Format Unit ID tidak valid").optional(),
+    tahap: z.string().min(1).optional(),
+    progress_percentage: z.coerce.number().min(0).max(100, "Persentase maksimal 100").optional(),
+    percentage: z.coerce.number().min(0).max(100, "Persentase maksimal 100").optional(),
+    tanggal_update: z.string().optional(),
+    catatan: z.string().optional(),
     notes: z.string().optional()
+  }).refine((data) => data.unitId || data.unit_id, {
+    message: "Unit ID wajib diisi",
+    path: ["unit_id"],
   })
 };
 
@@ -14,7 +21,13 @@ export const updateProgressSchema = {
     id: z.string().uuid()
   }),
   body: z.object({
-    percentage: z.number().min(0).max(100).optional(),
+    unitId: z.string().uuid().optional(),
+    unit_id: z.string().uuid().optional(),
+    tahap: z.string().min(1).optional(),
+    progress_percentage: z.coerce.number().min(0).max(100).optional(),
+    percentage: z.coerce.number().min(0).max(100).optional(),
+    tanggal_update: z.string().optional(),
+    catatan: z.string().optional(),
     notes: z.string().optional()
   })
 };

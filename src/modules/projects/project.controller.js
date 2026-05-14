@@ -15,9 +15,12 @@ export const getByIdHandler = async (request, reply) => {
 };
 
 export const createHandler = async (request, reply) => {
-  console.log("USER DATA:", request.user); // CEK INI DI TERMINAL
-  const data = await service.createProject(request.body, request.user);
-  return reply.code(201).send({ success: true, message: 'Project created', data });
+  try {
+    const data = await service.createProject(request.body, request.user);
+    return reply.code(201).send({ success: true, message: 'Project created', data });
+  } catch (error) {
+    return reply.code(error.statusCode || 400).send({ success: false, message: error.message, errors: [] });
+  }
 };
 
 export const updateHandler = async (request, reply) => {

@@ -26,6 +26,119 @@ export default async function dashboardRoutes(fastify, options) {
     });
 
   // =========================================================
+  // DASHBOARD STATS USED BY FRONTEND
+  // =========================================================
+  fastify.get(
+    "/stats",
+    {
+      schema: removeExamples({
+        description: "Mendapatkan statistik dashboard utama untuk frontend.",
+        tags: ["Dashboard"],
+        security: [{ bearerAuth: [] }],
+      }),
+      preHandler: authorize("super_admin", "admin"),
+    },
+    async (request, reply) => {
+      const cid = request.user.companyId ?? null;
+
+      const result = await db.execute(sql`
+        SELECT
+          (SELECT COUNT(*)::int
+             FROM projects p
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS projects_total,
+          (SELECT COUNT(*)::int
+             FROM projects p
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+              AND p.status = 'active') AS projects_active,
+          (SELECT COUNT(*)::int
+             FROM projects p
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+              AND p.status = 'completed') AS projects_completed,
+          (SELECT COUNT(*)::int
+             FROM projects p
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+              AND p.status = 'on_hold') AS projects_on_hold,
+
+          (SELECT COUNT(*)::int
+             FROM units u
+             JOIN clusters c ON c.id = u.cluster_id
+             JOIN projects p ON p.id = c.project_id
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS units_total,
+          (SELECT COUNT(*)::int
+             FROM units u
+             JOIN clusters c ON c.id = u.cluster_id
+             JOIN projects p ON p.id = c.project_id
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+              AND u.status_pembangunan = 'selesai') AS units_selesai,
+          (SELECT COUNT(*)::int
+             FROM units u
+             JOIN clusters c ON c.id = u.cluster_id
+             JOIN projects p ON p.id = c.project_id
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+              AND u.status_pembangunan = 'dalam_pembangunan') AS units_dalam_pembangunan,
+          (SELECT COUNT(*)::int
+             FROM units u
+             JOIN clusters c ON c.id = u.cluster_id
+             JOIN projects p ON p.id = c.project_id
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+              AND u.status_pembangunan = 'belum_mulai') AS units_belum_mulai,
+
+          (SELECT COUNT(*)::int
+             FROM users u
+            WHERE u.role = 'customer'
+              AND (${cid}::uuid IS NULL OR u.company_id = ${cid}::uuid)) AS customers_total,
+          (SELECT COUNT(*)::int
+             FROM users u
+            WHERE u.role = 'customer'
+              AND u.status = 'active'
+              AND (${cid}::uuid IS NULL OR u.company_id = ${cid}::uuid)) AS customers_active,
+
+          (SELECT COUNT(*)::int
+             FROM property_assignments pa
+             JOIN units u ON u.id = pa.unit_id
+             JOIN clusters c ON c.id = u.cluster_id
+             JOIN projects p ON p.id = c.project_id
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS assignments_total,
+          (SELECT COUNT(*)::int
+             FROM property_assignments pa
+             JOIN units u ON u.id = pa.unit_id
+             JOIN clusters c ON c.id = u.cluster_id
+             JOIN projects p ON p.id = c.project_id
+            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+              AND pa.status_kepemilikan = 'active') AS assignments_active
+      `);
+
+      const stats = result[0];
+
+      return {
+        success: true,
+        data: {
+          projects: {
+            total: stats.projects_total,
+            active: stats.projects_active,
+            completed: stats.projects_completed,
+            on_hold: stats.projects_on_hold,
+          },
+          units: {
+            total: stats.units_total,
+            selesai: stats.units_selesai,
+            dalam_pembangunan: stats.units_dalam_pembangunan,
+            belum_mulai: stats.units_belum_mulai,
+          },
+          customers: {
+            total: stats.customers_total,
+            active: stats.customers_active,
+          },
+          assignments: {
+            total: stats.assignments_total,
+            active: stats.assignments_active,
+          },
+        },
+      };
+    },
+  );
+
+  // =========================================================
   // 1. ADMIN DASHBOARD
   // =========================================================
   fastify.get(

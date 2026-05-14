@@ -61,8 +61,19 @@ export default async function assignmentRoutes(fastify, options) {
                     contractorName: { type: "string" },
                     taskDescription: { type: "string" },
                     status: { type: "string" },
+                    tanggal_pembelian: { type: "string" },
+                    status_kepemilikan: { type: "string" },
+                    user: { type: "object", additionalProperties: true },
+                    unit: { type: "object", additionalProperties: true },
+                    pembayaran: { type: "object", additionalProperties: true },
+                    created_at: { type: "string", format: "date-time" },
+                    updated_at: { type: "string", format: "date-time" },
                   },
                 },
+              },
+              meta: {
+                type: "object",
+                additionalProperties: true,
               },
             },
           },
@@ -83,8 +94,47 @@ export default async function assignmentRoutes(fastify, options) {
         tags: ["Assignments"],
         body: {
           type: "object",
-          required: ["projectId", "contractorName", "taskDescription"],
+          required: ["user_id", "unit_id"],
           properties: {
+            user_id: {
+              type: "string",
+              format: "uuid",
+              description: "ID customer",
+            },
+            unit_id: {
+              type: "string",
+              format: "uuid",
+              description: "ID unit",
+            },
+            project_id: {
+              type: "string",
+              format: "uuid",
+            },
+            cluster_id: {
+              type: "string",
+              format: "uuid",
+            },
+            tanggal_pembelian: {
+              type: "string",
+              format: "date",
+            },
+            status_kepemilikan: {
+              type: "string",
+              enum: ["active", "inactive", "cancelled", "completed"],
+            },
+            tipe_pembayaran: {
+              type: "string",
+              enum: ["cash_lunas", "cash_cicil", "kredit_kpr"],
+            },
+            harga_total: {
+              type: "number",
+            },
+            tenor_bulan: {
+              type: "number",
+            },
+            keterangan_kpr: {
+              type: "string",
+            },
             projectId: {
               type: "string",
               format: "uuid",
@@ -250,6 +300,18 @@ export default async function assignmentRoutes(fastify, options) {
               description: "Tanggal target selesai baru",
               example: "2024-08-10T17:00:00Z",
             },
+            tanggal_pembelian: { type: "string", format: "date" },
+            status_kepemilikan: {
+              type: "string",
+              enum: ["active", "inactive", "cancelled", "completed"],
+            },
+            tipe_pembayaran: {
+              type: "string",
+              enum: ["cash_lunas", "cash_cicil", "kredit_kpr"],
+            },
+            harga_total: { type: "number" },
+            tenor_bulan: { type: "number" },
+            keterangan_kpr: { type: "string" },
           },
         },
         response: {
@@ -270,5 +332,37 @@ export default async function assignmentRoutes(fastify, options) {
       ],
     },
     controller.updateHandler,
+  );
+
+  fastify.get(
+    "/:id/payments",
+    {
+      schema: {
+        description: "Mendapatkan riwayat pembayaran assignment",
+        tags: ["Assignments"],
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: [
+        authorize("super_admin", "admin", "customer"),
+        validate(schema.assignmentIdParamSchema),
+      ],
+    },
+    controller.getPaymentsHandler,
+  );
+
+  fastify.post(
+    "/:id/payments",
+    {
+      schema: {
+        description: "Mencatat pembayaran assignment",
+        tags: ["Assignments"],
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: [
+        authorize("super_admin", "admin"),
+        validate(schema.createPaymentSchema),
+      ],
+    },
+    controller.createPaymentHandler,
   );
 }

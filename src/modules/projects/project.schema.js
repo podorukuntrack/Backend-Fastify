@@ -5,7 +5,9 @@ export const createProjectSchema = {
     nama_proyek: z.string().min(3, "Nama project minimal 3 karakter").max(255),
     lokasi: z.string().optional(),
     deskripsi: z.string().optional(),
-    status: z.enum(['active', 'completed', 'on_hold']).default('active')
+    status: z.enum(['active', 'completed', 'on_hold']).default('active'),
+    company_id: z.string().uuid().optional(),
+    companyId: z.string().uuid().optional(),
   })
 };
 

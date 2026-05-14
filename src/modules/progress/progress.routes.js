@@ -58,8 +58,16 @@ export default async function progressRoutes(fastify, options) {
                 properties: {
                   id: { type: 'string', format: 'uuid' },
                   unitId: { type: 'string', format: 'uuid' },
+                  unit_id: { type: 'string', format: 'uuid' },
                   percentage: { type: 'number' },
+                  tahap: { type: 'string' },
+                  progress_percentage: { type: 'number' },
+                  tanggal_update: { type: 'string' },
+                  catatan: { type: 'string' },
                   notes: { type: 'string' }
+                  ,unit: { type: ['object', 'null'], additionalProperties: true },
+                  created_at: { type: 'string', format: 'date-time' },
+                  updated_at: { type: 'string', format: 'date-time' }
                 }
               }
             }
@@ -162,9 +170,15 @@ export default async function progressRoutes(fastify, options) {
       tags: ['Progress'],
       body: {
         type: 'object',
-        required: ['unitId', 'percentage'],
+        required: [],
         properties: {
           unitId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Unit yang di-update progressnya',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          unit_id: {
             type: 'string',
             format: 'uuid',
             description: 'ID Unit yang di-update progressnya',
@@ -176,6 +190,23 @@ export default async function progressRoutes(fastify, options) {
             maximum: 100,
             description: 'Persentase progress pengerjaan unit (0-100)',
             example: '75'
+          },
+          progress_percentage: {
+            type: 'number',
+            minimum: 0,
+            maximum: 100,
+            description: 'Persentase progress pengerjaan unit (0-100)',
+            example: '75'
+          },
+          tahap: {
+            type: 'string'
+          },
+          tanggal_update: {
+            type: 'string',
+            format: 'date'
+          },
+          catatan: {
+            type: 'string'
           },
           notes: {
             type: 'string',
@@ -243,6 +274,25 @@ export default async function progressRoutes(fastify, options) {
             type: 'string',
             description: 'Catatan progress baru',
             example: 'Pengecatan sudah 85% selesai, tinggal finishing'
+          },
+          unit_id: {
+            type: 'string',
+            format: 'uuid'
+          },
+          tahap: {
+            type: 'string'
+          },
+          progress_percentage: {
+            type: 'number',
+            minimum: 0,
+            maximum: 100
+          },
+          tanggal_update: {
+            type: 'string',
+            format: 'date'
+          },
+          catatan: {
+            type: 'string'
           }
         }
       },

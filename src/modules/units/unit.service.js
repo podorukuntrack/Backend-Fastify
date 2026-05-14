@@ -23,15 +23,13 @@ export const createUnit = async (data, userContext) => {
 };
 
 export const createUnits = async (payload, userContext) => {
-  // payload: { units: [...] }
-  if (!Array.isArray(payload.units) || payload.units.length === 0) {
+  const units = Array.isArray(payload) ? payload : payload.units;
+
+  if (!Array.isArray(units) || units.length === 0) {
     throw new Error('Units array is required and must not be empty');
   }
-  
-  console.log('Creating units batch:', JSON.stringify(payload.units, null, 2));
-  const result = await repo.insertUnits(payload.units);
-  console.log('Units created successfully:', result);
-  return result;
+
+  return await repo.insertUnits(units);
 };
 
 export const modifyUnit = async (id, data, userContext) => {

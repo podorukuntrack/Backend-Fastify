@@ -40,6 +40,14 @@ export const getProject = async (id, userContext) => {
 };
 
 export const createProject = async (data, userContext) => {
+  const companyId = data.company_id ?? data.companyId ?? userContext.companyId;
+
+  if (!companyId) {
+    const error = new Error("Pilih perusahaan terlebih dahulu untuk membuat proyek");
+    error.statusCode = 400;
+    throw error;
+  }
+
   const result = await db
     .insert(projects)
     .values({
@@ -47,7 +55,7 @@ export const createProject = async (data, userContext) => {
       deskripsi: data.deskripsi,
       lokasi: data.lokasi,
       status: data.status || "active",
-      companyId: userContext.companyId,
+      companyId,
       createdBy: userContext.sub,
     })
     .returning();
@@ -116,7 +124,7 @@ export const getProjectStatistics = async (id, userContext) => {
       SUM(CASE WHEN u.status = 'available' THEN 1 ELSE 0 END) as available_units
     FROM units u
     JOIN clusters c ON u.cluster_id = c.id
-    WHERE c.project_id = ${id} AND u.company_id = ${project.companyId}
+    WHERE c.project_id = ${id}
   `);
 
   return statsResult[0];

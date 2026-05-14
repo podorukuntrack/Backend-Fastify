@@ -1,8 +1,8 @@
 import * as repo from './progress.repository.js';
 import { findUnitById } from '../units/unit.repository.js';
 
-export const getProgressList = async (userContext) => {
-  return await repo.findAllProgress(userContext);
+export const getProgressList = async (userContext, filters = {}) => {
+  return await repo.findAllProgress(userContext, filters);
 };
 
 export const getProgressByUnit = async (unitId, userContext) => {
@@ -25,7 +25,7 @@ export const createProgress = async (data, userContext) => {
   const unit = await findUnitById(data.unitId, userContext);
   if (!unit) throw new Error('Unit not found or access denied');
 
-  return await repo.insertProgress(data);
+  return await repo.insertProgress(data, userContext);
 };
 
 export const modifyProgress = async (id, data, userContext) => {

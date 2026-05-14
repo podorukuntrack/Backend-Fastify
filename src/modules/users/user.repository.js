@@ -1,76 +1,93 @@
 // src/modules/users/user.repository.js
 import { db } from '../../config/database.js';
-import { users } from '../../shared/schemas/schema.js';
-import { eq, and, sql } from 'drizzle-orm';
-import { getTenantScope } from '../../shared/utils/scopes.js'; // <-- Sudah diganti ke getTenantScope
+import { sql } from 'drizzle-orm';
 
-export const findUsers = async (page, limit, userContext) => {
+export const findUsers = async (page, limit, userContext, filters = {}) => {
   const offset = (page - 1) * limit;
-  const scope = getTenantScope(users, userContext); // <-- Sudah diganti
+  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const search = filters.search?.trim() ?? '';
+  const role = filters.role ?? null;
 
-  // Ambil data tanpa mengikutsertakan password
-  const data = await db.select({
-    id: users.id,
-    companyId: users.companyId,
-    name: users.name,
-    email: users.email,
-    role: users.role,
-    createdAt: users.createdAt,
-  })
-  .from(users)
-  .where(scope)
-  .limit(limit)
-  .offset(offset);
+  const data = await db.execute(sql`
+    SELECT
+      u.id,
+      u.company_id,
+      u.nama,
+      u.email,
+      u.nomor_telepon,
+      u.role,
+      u.status,
+      u.created_at,
+      u.updated_at
+    FROM users u
+    WHERE (${companyId}::uuid IS NULL OR u.company_id = ${companyId}::uuid)
+      AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
+      AND (${role}::user_role IS NULL OR u.role = ${role}::user_role)
+    ORDER BY u.created_at DESC
+    LIMIT ${limit}
+    OFFSET ${offset}
+  `);
 
-  // Ambil total data untuk metadata pagination
-  const totalRes = await db.select({ count: sql`count(*)` }).from(users).where(scope);
+  const totalRes = await db.execute(sql`
+    SELECT COUNT(*)::int AS count
+    FROM users u
+    WHERE (${companyId}::uuid IS NULL OR u.company_id = ${companyId}::uuid)
+      AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
+      AND (${role}::user_role IS NULL OR u.role = ${role}::user_role)
+  `);
   const total = Number(totalRes[0].count);
 
   return { data, total };
 };
 
 export const findUserById = async (id, userContext) => {
-  const scope = getTenantScope(users, userContext); // <-- Sudah diganti
-  const condition = scope ? and(eq(users.id, id), scope) : eq(users.id, id);
-
-  const result = await db.select({
-    id: users.id,
-    companyId: users.companyId,
-    name: users.name,
-    email: users.email,
-    role: users.role,
-  }).from(users).where(condition).limit(1);
+  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const result = await db.execute(sql`
+    SELECT id, company_id, nama, email, nomor_telepon, role, status, created_at, updated_at
+      FROM users
+     WHERE id = ${id}
+       AND (${companyId}::uuid IS NULL OR company_id = ${companyId}::uuid)
+     LIMIT 1
+  `);
 
   return result[0];
 };
 
 export const insertUser = async (data) => {
-  const result = await db.insert(users).values(data).returning({
-    id: users.id,
-    name: users.name,
-    email: users.email,
-    role: users.role
-  });
+  const result = await db.execute(sql`
+    INSERT INTO users (company_id, nama, email, password_hash, nomor_telepon, role, status)
+    VALUES (${data.company_id ?? null}, ${data.nama}, ${data.email}, ${data.password_hash}, ${data.nomor_telepon ?? null}, ${data.role}, ${data.status ?? 'active'})
+    RETURNING id, company_id, nama, email, nomor_telepon, role, status, created_at, updated_at
+  `);
   return result[0];
 };
 
 export const updateUser = async (id, data, userContext) => {
-  const scope = getTenantScope(users, userContext); // <-- Sudah diganti
-  const condition = scope ? and(eq(users.id, id), scope) : eq(users.id, id);
-
-  data.updatedAt = new Date();
-  const result = await db.update(users).set(data).where(condition).returning({
-    id: users.id,
-    name: users.name,
-    role: users.role
-  });
+  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const result = await db.execute(sql`
+    UPDATE users
+       SET company_id = COALESCE(${data.company_id ?? null}, company_id),
+           nama = COALESCE(${data.nama ?? null}, nama),
+           email = COALESCE(${data.email ?? null}, email),
+           password_hash = COALESCE(${data.password_hash ?? null}, password_hash),
+           nomor_telepon = COALESCE(${data.nomor_telepon ?? null}, nomor_telepon),
+           role = COALESCE(${data.role ?? null}, role),
+           status = COALESCE(${data.status ?? null}, status),
+           updated_at = NOW()
+     WHERE id = ${id}
+       AND (${companyId}::uuid IS NULL OR company_id = ${companyId}::uuid)
+    RETURNING id, company_id, nama, email, nomor_telepon, role, status, created_at, updated_at
+  `);
   return result[0];
 };
 
 export const deleteUser = async (id, userContext) => {
-  const scope = getTenantScope(users, userContext); // <-- Sudah diganti
-  const condition = scope ? and(eq(users.id, id), scope) : eq(users.id, id);
-
-  const result = await db.delete(users).where(condition).returning({ id: users.id });
+  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const result = await db.execute(sql`
+    DELETE FROM users
+     WHERE id = ${id}
+       AND (${companyId}::uuid IS NULL OR company_id = ${companyId}::uuid)
+    RETURNING id
+  `);
   return result[0];
 };

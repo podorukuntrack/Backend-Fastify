@@ -1,6 +1,11 @@
 // src/modules/documentation/documentation.controller.js
 import * as service from './documentation.service.js';
 
+export const getAllHandler = async (request, reply) => {
+  const data = await service.getDocs(request.query, request.user);
+  return reply.code(200).send({ success: true, message: 'Documents retrieved', data });
+};
+
 export const getByUnitHandler = async (request, reply) => {
   try {
     const data = await service.getUnitDocs(request.params.id, request.user);

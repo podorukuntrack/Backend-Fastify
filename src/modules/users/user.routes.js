@@ -54,10 +54,25 @@ export default async function userRoutes(fastify, options) {
                 properties: {
                   id: { type: 'string', format: 'uuid' },
                   name: { type: 'string' },
+                  nama: { type: 'string' },
                   email: { type: 'string', format: 'email' },
                   role: { type: 'string' },
-                  companyId: { type: 'string', format: 'uuid' }
+                  companyId: { type: 'string', format: 'uuid' },
+                  company_id: { type: ['string', 'null'], format: 'uuid' },
+                  nomor_telepon: { type: ['string', 'null'] },
+                  status: { type: 'string' },
+                  created_at: { type: 'string', format: 'date-time' },
+                  updated_at: { type: 'string', format: 'date-time' }
                 }
+              }
+            },
+            meta: {
+              type: 'object',
+              properties: {
+                page: { type: 'number' },
+                limit: { type: 'number' },
+                total: { type: 'number' },
+                totalPages: { type: 'number' }
               }
             }
           }
@@ -75,9 +90,16 @@ export default async function userRoutes(fastify, options) {
       tags: ['Users'],
       body: {
         type: 'object',
-        required: ['name', 'email', 'password'],
+        required: ['email', 'password'],
         properties: {
           name: {
+            type: 'string',
+            minLength: 3,
+            maxLength: 255,
+            description: 'Nama lengkap user',
+            example: 'John Doe'
+          },
+          nama: {
             type: 'string',
             minLength: 3,
             maxLength: 255,
@@ -107,6 +129,19 @@ export default async function userRoutes(fastify, options) {
             format: 'uuid',
             description: 'ID Perusahaan (optional untuk super_admin)',
             example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          company_id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Perusahaan (optional untuk super_admin)',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          nomor_telepon: {
+            type: 'string'
+          },
+          status: {
+            type: 'string',
+            enum: ['active', 'inactive']
           }
         }
       },
@@ -121,8 +156,13 @@ export default async function userRoutes(fastify, options) {
               properties: {
                 id: { type: 'string', format: 'uuid' },
                 name: { type: 'string' },
+                nama: { type: 'string' },
                 email: { type: 'string', format: 'email' },
                 role: { type: 'string' }
+                ,company_id: { type: ['string', 'null'], format: 'uuid' },
+                nomor_telepon: { type: ['string', 'null'] },
+                status: { type: 'string' },
+                created_at: { type: 'string', format: 'date-time' }
               }
             }
           }
@@ -161,9 +201,14 @@ export default async function userRoutes(fastify, options) {
               properties: {
                 id: { type: 'string', format: 'uuid' },
                 name: { type: 'string' },
+                nama: { type: 'string' },
                 email: { type: 'string', format: 'email' },
                 role: { type: 'string' },
-                companyId: { type: 'string', format: 'uuid' }
+                companyId: { type: 'string', format: 'uuid' },
+                company_id: { type: ['string', 'null'], format: 'uuid' },
+                nomor_telepon: { type: ['string', 'null'] },
+                status: { type: 'string' },
+                created_at: { type: 'string', format: 'date-time' }
               }
             }
           }
@@ -219,6 +264,30 @@ export default async function userRoutes(fastify, options) {
             format: 'uuid',
             description: 'ID Perusahaan baru',
             example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          nama: {
+            type: 'string',
+            minLength: 3,
+            maxLength: 255
+          },
+          email: {
+            type: 'string',
+            format: 'email'
+          },
+          password: {
+            type: 'string',
+            minLength: 6
+          },
+          company_id: {
+            type: 'string',
+            format: 'uuid'
+          },
+          nomor_telepon: {
+            type: 'string'
+          },
+          status: {
+            type: 'string',
+            enum: ['active', 'inactive']
           }
         }
       },

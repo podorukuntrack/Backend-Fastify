@@ -6,16 +6,25 @@ export const queryUserSchema = {
   query: z.object({
     page: z.string().regex(/^\d+$/).transform(Number).default("1"),
     limit: z.string().regex(/^\d+$/).transform(Number).default("20"),
+    search: z.string().optional(),
+    role: z.enum(roleEnum.enumValues).optional(),
   })
 };
 
 export const createUserSchema = {
   body: z.object({
     companyId: z.string().uuid().optional(), // Nullable untuk super_admin
-    name: z.string().min(3).max(255),
+    company_id: z.string().uuid().optional(),
+    name: z.string().min(3).max(255).optional(),
+    nama: z.string().min(3).max(255).optional(),
     email: z.string().email(),
     password: z.string().min(6),
-    role: z.enum(roleEnum.enumValues).default('customer')
+    nomor_telepon: z.string().optional(),
+    role: z.enum(roleEnum.enumValues).default('customer'),
+    status: z.enum(['active', 'inactive']).default('active'),
+  }).refine((data) => data.name || data.nama, {
+    message: 'Nama wajib diisi',
+    path: ['nama'],
   })
 };
 
@@ -25,9 +34,14 @@ export const updateUserSchema = {
   }),
   body: z.object({
     name: z.string().min(3).max(255).optional(),
+    nama: z.string().min(3).max(255).optional(),
+    email: z.string().email().optional(),
+    password: z.string().min(6).optional(),
+    nomor_telepon: z.string().optional(),
     role: z.enum(roleEnum.enumValues).optional(),
     companyId: z.string().uuid().optional(),
-    // Password di-update melalui endpoint terpisah idealnya, tapi kita skip di sini untuk simplifikasi
+    company_id: z.string().uuid().optional(),
+    status: z.enum(['active', 'inactive']).optional(),
   })
 };
 
