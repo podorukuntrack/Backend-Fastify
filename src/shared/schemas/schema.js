@@ -133,16 +133,38 @@ export const units = pgTable("units", {
 
 export const progress = pgTable("progress", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id")
-    .references(() => companies.id)
-    .notNull(),
+
+  // Relasi ke unit
   unitId: uuid("unit_id")
-    .references(() => units.id)
+    .references(() => units.id, { onDelete: "cascade" })
     .notNull(),
-  percentage: integer("percentage").notNull().default(0), // 0 - 100
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+
+  // Tahap pembangunan (misalnya: pondasi, struktur, finishing)
+  tahap: varchar("tahap", { length: 100 }).notNull(),
+
+  // Persentase progress (0 - 100)
+  progressPercentage: integer("progress_percentage").notNull().default(0),
+
+  // Tanggal update progress
+  tanggalUpdate: timestamp("tanggal_update", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+
+  // Catatan tambahan
+  catatan: text("catatan"),
+
+  // User yang mencatat progress
+  createdBy: uuid("created_by")
+    .references(() => users.id)
+    .notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const documentations = pgTable("documentations", {

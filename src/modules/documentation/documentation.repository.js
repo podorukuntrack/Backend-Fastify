@@ -1,5 +1,5 @@
-import { db } from '../../config/database.js';
-import { sql } from 'drizzle-orm';
+import { db } from "../../config/database.js";
+import { sql } from "drizzle-orm";
 
 const mapDocRow = (row) => ({
   id: row.id,
@@ -7,7 +7,7 @@ const mapDocRow = (row) => ({
   progress_id: row.progress_id,
   jenis: row.jenis,
   url: row.url,
-  r2_key: row.cloudinary_public_id,
+  r2_key: row.r2_key,
   nama_file: row.nama_file,
   ukuran_bytes: Number(row.ukuran_bytes ?? 0),
   created_at: row.created_at,
@@ -27,7 +27,8 @@ const mapDocRow = (row) => ({
 });
 
 export const findAllDocs = async (userContext, filters = {}) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const companyId =
+    userContext.role === "super_admin" ? null : userContext.companyId;
   const jenis = filters.jenis ?? filters.type ?? null;
 
   const rows = await db.execute(sql`
@@ -37,7 +38,7 @@ export const findAllDocs = async (userContext, filters = {}) => {
       d.progress_id,
       d.jenis,
       d.url,
-      d.cloudinary_public_id,
+      d.r2_key,
       d.nama_file,
       d.ukuran_bytes,
       d.created_at,
@@ -58,7 +59,8 @@ export const findAllDocs = async (userContext, filters = {}) => {
 };
 
 export const findDocsByUnitId = async (unitId, userContext) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const companyId =
+    userContext.role === "super_admin" ? null : userContext.companyId;
 
   const rows = await db.execute(sql`
     SELECT
@@ -67,7 +69,7 @@ export const findDocsByUnitId = async (unitId, userContext) => {
       d.progress_id,
       d.jenis,
       d.url,
-      d.cloudinary_public_id,
+      d.r2_key,
       d.nama_file,
       d.ukuran_bytes,
       d.created_at,
@@ -88,7 +90,8 @@ export const findDocsByUnitId = async (unitId, userContext) => {
 };
 
 export const findDocById = async (id, userContext) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const companyId =
+    userContext.role === "super_admin" ? null : userContext.companyId;
 
   const rows = await db.execute(sql`
     SELECT
@@ -97,7 +100,7 @@ export const findDocById = async (id, userContext) => {
       d.progress_id,
       d.jenis,
       d.url,
-      d.cloudinary_public_id,
+      d.r2_key,
       d.nama_file,
       d.ukuran_bytes,
       d.created_at,
@@ -124,7 +127,7 @@ export const insertDoc = async (data) => {
       progress_id,
       jenis,
       url,
-      cloudinary_public_id,
+      r2_key,
       nama_file,
       ukuran_bytes,
       created_by

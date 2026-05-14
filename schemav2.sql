@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS documentation (
   progress_id UUID REFERENCES progress(id) ON DELETE SET NULL,
   jenis doc_type NOT NULL,
   url TEXT NOT NULL,
-  cloudinary_public_id TEXT,
+  r2_key TEXT,
   nama_file TEXT,
   ukuran_bytes BIGINT,
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,

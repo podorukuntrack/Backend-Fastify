@@ -19,14 +19,12 @@ export const getProgress = async (id, userContext) => {
 };
 
 export const createProgress = async (data, userContext) => {
-  if (userContext.role === 'admin') data.companyId = userContext.companyId;
-  
-  // Validasi kepemilikan unit sebelum menambah progress
-  const unit = await findUnitById(data.unitId, userContext);
+  const unitId = data.unit_id ?? data.unitId;
+  const unit = await findUnitById(unitId, userContext);
   if (!unit) throw new Error('Unit not found or access denied');
-
-  return await repo.insertProgress(data, userContext);
+  return await repo.insertProgress({ ...data, unit_id: unitId }, userContext);
 };
+
 
 export const modifyProgress = async (id, data, userContext) => {
   const result = await repo.updateProgress(id, data, userContext);

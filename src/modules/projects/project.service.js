@@ -6,8 +6,11 @@ import { getTenantScope } from "../../shared/utils/scopes.js";
 
 export const getProjects = async (userContext) => {
   const scope = getTenantScope(projects, userContext);
-  const result = await db.select().from(projects).where(scope);
-
+const result = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.companyId, userContext.companyId));
+    
   return result.map((project) => ({
     id: project.id,
     nama_proyek: project.namaProyek,

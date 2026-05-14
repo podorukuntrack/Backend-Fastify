@@ -90,18 +90,28 @@ export const findProgressById = async (id, userContext) => {
 
 export const insertProgress = async (data, userContext) => {
   const value = normalizeProgressInput(data);
+
   const rows = await db.execute(sql`
     INSERT INTO progress (unit_id, tahap, progress_percentage, tanggal_update, catatan, created_by)
     VALUES (${value.unit_id}, ${value.tahap}, ${value.progress_percentage}, ${value.tanggal_update ?? null}, ${value.catatan}, ${userContext.sub})
     RETURNING id
   `);
 
+  // Hitung ulang total progress untuk unit
+  const totalRes = await db.execute(sql`
+    SELECT LEAST(100, SUM(progress_percentage)) AS total
+    FROM progress
+    WHERE unit_id = ${value.unit_id}
+  `);
+
+  const total = Number(totalRes[0].total ?? 0);
+
   await db.execute(sql`
     UPDATE units
-       SET progress_percentage = LEAST(100, progress_percentage + ${value.progress_percentage}),
+       SET progress_percentage = ${total},
            status_pembangunan = CASE
-             WHEN LEAST(100, progress_percentage + ${value.progress_percentage}) >= 100 THEN 'selesai'
-             WHEN LEAST(100, progress_percentage + ${value.progress_percentage}) > 0 THEN 'dalam_pembangunan'
+             WHEN ${total} >= 100 THEN 'selesai'
+             WHEN ${total} > 0 THEN 'dalam_pembangunan'
              ELSE status_pembangunan
            END,
            updated_at = NOW()
@@ -110,6 +120,7 @@ export const insertProgress = async (data, userContext) => {
 
   return await findProgressById(rows[0].id, userContext);
 };
+
 
 export const updateProgress = async (id, data, userContext) => {
   const existing = await findProgressById(id, userContext);
@@ -125,10 +136,30 @@ export const updateProgress = async (id, data, userContext) => {
            catatan = COALESCE(${value.catatan ?? null}, catatan),
            updated_at = NOW()
      WHERE id = ${id}
-    RETURNING id
+    RETURNING unit_id
   `);
 
-  return await findProgressById(rows[0].id, userContext);
+  const unitId = rows[0].unit_id;
+  const totalRes = await db.execute(sql`
+    SELECT LEAST(100, SUM(progress_percentage)) AS total
+    FROM progress
+    WHERE unit_id = ${unitId}
+  `);
+  const total = Number(totalRes[0].total ?? 0);
+
+  await db.execute(sql`
+    UPDATE units
+       SET progress_percentage = ${total},
+           status_pembangunan = CASE
+             WHEN ${total} >= 100 THEN 'selesai'
+             WHEN ${total} > 0 THEN 'dalam_pembangunan'
+             ELSE status_pembangunan
+           END,
+           updated_at = NOW()
+     WHERE id = ${unitId}
+  `);
+
+  return await findProgressById(id, userContext);
 };
 
 export const deleteProgress = async (id, userContext) => {

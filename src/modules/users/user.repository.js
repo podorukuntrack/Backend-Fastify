@@ -4,9 +4,31 @@ import { sql } from 'drizzle-orm';
 
 export const findUsers = async (page, limit, userContext, filters = {}) => {
   const offset = (page - 1) * limit;
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
   const search = filters.search?.trim() ?? '';
-  const role = filters.role ?? null;
+  const roleFilter = filters.role ?? null;
+
+  let conditionSql;
+
+  if (userContext.role === 'super_admin') {
+    // Super admin hanya lihat admin
+    conditionSql = sql`u.role = 'admin'`;
+
+  } else if (userContext.role === 'admin') {
+    // Admin bisa lihat semua customer (meskipun company_id null)
+    // dan admin lain dengan company_id sama
+    conditionSql = sql`(
+    (u.role = 'customer' AND u.company_id = ${userContext.companyId}::uuid)
+    OR (u.role = 'admin' AND u.company_id = ${userContext.companyId}::uuid)
+  )`
+
+  } else if (userContext.role === 'customer') {
+    // Customer hanya bisa lihat dirinya sendiri
+    conditionSql = sql`u.id = ${userContext.sub}::uuid`;
+
+  } else {
+    // Default: tidak ada akses
+    conditionSql = sql`false`;
+  }
 
   const data = await db.execute(sql`
     SELECT
@@ -20,9 +42,9 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
       u.created_at,
       u.updated_at
     FROM users u
-    WHERE (${companyId}::uuid IS NULL OR u.company_id = ${companyId}::uuid)
+    WHERE ${conditionSql}
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
-      AND (${role}::user_role IS NULL OR u.role = ${role}::user_role)
+      AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
     ORDER BY u.created_at DESC
     LIMIT ${limit}
     OFFSET ${offset}
@@ -31,27 +53,50 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
   const totalRes = await db.execute(sql`
     SELECT COUNT(*)::int AS count
     FROM users u
-    WHERE (${companyId}::uuid IS NULL OR u.company_id = ${companyId}::uuid)
+    WHERE ${conditionSql}
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
-      AND (${role}::user_role IS NULL OR u.role = ${role}::user_role)
+      AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
   `);
-  const total = Number(totalRes[0].count);
 
+  const total = Number(totalRes[0].count);
   return { data, total };
 };
 
+
 export const findUserById = async (id, userContext) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  let conditionSql;
+
+  if (userContext.role === 'super_admin') {
+    // Super admin hanya bisa lihat admin
+    conditionSql = sql`id = ${id} AND role = 'admin'`;
+
+  } else if (userContext.role === 'admin') {
+    // Admin bisa lihat customer (tanpa company_id)
+    // atau admin lain dengan company_id sama
+      conditionSql = sql`id = ${id} AND (
+    (role = 'customer' AND company_id = ${userContext.companyId}::uuid)
+    OR (role = 'admin' AND company_id = ${userContext.companyId}::uuid)
+  )`;
+
+  } else if (userContext.role === 'customer') {
+    // Customer hanya bisa lihat dirinya sendiri
+    conditionSql = sql`id = ${id} AND id = ${userContext.sub}::uuid`;
+
+  } else {
+    // Default: tidak ada akses
+    conditionSql = sql`false`;
+  }
+
   const result = await db.execute(sql`
     SELECT id, company_id, nama, email, nomor_telepon, role, status, created_at, updated_at
-      FROM users
-     WHERE id = ${id}
-       AND (${companyId}::uuid IS NULL OR company_id = ${companyId}::uuid)
-     LIMIT 1
+    FROM users
+    WHERE ${conditionSql}
+    LIMIT 1
   `);
 
   return result[0];
 };
+
 
 export const insertUser = async (data) => {
   const result = await db.execute(sql`
