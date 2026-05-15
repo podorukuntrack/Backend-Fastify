@@ -32,6 +32,12 @@ export default async function timelineRoutes(fastify, options) {
             description: 'Filter berdasarkan Project ID',
             example: '550e8400-e29b-41d4-a716-446655440000'
           },
+          unitId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'Filter berdasarkan Unit ID',
+            example: '550e8400-e29b-41d4-a716-446655440001'
+          },
           status: {
             type: 'string',
             enum: ['planned', 'on_progress', 'completed', 'delayed'],
@@ -57,6 +63,8 @@ export default async function timelineRoutes(fastify, options) {
                 type: 'object',
                 properties: {
                   id: { type: 'string', format: 'uuid' },
+                  projectId: { type: 'string', format: 'uuid' },
+                  unitId: { type: 'string', format: 'uuid' },
                   taskName: { type: 'string' },
                   status: { type: 'string' },
                   startDate: { type: 'string', format: 'date-time' },
@@ -78,13 +86,19 @@ export default async function timelineRoutes(fastify, options) {
       tags: ['Timelines'],
       body: {
         type: 'object',
-        required: ['projectId', 'taskName', 'startDate', 'endDate'],
+        required: ['projectId', 'unitId', 'taskName', 'startDate', 'endDate'],
         properties: {
           projectId: {
             type: 'string',
             format: 'uuid',
             description: 'ID Project yang memiliki timeline',
             example: '550e8400-e29b-41d4-a716-446655440000'
+          },
+          unitId: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID Unit yang diassign timeline ini',
+            example: '550e8400-e29b-41d4-a716-446655440001'
           },
           taskName: {
             type: 'string',

@@ -1,7 +1,7 @@
 // src/modules/timelines/timeline.repository.js
 import { db } from '../../config/database.js';
 import { timelines } from '../../shared/schemas/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 
 export const findTimelines = async (userContext) => {
@@ -19,17 +19,77 @@ export const insertTimeline = async (data) => {
 export const updateTimeline = async (id, data, userContext) => {
   const scope = getTenantScope(timelines, userContext);
   const condition = scope ? and(eq(timelines.id, id), scope) : eq(timelines.id, id);
+  // Find existing to know the old taskName
+  const existing = await db.select().from(timelines).where(condition).limit(1);
+  if (!existing || existing.length === 0) return null;
+  const oldTimeline = existing[0];
+
   if (data.startDate) data.startDate = new Date(data.startDate);
   if (data.endDate) data.endDate = new Date(data.endDate);
   data.updatedAt = new Date();
   
   const result = await db.update(timelines).set(data).where(condition).returning();
+
+  // If taskName changed, update progress tahap
+  if (data.taskName && data.taskName !== oldTimeline.taskName) {
+    await db.execute(sql`
+      UPDATE progress
+      SET tahap = ${data.taskName}
+      WHERE unit_id = ${oldTimeline.unitId} AND tahap = ${oldTimeline.taskName}
+    `);
+  }
+
   return result[0];
 };
 
 export const deleteTimeline = async (id, userContext) => {
   const scope = getTenantScope(timelines, userContext);
   const condition = scope ? and(eq(timelines.id, id), scope) : eq(timelines.id, id);
+  // Find the timeline first
+  const existing = await db.select().from(timelines).where(condition).limit(1);
+  if (!existing || existing.length === 0) return null;
+  const timeline = existing[0];
+
+  // Delete the timeline
   const result = await db.delete(timelines).where(condition).returning();
+
+  // Delete associated progress
+  await db.execute(sql`
+    DELETE FROM progress 
+    WHERE unit_id = ${timeline.unitId} 
+      AND tahap = ${timeline.taskName}
+  `);
+
+  // Recalculate unit progress
+  const totalRes = await db.execute(sql`
+    SELECT 
+      COALESCE(
+        SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
+        0
+      ) AS total
+    FROM timelines t
+    LEFT JOIN (
+      SELECT tahap, SUM(progress_percentage) AS total_tahap
+      FROM progress
+      WHERE unit_id = ${timeline.unitId}
+      GROUP BY tahap
+    ) tp ON tp.tahap = t.task_name
+    WHERE t.unit_id = ${timeline.unitId}
+  `);
+  
+  const total = Number(totalRes[0].total ?? 0);
+
+  await db.execute(sql`
+    UPDATE units
+       SET progress_percentage = ${total},
+           status_pembangunan = CASE
+             WHEN ${total} >= 100 THEN 'selesai'
+             WHEN ${total} > 0 THEN 'dalam_pembangunan'
+             ELSE status_pembangunan
+           END,
+           updated_at = NOW()
+     WHERE id = ${timeline.unitId}
+  `);
+
   return result[0];
 };

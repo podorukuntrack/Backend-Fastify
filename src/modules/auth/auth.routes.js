@@ -64,7 +64,22 @@ export default async function authRoutes(fastify, options) {
     loginHandler,
   );
 
-  fastify.post("/refresh", async (request, reply) => {
+  fastify.post(
+    "/refresh",
+    {
+      schema: {
+        description: "Refresh access token",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["refreshToken"],
+          properties: {
+            refreshToken: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
     try {
       const { refreshToken } = request.body;
       const tokens = await service.refreshTokenService(
@@ -86,7 +101,22 @@ export default async function authRoutes(fastify, options) {
     }
   });
 
-  fastify.post("/logout", async (request, reply) => {
+  fastify.post(
+    "/logout",
+    {
+      schema: {
+        description: "Logout user",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["refreshToken"],
+          properties: {
+            refreshToken: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
     const { refreshToken } = request.body;
 
     await service.logoutUser(refreshToken);

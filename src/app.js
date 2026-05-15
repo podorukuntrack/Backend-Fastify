@@ -24,16 +24,18 @@ import dashboardRoutes from "./modules/dashboard/dashboard.routes.js";
 
 export async function buildApp() {
   const app = Fastify({
-    logger: {
-      transport: {
-        target: "pino-pretty",
-        options: {
-          translateTime: "HH:MM:ss",
-          ignore: "pid,hostname",
-          colorize: true,
+    logger: process.env.NODE_ENV === "production" 
+      ? true 
+      : {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              translateTime: "HH:MM:ss",
+              ignore: "pid,hostname",
+              colorize: true,
+            },
+          },
         },
-      },
-    },
   });
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",")

@@ -5,6 +5,7 @@ export const createTimelineSchema = {
   body: z.object({
     companyId: z.string().uuid().optional(),
     projectId: z.string().uuid(),
+    unitId: z.string().uuid(),
     taskName: z.string().min(3),
     startDate: z.string().datetime(),
     endDate: z.string().datetime(),

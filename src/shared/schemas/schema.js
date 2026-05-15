@@ -233,6 +233,9 @@ export const timelines = pgTable("timelines", {
   projectId: uuid("project_id")
     .references(() => projects.id)
     .notNull(),
+  unitId: uuid("unit_id")
+    .references(() => units.id)
+    .notNull(),
   taskName: varchar("task_name", { length: 255 }).notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),

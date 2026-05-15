@@ -1,15 +1,8 @@
 // src/modules/projects/project.service.js
-import { db } from "../../config/database.js";
-import { projects } from "../../shared/schemas/schema.js";
-import { eq, and, sql } from "drizzle-orm";
-import { getTenantScope } from "../../shared/utils/scopes.js";
+import * as projectRepo from './project.repository.js';
 
 export const getProjects = async (userContext) => {
-  const scope = getTenantScope(projects, userContext);
-const result = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.companyId, userContext.companyId));
+  const result = await projectRepo.findAllProjects(userContext);
     
   return result.map((project) => ({
     id: project.id,
@@ -22,15 +15,8 @@ const result = await db
 };
 
 export const getProject = async (id, userContext) => {
-  const scope = getTenantScope(projects, userContext);
-  const condition = scope
-    ? and(eq(projects.id, id), scope)
-    : eq(projects.id, id);
-
-  const result = await db.select().from(projects).where(condition).limit(1);
-  if (result.length === 0) throw new Error("Project not found");
-
-  const project = result[0];
+  const project = await projectRepo.findProjectById(id, userContext);
+  if (!project) throw new Error("Project not found");
 
   return {
     id: project.id,
@@ -51,84 +37,46 @@ export const createProject = async (data, userContext) => {
     throw error;
   }
 
-  const result = await db
-    .insert(projects)
-    .values({
-      namaProyek: data.nama_proyek,
-      deskripsi: data.deskripsi,
-      lokasi: data.lokasi,
-      status: data.status || "active",
-      companyId,
-      createdBy: userContext.sub,
-    })
-    .returning();
-
-  return result[0];
+  return await projectRepo.insertProject({
+    namaProyek: data.nama_proyek,
+    deskripsi: data.deskripsi,
+    lokasi: data.lokasi,
+    status: data.status || "active",
+    companyId,
+    createdBy: userContext.sub,
+  });
 };
 
-// Perbaikan fungsi Edit di project.service.js
 export const modifyProject = async (id, data, userContext) => {
-  const scope = getTenantScope(projects, userContext);
-  const condition = scope
-    ? and(eq(projects.id, id), scope)
-    : eq(projects.id, id);
-
-  // Mapping Manual: Dari snake_case (frontend) ke camelCase (Drizzle Schema)
   const updateData = {
-    namaProyek: data.nama_proyek, // Map secara eksplisit
+    namaProyek: data.nama_proyek,
     deskripsi: data.deskripsi,
     lokasi: data.lokasi,
     status: data.status,
-    updatedAt: new Date(),
   };
 
-  // Hilangkan property yang bernilai undefined agar tidak mengupdate NULL secara tidak sengaja
   Object.keys(updateData).forEach(
     (key) => updateData[key] === undefined && delete updateData[key],
   );
 
-  const result = await db
-    .update(projects)
-    .set(updateData) // Gunakan updateData, BUKAN data langsung
-    .where(condition)
-    .returning();
+  const updatedProject = await projectRepo.updateProject(id, updateData, userContext);
 
-  // Kembalikan dalam format snake_case agar frontend bisa langsung update UI
-  if (!result[0]) return null;
+  if (!updatedProject) return null;
 
   return {
-    id: result[0].id,
-    nama_proyek: result[0].namaProyek,
-    deskripsi: result[0].deskripsi,
-    lokasi: result[0].lokasi,
-    status: result[0].status,
-    created_at: result[0].createdAt,
+    id: updatedProject.id,
+    nama_proyek: updatedProject.namaProyek,
+    deskripsi: updatedProject.deskripsi,
+    lokasi: updatedProject.lokasi,
+    status: updatedProject.status,
+    created_at: updatedProject.createdAt,
   };
 };
 
 export const removeProject = async (id, userContext) => {
-  const scope = getTenantScope(projects, userContext);
-  const condition = scope
-    ? and(eq(projects.id, id), scope)
-    : eq(projects.id, id);
-
-  const result = await db.delete(projects).where(condition).returning();
-  return result[0];
+  return await projectRepo.deleteProject(id, userContext);
 };
 
 export const getProjectStatistics = async (id, userContext) => {
-  const project = await getProject(id, userContext);
-  if (!project) return null;
-
-  const statsResult = await db.execute(sql`
-    SELECT 
-      COUNT(u.id) as total_units,
-      SUM(CASE WHEN u.status = 'sold' THEN 1 ELSE 0 END) as sold_units,
-      SUM(CASE WHEN u.status = 'available' THEN 1 ELSE 0 END) as available_units
-    FROM units u
-    JOIN clusters c ON u.cluster_id = c.id
-    WHERE c.project_id = ${id}
-  `);
-
-  return statsResult[0];
+  return await projectRepo.getProjectStats(id, userContext);
 };

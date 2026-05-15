@@ -1,5 +1,5 @@
-import { db } from '../../config/database.js';
-import { sql } from 'drizzle-orm';
+import { db } from "../../config/database.js";
+import { sql } from "drizzle-orm";
 
 const mapProgressRow = (row) => ({
   id: row.id,
@@ -20,14 +20,18 @@ const mapProgressRow = (row) => ({
 
 const normalizeProgressInput = (data) => ({
   unit_id: data.unit_id ?? data.unitId,
-  tahap: data.tahap ?? data.stage ?? 'Progress',
-  progress_percentage: data.progress_percentage ?? data.progressPercentage ?? data.percentage ?? 0,
-  tanggal_update: data.tanggal_update ?? null,
+  tahap: data.tahap ?? data.stage ?? "Progress",
+  progress_percentage: Math.min(
+    100,
+    data.progress_percentage ?? data.progressPercentage ?? 0,
+  ),
+  tanggal_update: data.tanggal_update ?? new Date(),
   catatan: data.catatan ?? data.notes ?? null,
 });
 
 export const findAllProgress = async (userContext, filters = {}) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const companyId =
+    userContext.role === "super_admin" ? null : userContext.companyId;
   const unitId = filters.unit_id ?? filters.unitId ?? null;
   const limit = Number(filters.limit ?? 100);
   const page = Number(filters.page ?? 1);
@@ -63,7 +67,8 @@ export const findProgressByUnitId = async (unitId, userContext) => {
 };
 
 export const findProgressById = async (id, userContext) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const companyId =
+    userContext.role === "super_admin" ? null : userContext.companyId;
 
   const rows = await db.execute(sql`
     SELECT
@@ -89,6 +94,18 @@ export const findProgressById = async (id, userContext) => {
 };
 
 export const insertProgress = async (data, userContext) => {
+  const timelineCheck = await db.execute(sql`
+  SELECT id
+  FROM timelines
+  WHERE unit_id = ${value.unit_id}
+    AND task_name = ${value.tahap}
+  LIMIT 1
+`);
+
+  if (!timelineCheck.length) {
+    throw new Error("Tahap tidak ditemukan pada timeline unit ini");
+  }
+
   const value = normalizeProgressInput(data);
 
   const rows = await db.execute(sql`
@@ -97,11 +114,21 @@ export const insertProgress = async (data, userContext) => {
     RETURNING id
   `);
 
-  // Hitung ulang total progress untuk unit
+  // Hitung ulang total progress untuk unit berdasarkan rata-rata timeline
   const totalRes = await db.execute(sql`
-    SELECT LEAST(100, SUM(progress_percentage)) AS total
-    FROM progress
-    WHERE unit_id = ${value.unit_id}
+    SELECT 
+      COALESCE(
+        SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
+        0
+      ) AS total
+    FROM timelines t
+    LEFT JOIN (
+      SELECT tahap, SUM(progress_percentage) AS total_tahap
+      FROM progress
+      WHERE unit_id = ${value.unit_id}
+      GROUP BY tahap
+    ) tp ON tp.tahap = t.task_name
+    WHERE t.unit_id = ${value.unit_id}
   `);
 
   const total = Number(totalRes[0].total ?? 0);
@@ -120,7 +147,6 @@ export const insertProgress = async (data, userContext) => {
 
   return await findProgressById(rows[0].id, userContext);
 };
-
 
 export const updateProgress = async (id, data, userContext) => {
   const existing = await findProgressById(id, userContext);
@@ -141,9 +167,19 @@ export const updateProgress = async (id, data, userContext) => {
 
   const unitId = rows[0].unit_id;
   const totalRes = await db.execute(sql`
-    SELECT LEAST(100, SUM(progress_percentage)) AS total
-    FROM progress
-    WHERE unit_id = ${unitId}
+    SELECT 
+      COALESCE(
+        SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
+        0
+      ) AS total
+    FROM timelines t
+    LEFT JOIN (
+      SELECT tahap, SUM(progress_percentage) AS total_tahap
+      FROM progress
+      WHERE unit_id = ${unitId}
+      GROUP BY tahap
+    ) tp ON tp.tahap = t.task_name
+    WHERE t.unit_id = ${unitId}
   `);
   const total = Number(totalRes[0].total ?? 0);
 
@@ -166,10 +202,42 @@ export const deleteProgress = async (id, userContext) => {
   const existing = await findProgressById(id, userContext);
   if (!existing) return null;
 
+  const unitId = existing.unit_id;
+
   const rows = await db.execute(sql`
     DELETE FROM progress
      WHERE id = ${id}
     RETURNING id
+  `);
+
+  const totalRes = await db.execute(sql`
+    SELECT 
+      COALESCE(
+        SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
+        0
+      ) AS total
+    FROM timelines t
+    LEFT JOIN (
+      SELECT tahap, SUM(progress_percentage) AS total_tahap
+      FROM progress
+      WHERE unit_id = ${unitId}
+      GROUP BY tahap
+    ) tp ON tp.tahap = t.task_name
+    WHERE t.unit_id = ${unitId}
+  `);
+
+  const total = Number(totalRes[0].total ?? 0);
+
+  await db.execute(sql`
+    UPDATE units
+       SET progress_percentage = ${total},
+           status_pembangunan = CASE
+             WHEN ${total} >= 100 THEN 'selesai'
+             WHEN ${total} > 0 THEN 'dalam_pembangunan'
+             ELSE status_pembangunan
+           END,
+           updated_at = NOW()
+     WHERE id = ${unitId}
   `);
 
   return rows[0];

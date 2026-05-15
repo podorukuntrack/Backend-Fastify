@@ -4,26 +4,19 @@ import dotenv from 'dotenv';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 
-// Tentukan file .env berdasarkan NODE_ENV
-const envFile =
-  process.env.NODE_ENV === 'production'
-    ? '.env.production'
-    : '.env.development';
-
-// Load environment variables
-dotenv.config({ path: envFile });
-
-// Debug (opsional)
-console.log('📄 Loaded env file:', envFile);
-console.log(
-  '🔗 DATABASE_URL:',
-  process.env.DATABASE_URL
-    ? process.env.DATABASE_URL.replace(/:(.*?)@/, ':****@')
-    : 'undefined'
-);
+dotenv.config();
 
 // Ambil DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
+
+// Debug (opsional)
+console.log(
+  '🔗 DATABASE_URL:',
+  connectionString
+    ? connectionString.replace(/:(.*?)@/, ':****@')
+    : 'undefined'
+);
+
 
 // Validasi
 if (!connectionString) {
