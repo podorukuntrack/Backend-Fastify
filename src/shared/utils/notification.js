@@ -61,29 +61,13 @@ export const sendPushNotification = async (userIds, title, body, data = {}) => {
 
     // 2. Prepare message payload
     const message = {
-      notification: { 
-        title, 
-        body
-      },
+      notification: { title, body },
       data: Object.keys(data).reduce((acc, key) => {
         acc[key] = String(data[key]);
         return acc;
       }, {
         click_action: 'FLUTTER_NOTIFICATION_CLICK'
       }),
-      android: {
-        notification: {
-          sound: 'notif_podorukun',
-          channelId: 'podo_custom_sound_channel'
-        }
-      },
-      apns: {
-        payload: {
-          aps: {
-            sound: 'notif_podorukun.caf'
-          }
-        }
-      }
     };
 
     // 3. Send via FCM Multicast
