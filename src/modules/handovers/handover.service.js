@@ -1,5 +1,10 @@
 import * as repo from './handover.repository.js';
 import { findUnitById } from '../units/unit.repository.js';
+import { sendPushNotification } from '../../shared/utils/notification.js';
+import { db } from '../../config/database.js';
+import { sql } from 'drizzle-orm';
+import { users } from '../../shared/schemas/schema.js';
+import { eq, and, inArray } from 'drizzle-orm';
 
 const normalizeInput = (data) => {
   const normalized = { ...data };
@@ -20,12 +25,6 @@ export const getHandover = async (id, userContext) => {
   if (!handover) throw new Error('Handover not found or access denied');
   return handover;
 };
-
-import { sendPushNotification } from '../../shared/utils/notification.js';
-import { db } from '../../config/database.js';
-import { sql } from 'drizzle-orm';
-import { users } from '../../shared/schemas/schema.js';
-import { eq, and, inArray } from 'drizzle-orm';
 
 export const createHandover = async (data, userContext) => {
   const normalizedData = normalizeInput(data);
@@ -63,72 +62,69 @@ export const modifyHandover = async (id, data, userContext) => {
   if (!result) throw new Error('Handover not found or access denied');
 
   try {
-    const handover = await repo.findHandoverById(id, userContext);
-    if (handover) {
-      const targetUnitId = handover.unit_id ?? handover.unitId;
-      const unit = await findUnitById(targetUnitId, userContext);
-      const assignments = await db.execute(sql`
-        SELECT user_id FROM property_assignments WHERE unit_id = ${targetUnitId}::uuid
-      `);
-      const userIds = assignments.map(a => a.user_id ?? a.userId);
+    const targetUnitId = result.unit_id ?? result.unitId;
+    const unit = await findUnitById(targetUnitId, userContext);
+    const assignments = await db.execute(sql`
+      SELECT user_id FROM property_assignments WHERE unit_id = ${targetUnitId}::uuid
+    `);
+    const userIds = assignments.map(a => a.user_id ?? a.userId);
+    
+    if (userIds.length > 0 && unit) {
+      let title = 'Pembaruan Status Serah Terima';
+      let body = `Status serah terima untuk unit ${unit.nomor_unit ?? unit.nomorUnit} telah diubah menjadi: ${result.status}.`;
       
-      if (userIds.length > 0 && unit) {
-        let title = 'Pembaruan Status Serah Terima';
-        let body = `Status serah terima untuk unit ${unit.nomor_unit ?? unit.nomorUnit} telah diubah menjadi: ${handover.status}.`;
-        
-        if (normalizedData.scheduledDate) {
-          try {
-            const dateObj = new Date(normalizedData.scheduledDate);
-            const formattedDate = dateObj.toLocaleDateString('id-ID', { 
-              day: 'numeric', 
-              month: 'long', 
-              year: 'numeric' 
-            });
-            const formattedTime = dateObj.toLocaleTimeString('id-ID', {
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-            title = 'Penyesuaian Jadwal Serah Terima';
-            body = `Jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} Anda disesuaikan menjadi tanggal ${formattedDate} pukul ${formattedTime} WIB.`;
-          } catch (_) {
-            title = 'Penyesuaian Jadwal Serah Terima';
-            body = `Ada penyesuaian jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit}. Silakan cek di aplikasi.`;
-          }
-        } else if (handover.status === 'dijadwalkan' || handover.status === 'scheduled' || handover.status === 'menunggu_respon_customer') {
-          title = 'Jadwal Serah Terima Rumah Dijadwalkan';
-          body = `Jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} Anda telah ditetapkan. Silakan lakukan konfirmasi di aplikasi.`;
-        } else if (handover.status === 'selesai' || handover.status === 'completed') {
-          title = 'Proses Serah Terima Selesai';
-          body = `Selamat! Proses serah terima kunci untuk unit ${unit.nomor_unit ?? unit.nomorUnit} telah selesai dilakukan secara resmi.`;
+      if (normalizedData.scheduledDate) {
+        try {
+          const dateObj = new Date(normalizedData.scheduledDate);
+          const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          });
+          const formattedTime = dateObj.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          title = 'Penyesuaian Jadwal Serah Terima';
+          body = `Jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} Anda disesuaikan menjadi tanggal ${formattedDate} pukul ${formattedTime} WIB.`;
+        } catch (_) {
+          title = 'Penyesuaian Jadwal Serah Terima';
+          body = `Ada penyesuaian jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit}. Silakan cek di aplikasi.`;
         }
-        
-        if (userContext.role === 'customer') {
-          const adminUsers = await db
-            .select({ id: users.id })
-            .from(users)
-            .where(
-              and(
-                eq(users.companyId, handover.companyId),
-                inArray(users.role, ['admin', 'customer_service'])
-              )
-            );
-          const adminIds = adminUsers.map(u => u.id);
-          if (adminIds.length > 0) {
-            await sendPushNotification(
-              adminIds,
-              `Respon Serah Terima dari Customer`,
-              `Customer telah menanggapi jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} (Status: ${handover.status}).`,
-              { type: 'handover_updated', handoverId: id }
-            );
-          }
-        } else {
+      } else if (result.status === 'dijadwalkan' || result.status === 'scheduled' || result.status === 'menunggu_respon_customer') {
+        title = 'Jadwal Serah Terima Rumah Dijadwalkan';
+        body = `Jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} Anda telah ditetapkan. Silakan lakukan konfirmasi di aplikasi.`;
+      } else if (result.status === 'selesai' || result.status === 'completed') {
+        title = 'Proses Serah Terima Selesai';
+        body = `Selamat! Proses serah terima kunci untuk unit ${unit.nomor_unit ?? unit.nomorUnit} telah selesai dilakukan secara resmi.`;
+      }
+      
+      if (userContext.role === 'customer') {
+        const adminUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(
+            and(
+              eq(users.companyId, result.company_id ?? result.companyId),
+              inArray(users.role, ['admin', 'customer_service'])
+            )
+          );
+        const adminIds = adminUsers.map(u => u.id);
+        if (adminIds.length > 0) {
           await sendPushNotification(
-            userIds,
-            title,
-            body,
+            adminIds,
+            `Respon Serah Terima dari Customer`,
+            `Customer telah menanggapi jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} (Status: ${result.status}).`,
             { type: 'handover_updated', handoverId: id }
           );
         }
+      } else {
+        await sendPushNotification(
+          userIds,
+          title,
+          body,
+          { type: 'handover_updated', handoverId: id }
+        );
       }
     }
   } catch (e) {
@@ -146,13 +142,13 @@ export const reportDefect = async (handoverId, data, userContext) => {
   const result = await repo.insertDefect(data);
 
   try {
-    const unit = await findUnitById(handover.unitId, userContext);
+    const unit = await findUnitById(handover.unit_id ?? handover.unitId, userContext);
     const adminUsers = await db
       .select({ id: users.id })
       .from(users)
       .where(
         and(
-          eq(users.companyId, handover.companyId),
+          eq(users.companyId, handover.company_id ?? handover.companyId),
           inArray(users.role, ['admin', 'customer_service'])
         )
       );

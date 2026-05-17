@@ -92,22 +92,17 @@ export default async function retentionRoutes(fastify, options) {
   // POST - Buat retensi baru
   fastify.post('/', {
     schema: {
-      description: 'Membuat retensi/garansi dana untuk unit',
+      description: 'Membuat retensi/garansi untuk unit',
       tags: ['Retentions'],
       body: {
         type: 'object',
-        required: ['unitId', 'amount', 'dueDate'],
+        required: ['unitId', 'dueDate'],
         properties: {
           unitId: {
             type: 'string',
             format: 'uuid',
-            description: 'ID Unit untuk retensi dana',
+            description: 'ID Unit untuk retensi',
             example: '550e8400-e29b-41d4-a716-446655440000'
-          },
-          amount: {
-            type: 'number',
-            description: 'Jumlah retensi dalam rupiah',
-            example: 50000000
           },
           dueDate: {
             type: 'string',
@@ -169,11 +164,6 @@ export default async function retentionRoutes(fastify, options) {
       body: {
         type: 'object',
         properties: {
-          amount: {
-            type: 'number',
-            description: 'Jumlah retensi baru',
-            example: 60000000
-          },
           dueDate: {
             type: 'string',
             format: 'date-time',

@@ -290,7 +290,6 @@ CREATE TABLE public.retentions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     company_id uuid NOT NULL,
     unit_id uuid NOT NULL,
-    amount numeric(15,2),
     due_date timestamp without time zone NOT NULL,
     status character varying(50) DEFAULT 'active'::character varying,
     notes text,

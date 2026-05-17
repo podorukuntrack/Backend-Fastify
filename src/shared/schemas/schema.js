@@ -252,7 +252,6 @@ export const retentions = pgTable("retentions", {
   unitId: uuid("unit_id")
     .references(() => units.id)
     .notNull(),
-  amount: decimal("amount", { precision: 15, scale: 2 }), // Jumlah dana yang ditahan/garansi
   dueDate: timestamp("due_date").notNull(), // Batas waktu masa retensi
   status: varchar("status", { length: 50 }).default("active"), // active, released, claimed
   notes: text("notes"),
