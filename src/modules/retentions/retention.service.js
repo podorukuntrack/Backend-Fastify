@@ -1,109 +1,83 @@
-import * as repo from './retention.repository.js';
+import * as repo from './progress.repository.js';
 import { findUnitById } from '../units/unit.repository.js';
 import { sendPushNotification } from '../../shared/utils/notification.js';
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
 
-const normalizeInput = (data) => {
-  if (!data) return data;
-  return {
-    ...data,
-    unitId: data.unitId ?? data.unit_id,
-    dueDate: data.dueDate ?? data.due_date,
-    companyId: data.companyId ?? data.company_id,
-  };
+export const getProgressList = async (userContext, filters = {}) => {
+  return await repo.findAllProgress(userContext, filters);
 };
 
-export const getRetentionsList = async (userContext, filters = {}) => {
-  return await repo.findRetentions(userContext, normalizeInput(filters));
-};
-
-export const getRetentionDetail = async (id, userContext) => {
-  const retention = await repo.findRetentionById(id, userContext);
-  if (!retention) throw new Error('Retention not found or access denied');
-  return retention;
-};
-
-export const createRetention = async (input, userContext) => {
-  const data = normalizeInput(input);
-  const unit = await findUnitById(data.unitId, userContext);
+export const getProgressByUnit = async (unitId, userContext) => {
+  // Verifikasi apakah user berhak melihat unit ini
+  const unit = await findUnitById(unitId, userContext);
   if (!unit) throw new Error('Unit not found or access denied');
-  
-  if (!data.companyId) {
-    data.companyId = userContext.companyId ?? unit.companyId ?? unit.company_id;
-  }
-  const result = await repo.insertRetention(data);
+  return await repo.findProgressByUnitId(unitId, userContext);
+};
 
-  // Kirim Notifikasi Realtime ketika retensi dibuat
+export const getProgress = async (id, userContext) => {
+  const data = await repo.findProgressById(id, userContext);
+  if (!data) throw new Error('Progress not found or access denied');
+  return data;
+};
+
+export const createProgress = async (data, userContext) => {
+  const unitId = data.unit_id ?? data.unitId;
+  const unit = await findUnitById(unitId, userContext);
+  if (!unit) throw new Error('Unit not found or access denied');
+  const result = await repo.insertProgress({ ...data, unit_id: unitId }, userContext);
+
   try {
     const assignments = await db.execute(sql`
-      SELECT user_id FROM property_assignments WHERE unit_id = ${data.unitId}::uuid
+      SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid
     `);
     const userIds = assignments.map(a => a.user_id ?? a.userId);
-    if (userIds.length > 0 && unit) {
-      const unitNo = unit.nomor_unit ?? unit.nomorUnit;
-      const formattedDate = data.dueDate 
-        ? new Date(data.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) 
-        : '';
+    if (userIds.length > 0) {
       await sendPushNotification(
         userIds,
-        'Masa Garansi Rumah (Retensi) Dimulai',
-        `Masa garansi / retensi untuk unit ${unitNo} telah diaktifkan sampai tanggal ${formattedDate}.`,
-        { type: 'retention_created', retentionId: result.id }
+        'Progress Rumah Terbaru!',
+        `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} telah diperbarui ke ${data.progress_percentage ?? data.progressPercentage}% (${data.tahap}).`,
+        { type: 'progress_update', unitId }
       );
     }
   } catch (e) {
-    console.error('Failed to trigger retention create push notification:', e.message);
+    console.error('Failed to trigger progress create push notification:', e.message);
   }
 
   return result;
 };
 
-export const modifyRetention = async (id, input, userContext) => {
-  const result = await repo.updateRetention(id, normalizeInput(input), userContext);
-  if (!result) throw new Error('Retention not found or access denied');
+export const modifyProgress = async (id, data, userContext) => {
+  const result = await repo.updateProgress(id, data, userContext);
+  if (!result) throw new Error('Progress not found or access denied');
 
-  // Kirim Notifikasi Realtime ketika status retensi di-update
   try {
-    const retention = await repo.findRetentionById(id, userContext);
-    if (retention) {
-      const targetUnitId = retention.unit_id ?? retention.unitId;
-      const unit = await findUnitById(targetUnitId, userContext);
+    const progress = await repo.findProgressById(id, userContext);
+    if (progress) {
+      const unitId = progress.unit_id ?? progress.unitId;
+      const unit = await findUnitById(unitId, userContext);
       const assignments = await db.execute(sql`
-        SELECT user_id FROM property_assignments WHERE unit_id = ${targetUnitId}::uuid
+        SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid
       `);
       const userIds = assignments.map(a => a.user_id ?? a.userId);
-
       if (userIds.length > 0 && unit) {
-        const unitNo = unit.nomor_unit ?? unit.nomorUnit;
-        let title = 'Pembaruan Garansi Rumah (Retensi)';
-        let body = `Status garansi untuk unit ${unitNo} telah diubah menjadi: ${retention.status}.`;
-
-        if (retention.status === 'released') {
-          title = 'Masa Garansi Rumah Selesai';
-          body = `Masa garansi/retensi untuk unit ${unitNo} telah selesai/dirilis.`;
-        } else if (retention.status === 'claimed') {
-          title = 'Klaim Garansi Rumah (Retensi)';
-          body = `Klaim garansi untuk unit ${unitNo} telah diproses (Status: Klaim).`;
-        }
-
         await sendPushNotification(
           userIds,
-          title,
-          body,
-          { type: 'retention_updated', retentionId: id }
+          'Perubahan Progress Rumah!',
+          `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} diperbarui ke ${progress.progress_percentage ?? progress.progressPercentage ?? progress.percentage}% (${progress.tahap}).`,
+          { type: 'progress_update', unitId }
         );
       }
     }
   } catch (e) {
-    console.error('Failed to trigger retention modify push notification:', e.message);
+    console.error('Failed to trigger progress modify push notification:', e.message);
   }
 
   return result;
 };
 
-export const removeRetention = async (id, userContext) => {
-  const result = await repo.deleteRetention(id, userContext);
-  if (!result) throw new Error('Retention not found or access denied');
+export const removeProgress = async (id, userContext) => {
+  const result = await repo.deleteProgress(id, userContext);
+  if (!result) throw new Error('Progress not found or access denied');
   return result;
 };

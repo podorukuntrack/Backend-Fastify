@@ -1,5 +1,8 @@
 import * as repo from './progress.repository.js';
 import { findUnitById } from '../units/unit.repository.js';
+import { sendPushNotification } from '../../shared/utils/notification.js';
+import { db } from '../../config/database.js';
+import { sql } from 'drizzle-orm';
 
 export const getProgressList = async (userContext, filters = {}) => {
   return await repo.findAllProgress(userContext, filters);
@@ -17,10 +20,6 @@ export const getProgress = async (id, userContext) => {
   if (!data) throw new Error('Progress not found or access denied');
   return data;
 };
-
-import { sendPushNotification } from '../../shared/utils/notification.js';
-import { db } from '../../config/database.js';
-import { sql } from 'drizzle-orm';
 
 export const createProgress = async (data, userContext) => {
   const unitId = data.unit_id ?? data.unitId;
@@ -48,7 +47,6 @@ export const createProgress = async (data, userContext) => {
   return result;
 };
 
-
 export const modifyProgress = async (id, data, userContext) => {
   const result = await repo.updateProgress(id, data, userContext);
   if (!result) throw new Error('Progress not found or access denied');
@@ -56,7 +54,7 @@ export const modifyProgress = async (id, data, userContext) => {
   try {
     const progress = await repo.findProgressById(id, userContext);
     if (progress) {
-      const unitId = progress.unitId ?? progress.unit_id;
+      const unitId = progress.unit_id ?? progress.unitId;
       const unit = await findUnitById(unitId, userContext);
       const assignments = await db.execute(sql`
         SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid

@@ -73,17 +73,33 @@ export const modifyHandover = async (id, data, userContext) => {
       const userIds = assignments.map(a => a.user_id ?? a.userId);
       
       if (userIds.length > 0 && unit) {
-        const unitNo = unit.nomor_unit ?? unit.nomorUnit;
         let title = 'Pembaruan Status Serah Terima';
-        let body = `Status serah terima untuk unit ${unitNo} telah diubah menjadi: ${handover.status}.`;
+        let body = `Status serah terima untuk unit ${unit.nomor_unit ?? unit.nomorUnit} telah diubah menjadi: ${handover.status}.`;
         
-        if (
-          handover.status === 'dijadwalkan' || 
-          handover.status === 'scheduled' || 
-          handover.status === 'menunggu_respon_customer'
-        ) {
-          title = 'Jadwal Serah Terima Unit (Handover)';
-          body = `Jadwal serah terima kunci untuk unit ${unitNo} telah dibuat. Silakan cek detailnya di menu Serah Terima.`;
+        if (normalizedData.scheduledDate) {
+          try {
+            const dateObj = new Date(normalizedData.scheduledDate);
+            const formattedDate = dateObj.toLocaleDateString('id-ID', { 
+              day: 'numeric', 
+              month: 'long', 
+              year: 'numeric' 
+            });
+            const formattedTime = dateObj.toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            title = 'Penyesuaian Jadwal Serah Terima';
+            body = `Jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} Anda disesuaikan menjadi tanggal ${formattedDate} pukul ${formattedTime} WIB.`;
+          } catch (_) {
+            title = 'Penyesuaian Jadwal Serah Terima';
+            body = `Ada penyesuaian jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit}. Silakan cek di aplikasi.`;
+          }
+        } else if (handover.status === 'dijadwalkan' || handover.status === 'scheduled' || handover.status === 'menunggu_respon_customer') {
+          title = 'Jadwal Serah Terima Rumah Dijadwalkan';
+          body = `Jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} Anda telah ditetapkan. Silakan lakukan konfirmasi di aplikasi.`;
+        } else if (handover.status === 'selesai' || handover.status === 'completed') {
+          title = 'Proses Serah Terima Selesai';
+          body = `Selamat! Proses serah terima kunci untuk unit ${unit.nomor_unit ?? unit.nomorUnit} telah selesai dilakukan secara resmi.`;
         }
         
         if (userContext.role === 'customer') {
@@ -92,7 +108,7 @@ export const modifyHandover = async (id, data, userContext) => {
             .from(users)
             .where(
               and(
-                eq(users.companyId, handover.company_id ?? handover.companyId),
+                eq(users.companyId, handover.companyId),
                 inArray(users.role, ['admin', 'customer_service'])
               )
             );
@@ -101,7 +117,7 @@ export const modifyHandover = async (id, data, userContext) => {
             await sendPushNotification(
               adminIds,
               `Respon Serah Terima dari Customer`,
-              `Customer telah menanggapi jadwal serah terima unit ${unitNo} (Status: ${handover.status}).`,
+              `Customer telah menanggapi jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} (Status: ${handover.status}).`,
               { type: 'handover_updated', handoverId: id }
             );
           }
