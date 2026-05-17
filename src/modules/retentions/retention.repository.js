@@ -1,61 +1,109 @@
+import * as repo from './retention.repository.js';
+import { findUnitById } from '../units/unit.repository.js';
+import { sendPushNotification } from '../../shared/utils/notification.js';
 import { db } from '../../config/database.js';
-import { retentions } from '../../shared/schemas/schema.js';
-import { eq, and } from 'drizzle-orm';
-import { getTenantScope } from '../../shared/utils/scopes.js';
+import { sql } from 'drizzle-orm';
 
-const toISO = (v) => (v ? new Date(v).toISOString() : null);
-
-const mapRetentionRow = (row) => {
-  if (!row) return null;
+const normalizeInput = (data) => {
+  if (!data) return data;
   return {
-    id: row.id,
-    company_id: row.companyId,
-    unit_id: row.unitId,
-    amount: Number(row.amount ?? 0),
-    due_date: toISO(row.dueDate),
-    status: row.status,
-    notes: row.notes,
-    created_at: toISO(row.createdAt),
-    updated_at: toISO(row.updatedAt),
+    ...data,
+    unitId: data.unitId ?? data.unit_id,
+    dueDate: data.dueDate ?? data.due_date,
+    companyId: data.companyId ?? data.company_id,
   };
 };
 
-export const findRetentions = async (userContext, filters = {}) => {
-  const scope = getTenantScope(retentions, userContext);
-  const conditions = [];
-  if (scope) conditions.push(scope);
-  const unitId = filters.unitId ?? filters.unit_id;
-  if (unitId) conditions.push(eq(retentions.unitId, unitId));
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const result = await db.select().from(retentions).where(where).orderBy(retentions.dueDate);
-  return result.map(mapRetentionRow);
+export const getRetentionsList = async (userContext, filters = {}) => {
+  return await repo.findRetentions(userContext, normalizeInput(filters));
 };
 
-export const findRetentionById = async (id, userContext) => {
-  const scope = getTenantScope(retentions, userContext);
-  const condition = scope ? and(eq(retentions.id, id), scope) : eq(retentions.id, id);
-  const result = await db.select().from(retentions).where(condition).limit(1);
-  return mapRetentionRow(result[0]);
+export const getRetentionDetail = async (id, userContext) => {
+  const retention = await repo.findRetentionById(id, userContext);
+  if (!retention) throw new Error('Retention not found or access denied');
+  return retention;
 };
 
-export const insertRetention = async (data) => {
-  if (data.dueDate) data.dueDate = new Date(data.dueDate);
-  const result = await db.insert(retentions).values(data).returning();
-  return mapRetentionRow(result[0]);
-};
-
-export const updateRetention = async (id, data, userContext) => {
-  if (data.dueDate) data.dueDate = new Date(data.dueDate);
-  data.updatedAt = new Date();
-  // Update by ID only — auth already gated by authorize middleware
-  const result = await db.update(retentions).set(data).where(eq(retentions.id, id)).returning();
-  return mapRetentionRow(result[0]);
-};
-
-export const deleteRetention = async (id, userContext) => {
-  const scope = getTenantScope(retentions, userContext);
-  const condition = scope ? and(eq(retentions.id, id), scope) : eq(retentions.id, id);
+export const createRetention = async (input, userContext) => {
+  const data = normalizeInput(input);
+  const unit = await findUnitById(data.unitId, userContext);
+  if (!unit) throw new Error('Unit not found or access denied');
   
-  const result = await db.delete(retentions).where(condition).returning();
-  return mapRetentionRow(result[0]);
+  if (!data.companyId) {
+    data.companyId = userContext.companyId ?? unit.companyId ?? unit.company_id;
+  }
+  const result = await repo.insertRetention(data);
+
+  // Kirim Notifikasi Realtime ketika retensi dibuat
+  try {
+    const assignments = await db.execute(sql`
+      SELECT user_id FROM property_assignments WHERE unit_id = ${data.unitId}::uuid
+    `);
+    const userIds = assignments.map(a => a.user_id ?? a.userId);
+    if (userIds.length > 0 && unit) {
+      const unitNo = unit.nomor_unit ?? unit.nomorUnit;
+      const formattedDate = data.dueDate 
+        ? new Date(data.dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) 
+        : '';
+      await sendPushNotification(
+        userIds,
+        'Masa Garansi Rumah (Retensi) Dimulai',
+        `Masa garansi/retensi untuk unit ${unitNo} telah diaktifkan sampai tanggal ${formattedDate}.`,
+        { type: 'retention_created', retentionId: result.id }
+      );
+    }
+  } catch (e) {
+    console.error('Failed to trigger retention create push notification:', e.message);
+  }
+
+  return result;
+};
+
+export const modifyRetention = async (id, input, userContext) => {
+  const result = await repo.updateRetention(id, normalizeInput(input), userContext);
+  if (!result) throw new Error('Retention not found or access denied');
+
+  // Kirim Notifikasi Realtime ketika status retensi di-update
+  try {
+    const retention = await repo.findRetentionById(id, userContext);
+    if (retention) {
+      const targetUnitId = retention.unit_id ?? retention.unitId;
+      const unit = await findUnitById(targetUnitId, userContext);
+      const assignments = await db.execute(sql`
+        SELECT user_id FROM property_assignments WHERE unit_id = ${targetUnitId}::uuid
+      `);
+      const userIds = assignments.map(a => a.user_id ?? a.userId);
+
+      if (userIds.length > 0 && unit) {
+        const unitNo = unit.nomor_unit ?? unit.nomorUnit;
+        let title = 'Pembaruan Garansi Rumah (Retensi)';
+        let body = `Status garansi untuk unit ${unitNo} telah diubah menjadi: ${retention.status}.`;
+
+        if (retention.status === 'released') {
+          title = 'Masa Garansi Rumah Selesai';
+          body = `Masa garansi/retensi untuk unit ${unitNo} telah selesai/dirilis.`;
+        } else if (retention.status === 'claimed') {
+          title = 'Klaim Garansi Rumah (Retensi)';
+          body = `Klaim garansi untuk unit ${unitNo} telah diproses (Status: Klaim).`;
+        }
+
+        await sendPushNotification(
+          userIds,
+          title,
+          body,
+          { type: 'retention_updated', retentionId: id }
+        );
+      }
+    }
+  } catch (e) {
+    console.error('Failed to trigger retention modify push notification:', e.message);
+  }
+
+  return result;
+};
+
+export const removeRetention = async (id, userContext) => {
+  const result = await repo.deleteRetention(id, userContext);
+  if (!result) throw new Error('Retention not found or access denied');
+  return result;
 };
