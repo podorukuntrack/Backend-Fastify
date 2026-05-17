@@ -1,0 +1,53 @@
+name: podorukuntrack
+
+services:
+  # ── PostgreSQL ─────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: podorukuntrack_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-podorukuntrack}
+      POSTGRES_USER:     ${POSTGRES_USER:-podorukuntrack_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-podorukuntrack_secret}
+      PGDATA:            /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      # Kalau ada seed data:
+      # - ./seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-podorukuntrack_user} -d ${POSTGRES_DB:-podorukuntrack}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proptrack_net
+
+  # ── Redis ──────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: podorukuntrack_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proptrack_net
+
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  proptrack_net:
+    driver: bridge

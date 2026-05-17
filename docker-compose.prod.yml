@@ -1,0 +1,39 @@
+name: podorukuntrack-prod
+
+services:
+  # ── Redis ──────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: podorukuntrack_redis_prod
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proptrack_prod_net
+
+  # ── Uptime Kuma ────────────────────────────────────────────────
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: podorukuntrack_uptime_kuma
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data_prod:/app/data
+    networks:
+      - proptrack_prod_net
+
+volumes:
+  redis_data_prod:
+  uptime_kuma_data_prod:
+
+networks:
+  proptrack_prod_net:
+    driver: bridge
