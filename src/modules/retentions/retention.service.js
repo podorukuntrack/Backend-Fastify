@@ -78,7 +78,7 @@ export const modifyRetention = async (id, input, userContext) => {
       let body = `Status garansi untuk unit ${unitNo} telah diubah menjadi: ${result.status}.`;
 
       if (result.status === 'released') {
-        title = 'Masa Garansi Rumah Selesai';
+        title = 'Masa Garansi Rumah Sudah Selesai';
         body = `Masa garansi / retensi untuk unit ${unitNo} telah selesai / dirilis.`;
       } else if (result.status === 'claimed') {
         title = 'Klaim Garansi Rumah (Retensi)';
