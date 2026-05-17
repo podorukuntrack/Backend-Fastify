@@ -31,8 +31,8 @@ const normalizeUnitInput = (data) => ({
   cluster_id: data.cluster_id ?? data.clusterId,
   nomor_unit: data.nomor_unit ?? data.nomorUnit,
   tipe_rumah: data.tipe_rumah ?? data.tipeRumah,
-  luas_tanah: data.luas_tanah ?? data.luasTanah ?? null,
-  luas_bangunan: data.luas_bangunan ?? data.luasBangunan ?? null,
+  luas_tanah: (data.luas_tanah || data.luasTanah) ? Number(data.luas_tanah ?? data.luasTanah) : null,
+  luas_bangunan: (data.luas_bangunan || data.luasBangunan) ? Number(data.luas_bangunan ?? data.luasBangunan) : null,
   status_pembangunan: data.status_pembangunan ?? data.statusPembangunan ?? 'belum_mulai',
   progress_percentage: data.progress_percentage ?? data.progressPercentage ?? 0,
 });

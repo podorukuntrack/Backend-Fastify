@@ -66,7 +66,7 @@ export const modifyProgress = async (id, data, userContext) => {
         await sendPushNotification(
           userIds,
           'Perubahan Progress Rumah!',
-          `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} diperbarui ke ${progress.progressPercentage ?? progress.percentage}% (${progress.tahap}).`,
+          `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} diperbarui ke ${progress.progress_percentage ?? progress.progressPercentage ?? progress.percentage}% (${progress.tahap}).`,
           { type: 'progress_update', unitId }
         );
       }

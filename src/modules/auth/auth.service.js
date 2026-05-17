@@ -1,5 +1,4 @@
-// src/modules/auth/auth.service.js
-import { upsertDeviceToken } from '../users/device.repository.js';
+import { upsertDeviceToken, deleteDeviceToken } from '../users/device.repository.js';
 
 
 import bcrypt from 'bcrypt';
@@ -168,6 +167,10 @@ export const logoutUser = async (refreshToken) => {
 
 export const registerDeviceToken = async (userId, fcmToken, deviceType) => {
   return await upsertDeviceToken(userId, fcmToken, deviceType);
+};
+
+export const unregisterDeviceToken = async (userId, fcmToken) => {
+  return await deleteDeviceToken(fcmToken);
 };
 
 export const registerCustomer = async (data, fastify) => {

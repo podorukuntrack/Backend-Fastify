@@ -8,20 +8,29 @@ const statusPembangunanEnum = z.enum([
 
 export const createUnitSchema = {
   body: z.object({
-    clusterId: z.string().uuid("Format Cluster ID tidak valid"),
+    clusterId: z.string().uuid("Format Cluster ID tidak valid").optional(),
     cluster_id: z.string().uuid("Format Cluster ID tidak valid").optional(),
-    nomorUnit: z.string().min(1, "Nomor unit tidak boleh kosong").max(50),
+    nomorUnit: z.string().min(1, "Nomor unit tidak boleh kosong").max(50).optional(),
     nomor_unit: z.string().min(1, "Nomor unit tidak boleh kosong").max(50).optional(),
-    tipeRumah: z.string().min(1, "Tipe rumah tidak boleh kosong").max(50),
+    tipeRumah: z.string().min(1, "Tipe rumah tidak boleh kosong").max(50).optional(),
     tipe_rumah: z.string().min(1, "Tipe rumah tidak boleh kosong").max(50).optional(),
-    luasTanah: z.number().positive("Luas tanah harus lebih dari 0").nullable().optional(),
-    luas_tanah: z.number().positive("Luas tanah harus lebih dari 0").nullable().optional(),
-    luasBangunan: z.number().positive("Luas bangunan harus lebih dari 0").nullable().optional(),
-    luas_bangunan: z.number().positive("Luas bangunan harus lebih dari 0").nullable().optional(),
+    luasTanah: z.number().min(0, "Luas tanah tidak boleh negatif").nullable().optional(),
+    luas_tanah: z.number().min(0, "Luas tanah tidak boleh negatif").nullable().optional(),
+    luasBangunan: z.number().min(0, "Luas bangunan tidak boleh negatif").nullable().optional(),
+    luas_bangunan: z.number().min(0, "Luas bangunan tidak boleh negatif").nullable().optional(),
     statusPembangunan: statusPembangunanEnum.default('belum_mulai').optional(),
     status_pembangunan: statusPembangunanEnum.optional(),
     progressPercentage: z.number().int().min(0).max(100).default(0).optional(),
     progress_percentage: z.number().int().min(0).max(100).optional(),
+  }).refine((data) => data.clusterId || data.cluster_id, {
+    message: "Cluster ID wajib diisi",
+    path: ["cluster_id"],
+  }).refine((data) => data.nomorUnit || data.nomor_unit, {
+    message: "Nomor unit wajib diisi",
+    path: ["nomor_unit"],
+  }).refine((data) => data.tipeRumah || data.tipe_rumah, {
+    message: "Tipe rumah wajib diisi",
+    path: ["tipe_rumah"],
   }),
 };
 
@@ -36,10 +45,10 @@ export const updateUnitSchema = {
     nomor_unit: z.string().min(1).max(50).optional(),
     tipeRumah: z.string().min(1).max(50).optional(),
     tipe_rumah: z.string().min(1).max(50).optional(),
-    luasTanah: z.number().positive().nullable().optional(),
-    luas_tanah: z.number().positive().nullable().optional(),
-    luasBangunan: z.number().positive().nullable().optional(),
-    luas_bangunan: z.number().positive().nullable().optional(),
+    luasTanah: z.number().min(0).nullable().optional(),
+    luas_tanah: z.number().min(0).nullable().optional(),
+    luasBangunan: z.number().min(0).nullable().optional(),
+    luas_bangunan: z.number().min(0).nullable().optional(),
     statusPembangunan: statusPembangunanEnum.optional(),
     status_pembangunan: statusPembangunanEnum.optional(),
     progressPercentage: z.number().int().min(0).max(100).optional(),
@@ -65,18 +74,39 @@ export const getUnitsQuerySchema = {
   }),
 };
 
+const unitItemBulkSchema = z.object({
+  clusterId: z.string().uuid("Format Cluster ID tidak valid").optional(),
+  cluster_id: z.string().uuid("Format Cluster ID tidak valid").optional(),
+  nomorUnit: z.string().min(1, "Nomor unit tidak boleh kosong").max(50).optional(),
+  nomor_unit: z.string().min(1, "Nomor unit tidak boleh kosong").max(50).optional(),
+  tipeRumah: z.string().min(1, "Tipe rumah tidak boleh kosong").max(50).optional(),
+  tipe_rumah: z.string().min(1, "Tipe rumah tidak boleh kosong").max(50).optional(),
+  luasTanah: z.number().min(0, "Luas tanah tidak boleh negatif").nullable().optional(),
+  luas_tanah: z.number().min(0, "Luas tanah tidak boleh negatif").nullable().optional(),
+  luasBangunan: z.number().min(0, "Luas bangunan tidak boleh negatif").nullable().optional(),
+  luas_bangunan: z.number().min(0, "Luas bangunan tidak boleh negatif").nullable().optional(),
+  statusPembangunan: statusPembangunanEnum.default('belum_mulai').optional(),
+  status_pembangunan: statusPembangunanEnum.default('belum_mulai').optional(),
+  progressPercentage: z.number().int().min(0).max(100).default(0).optional(),
+  progress_percentage: z.number().int().min(0).max(100).default(0).optional(),
+}).refine((data) => data.clusterId || data.cluster_id, {
+  message: "Cluster ID wajib diisi",
+  path: ["cluster_id"],
+}).refine((data) => data.nomorUnit || data.nomor_unit, {
+  message: "Nomor unit wajib diisi",
+  path: ["nomor_unit"],
+}).refine((data) => data.tipeRumah || data.tipe_rumah, {
+  message: "Tipe rumah wajib diisi",
+  path: ["tipe_rumah"],
+});
+
+const unitsArraySchema = z.array(unitItemBulkSchema).min(1, "Minimal 1 unit harus dibuat");
+
 export const bulkCreateUnitsSchema = {
-  body: z.object({
-    units: z.array(
-      z.object({
-        clusterId: z.string().uuid("Format Cluster ID tidak valid"),
-        nomorUnit: z.string().min(1, "Nomor unit tidak boleh kosong").max(50),
-        tipeRumah: z.string().min(1, "Tipe rumah tidak boleh kosong").max(50),
-        luasTanah: z.number().positive("Luas tanah harus lebih dari 0").nullable().optional(),
-        luasBangunan: z.number().positive("Luas bangunan harus lebih dari 0").nullable().optional(),
-        statusPembangunan: statusPembangunanEnum.default('planned').optional(),
-        progressPercentage: z.number().int().min(0).max(100).default(0).optional(),
-      }).strict()
-    ).min(1, "Minimal 1 unit harus dibuat"),
-  }),
+  body: z.union([
+    z.object({
+      units: unitsArraySchema,
+    }),
+    unitsArraySchema,
+  ]),
 };

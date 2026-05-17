@@ -7,12 +7,9 @@ import * as controller from './unit.controller.js';
 // CONSTANTS
 // =============================
 const STATUS_PEMBANGUNAN = [
-  'planned',
-  'pondasi',
-  'struktur',
-  'finishing',
-  'ready',
-  'handover',
+  'belum_mulai',
+  'dalam_pembangunan',
+  'selesai',
 ];
 
 // =============================
@@ -118,7 +115,7 @@ export default async function unitRoutes(fastify) {
         tags: ['Units'],
         params: schema.unitIdParamSchema,
         response: {
-          200: buildResponse({
+          201: buildResponse({
             type: 'object',
             properties: {
               ...baseUnitProperties,
@@ -180,9 +177,13 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Create multiple units',
         tags: ['Units'],
+        body: schema.bulkCreateUnitsSchema,
+        response: {
+          201: buildResponse(unitSchemaObject, true),
+        },
         security: [{ bearerAuth: [] }],
       },
-      preHandler: [writeRoles],
+      preHandler: [writeRoles, validate(schema.bulkCreateUnitsSchema)],
     },
     controller.bulkCreateHandler
   );
