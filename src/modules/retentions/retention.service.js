@@ -48,7 +48,7 @@ export const createRetention = async (input, userContext) => {
       await sendPushNotification(
         userIds,
         'Masa Garansi Rumah (Retensi) Dimulai',
-        `Masa garansi/retensi untuk unit ${unitNo} telah diaktifkan sampai tanggal ${formattedDate}.`,
+        `Masa garansi / retensi untuk unit ${unitNo} telah diaktifkan sampai tanggal ${formattedDate}.`,
         { type: 'retention_created', retentionId: result.id }
       );
     }
