@@ -63,8 +63,7 @@ export const sendPushNotification = async (userIds, title, body, data = {}) => {
     const message = {
       notification: { 
         title, 
-        body,
-        sound: 'notif_podorukun'
+        body
       },
       data: Object.keys(data).reduce((acc, key) => {
         acc[key] = String(data[key]);
