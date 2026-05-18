@@ -114,9 +114,7 @@ export const refreshTokenService = async (
     email: storedToken.email,
   };
 
-  const accessToken = fastify.jwt.sign(payload, {
-    expiresIn: '15m',
-  });
+ const accessToken = fastify.jwt.sign(payload);
 
   const rawRefreshToken = crypto
     .randomBytes(40)
