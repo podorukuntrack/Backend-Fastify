@@ -47,7 +47,7 @@ export async function buildApp() {
     : [];
 
   await app.register(fastifyCors, {
-    origin: allowedOrigins,
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
