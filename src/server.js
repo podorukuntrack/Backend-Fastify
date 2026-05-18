@@ -12,7 +12,7 @@ const start = async () => {
 
     const result = await db.execute(sql`SELECT NOW() as now`);
 
-    console.log('✅ Database connected successfully');
+    console.log('✅ Database connected successfullyy');
     console.log('🕒 Database time:', result.rows?.[0]?.now || result[0]?.now);
     console.log('🔗 DATABASE_URL:', process.env.DATABASE_URL);
 
