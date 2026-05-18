@@ -12,6 +12,7 @@ const mapUnitRow = (row) => ({
   progress_percentage: row.progress_percentage,
   created_at: row.created_at,
   updated_at: row.updated_at,
+  nama_perusahaan: row.nama_perusahaan,
   cluster: row.cluster_id
     ? {
         id: row.cluster_id,
@@ -31,8 +32,8 @@ const normalizeUnitInput = (data) => ({
   cluster_id: data.cluster_id ?? data.clusterId,
   nomor_unit: data.nomor_unit ?? data.nomorUnit,
   tipe_rumah: data.tipe_rumah ?? data.tipeRumah,
-  luas_tanah: (data.luas_tanah || data.luasTanah) ? Number(data.luas_tanah ?? data.luasTanah) : null,
-  luas_bangunan: (data.luas_bangunan || data.luasBangunan) ? Number(data.luas_bangunan ?? data.luasBangunan) : null,
+  luas_tanah: data.luas_tanah ?? data.luasTanah ?? null,
+  luas_bangunan: data.luas_bangunan ?? data.luasBangunan ?? null,
   status_pembangunan: data.status_pembangunan ?? data.statusPembangunan ?? 'belum_mulai',
   progress_percentage: data.progress_percentage ?? data.progressPercentage ?? 0,
 });
@@ -69,10 +70,12 @@ export const findAllUnits = async (userContext, filters = {}) => {
       c.nama_cluster,
       c.jumlah_unit,
       p.id AS project_id,
-      p.nama_proyek
+      p.nama_proyek,
+      cp.nama_pt AS nama_perusahaan
     FROM units u
     JOIN clusters c ON c.id = u.cluster_id
     JOIN projects p ON p.id = c.project_id
+    LEFT JOIN companies cp ON cp.id = p.company_id
     WHERE ${scopeCondition}
       AND (${clusterId}::uuid IS NULL OR u.cluster_id = ${clusterId}::uuid)
       AND (${status}::unit_status IS NULL OR u.status_pembangunan = ${status}::unit_status)
@@ -86,6 +89,7 @@ export const findAllUnits = async (userContext, filters = {}) => {
 };
 
 export const findUnitById = async (id, userContext) => {
+  if (!id) return null;
   let scopeCondition;
   if (userContext.role === 'super_admin') {
     scopeCondition = sql`true`;
@@ -110,10 +114,12 @@ export const findUnitById = async (id, userContext) => {
       c.nama_cluster,
       c.jumlah_unit,
       p.id AS project_id,
-      p.nama_proyek
+      p.nama_proyek,
+      cp.nama_pt AS nama_perusahaan
     FROM units u
     JOIN clusters c ON c.id = u.cluster_id
     JOIN projects p ON p.id = c.project_id
+    LEFT JOIN companies cp ON cp.id = p.company_id
     WHERE u.id = ${id}
       AND ${scopeCondition}
     LIMIT 1
