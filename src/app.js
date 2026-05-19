@@ -66,7 +66,7 @@ export async function buildApp() {
   app.setErrorHandler(globalErrorHandler);
 
   await app.register(fastifyMultipart, {
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 5000 * 1024 * 1024 }, // 5GB (praktis tanpa batas)
   });
 
   // Routes

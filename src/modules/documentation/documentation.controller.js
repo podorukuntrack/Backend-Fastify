@@ -25,6 +25,10 @@ export const uploadHandler = async (request, reply) => {
       return reply.code(400).send({ success: false, message: 'No file uploaded', errors: [] });
     }
 
+    if (!data.mimetype.startsWith('image/')) {
+      return reply.code(400).send({ success: false, message: 'Hanya file gambar (image/*) yang diperbolehkan!', errors: [] });
+    }
+
     console.log("[UPLOAD DEBUG] File received:", data.filename);
     console.log("[UPLOAD DEBUG] Mimetype:", data.mimetype);
     // data.fields contains circular references in fastify-multipart, do not stringify
