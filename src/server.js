@@ -4,7 +4,7 @@ import { buildApp } from './app.js';
 import { db } from './config/database.js';
 
 // Load .env utama
-dotenv.config({ path: '.env' });
+dotenv.config({ path: '.env', override: true });
 
 const start = async () => {
   try {

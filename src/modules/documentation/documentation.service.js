@@ -29,6 +29,26 @@ export const uploadDocument = async (fileBuffer, originalFilename, mimeType, fie
   const progressId = fieldValue(fields, 'progress_id', 'progressId');
   const jenis = fieldValue(fields, 'jenis', 'docType') ?? (mimeType.startsWith('video/') ? 'video' : mimeType.startsWith('image/') ? 'foto' : 'dokumen');
 
+  if (jenis === 'logo') {
+    const r2Data = await uploadFileToR2(fileBuffer, originalFilename, mimeType);
+    return {
+      url: r2Data.fileUrl,
+      r2_key: r2Data.fileKey,
+      nama_file: originalFilename,
+      ukuran_bytes: fileBuffer.length,
+    };
+  }
+
+  if (!unitId && (jenis === 'unit' || jenis === 'foto')) {
+    const r2Data = await uploadFileToR2(fileBuffer, originalFilename, mimeType);
+    return {
+      url: r2Data.fileUrl,
+      r2_key: r2Data.fileKey,
+      nama_file: originalFilename,
+      ukuran_bytes: fileBuffer.length,
+    };
+  }
+
   if (!unitId) {
     throw new Error('unit_id is required');
   }
