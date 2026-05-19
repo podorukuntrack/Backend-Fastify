@@ -29,19 +29,20 @@ import { getRedisClient } from "./shared/utils/cache.js";
 
 export async function buildApp() {
   const app = Fastify({
-  logger: process.env.LOG_PRETTY === "true"
-    ? {
-        transport: {
-          target: "pino-pretty",
-          options: {
-            translateTime: "HH:MM:ss",
-            ignore: "pid,hostname",
-            colorize: true,
+    bodyLimit: 1000 * 1024 * 1024, // 1GB
+    logger: process.env.LOG_PRETTY === "true"
+      ? {
+          transport: {
+            target: "pino-pretty",
+            options: {
+              translateTime: "HH:MM:ss",
+              ignore: "pid,hostname",
+              colorize: true,
+            },
           },
-        },
-      }
-    : true,
-});
+        }
+      : true,
+  });
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",")
     : [];
