@@ -91,6 +91,14 @@ export default async function companyRoutes(fastify, options) {
                       type: 'string'
                     },
 
+                    theme_color: {
+                      type: 'string'
+                    },
+
+                    themeColor: {
+                      type: 'string'
+                    },
+
                     createdAt: {
                       type: 'string',
                       format: 'date-time'
@@ -204,6 +212,14 @@ export default async function companyRoutes(fastify, options) {
 
                   logo_url: {
                     type: 'string'
+                  },
+
+                  theme_color: {
+                    type: 'string'
+                  },
+
+                  themeColor: {
+                    type: 'string'
                   }
                 }
               }
@@ -286,6 +302,14 @@ export default async function companyRoutes(fastify, options) {
                   },
 
                   logo_url: {
+                    type: 'string'
+                  },
+
+                  theme_color: {
+                    type: 'string'
+                  },
+
+                  themeColor: {
                     type: 'string'
                   },
 
