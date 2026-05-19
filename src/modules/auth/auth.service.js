@@ -13,6 +13,7 @@ import {
 } from './auth.repository.js';
 import { insertUser } from '../users/user.repository.js';
 import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
+import { findCompanyById } from '../companies/company.repository.js';
 
 export const loginUser = async (email, password, fastify) => {
   const user = await findUserByEmail(email);
@@ -70,6 +71,11 @@ export const loginUser = async (email, password, fastify) => {
     expiresAt
   );
 
+  let company = null;
+  if (user.company_id) {
+    company = await findCompanyById(user.company_id);
+  }
+
   // Response
   return {
     accessToken,
@@ -80,6 +86,11 @@ export const loginUser = async (email, password, fastify) => {
       email: user.email,
       role: user.role,
       companyId: user.company_id,
+      company: company ? {
+        name: company.nama_pt,
+        logoUrl: company.logo_url,
+        themeColor: company.theme_color || '#4f46e5'
+      } : null
     },
   };
 };
@@ -134,6 +145,11 @@ export const refreshTokenService = async (
     expiresAt
   );
 
+  let company = null;
+  if (storedToken.company_id) {
+    company = await findCompanyById(storedToken.company_id);
+  }
+
   return {
     accessToken,
     refreshToken: rawRefreshToken,
@@ -143,6 +159,11 @@ export const refreshTokenService = async (
       email: storedToken.email,
       role: storedToken.role,
       companyId: storedToken.company_id,
+      company: company ? {
+        name: company.nama_pt,
+        logoUrl: company.logo_url,
+        themeColor: company.theme_color || '#4f46e5'
+      } : null
     },
   };
 };

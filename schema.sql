@@ -115,7 +115,9 @@ CREATE TABLE public.companies (
     alamat text,
     logo_url text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    theme_color character varying(50) DEFAULT '#4f46e5'
+
 );
 
 CREATE TABLE public.users (

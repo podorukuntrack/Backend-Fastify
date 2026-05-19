@@ -22,6 +22,7 @@ export const loginHandler = async (request, reply) => {
 };
 
 import { findUserById } from '../users/user.repository.js';
+import { findCompanyById } from '../companies/company.repository.js';
 
 export const getMeHandler = async (request, reply) => {
   try {
@@ -32,6 +33,12 @@ export const getMeHandler = async (request, reply) => {
         message: 'User not found'
       });
     }
+
+    let company = null;
+    if (user.company_id) {
+      company = await findCompanyById(user.company_id);
+    }
+
     return reply.code(200).send({
       success: true,
       message: 'Current user retrieved',
@@ -40,7 +47,12 @@ export const getMeHandler = async (request, reply) => {
         name: user.nama,
         email: user.email,
         role: user.role,
-        companyId: user.company_id
+        companyId: user.company_id,
+        company: company ? {
+          name: company.nama_pt,
+          logoUrl: company.logo_url,
+          themeColor: company.theme_color || '#4f46e5'
+        } : null
       }
     });
   } catch (error) {
