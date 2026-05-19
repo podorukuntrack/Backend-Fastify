@@ -26,7 +26,7 @@ export const insertCompany = async (data) => {
 
   const result = await db.execute(sql`
     INSERT INTO companies (nama_pt, kode_pt, alamat, logo_url, theme_color)
-    VALUES (${namaPt}, ${kodePt}, ${data.alamat ?? null}, ${data.logo_url ?? null}, ${data.theme_color ?? '#4f46e5'})
+    VALUES (${namaPt}, ${kodePt}, ${data.alamat ?? null}, ${data.logo_url ?? null}, ${data.theme_color ?? data.themeColor ?? '#4f46e5'})
     RETURNING id, nama_pt, kode_pt, alamat, logo_url, theme_color, created_at, updated_at
   `);
   return result[0];
@@ -39,7 +39,7 @@ export const updateCompany = async (id, data) => {
            kode_pt = COALESCE(${data.kode_pt ?? null}, kode_pt),
            alamat = COALESCE(${data.alamat ?? null}, alamat),
            logo_url = COALESCE(${data.logo_url ?? null}, logo_url),
-           theme_color = COALESCE(${data.theme_color ?? null}, theme_color),
+           theme_color = COALESCE(${data.theme_color ?? data.themeColor ?? null}, theme_color),
            updated_at = NOW()
      WHERE id = ${id}
     RETURNING id, nama_pt, kode_pt, alamat, logo_url, theme_color, created_at, updated_at

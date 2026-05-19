@@ -8,6 +8,8 @@ export const createCompanySchema = {
     kode_pt: z.string().min(2).max(50).optional(),
     alamat: z.string().optional(),
     logo_url: z.string().optional(),
+    theme_color: z.string().optional(),
+    themeColor: z.string().optional(),
   }).refine((data) => data.name || data.nama_pt, {
     message: "Nama company wajib diisi",
     path: ["nama_pt"],
@@ -24,6 +26,8 @@ export const updateCompanySchema = {
     kode_pt: z.string().min(2).max(50).optional(),
     alamat: z.string().optional(),
     logo_url: z.string().optional(),
+    theme_color: z.string().optional(),
+    themeColor: z.string().optional(),
   })
 };
 
