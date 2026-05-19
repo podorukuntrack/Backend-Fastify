@@ -8,6 +8,8 @@ export const createProjectSchema = {
     status: z.enum(['active', 'completed', 'on_hold']).default('active'),
     company_id: z.string().uuid().optional(),
     companyId: z.string().uuid().optional(),
+    logo_url: z.string().optional().nullable(),
+    theme_color: z.string().optional().nullable(),
   })
 };
 
@@ -20,6 +22,8 @@ export const updateProjectSchema = {
     lokasi: z.string().optional(),
     deskripsi: z.string().optional(),
     status: z.enum(['active', 'completed', 'on_hold']).optional(),
+    logo_url: z.string().optional().nullable(),
+    theme_color: z.string().optional().nullable(),
   })
 };
 

@@ -142,7 +142,9 @@ CREATE TABLE public.projects (
     status public.project_status DEFAULT 'active'::public.project_status NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    logo_url text,
+    theme_color character varying(50) DEFAULT '#4f46e5'::character varying
 );
 
 CREATE TABLE public.clusters (
@@ -166,6 +168,7 @@ CREATE TABLE public.units (
     progress_percentage smallint DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    image_url text,
     CONSTRAINT units_luas_bangunan_check CHECK ((luas_bangunan > (0)::numeric)),
     CONSTRAINT units_luas_tanah_check CHECK ((luas_tanah > (0)::numeric)),
     CONSTRAINT units_progress_percentage_check CHECK (((progress_percentage >= 0) AND (progress_percentage <= 100)))
@@ -273,7 +276,8 @@ CREATE TABLE public.handovers (
     notes text,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
-    proposed_date timestamp without time zone
+    proposed_date timestamp without time zone,
+    image_url text
 );
 
 CREATE TABLE public.handover_defects (
@@ -294,7 +298,8 @@ CREATE TABLE public.retentions (
     status character varying(50) DEFAULT 'active'::character varying,
     notes text,
     created_at timestamp without time zone DEFAULT now(),
-    updated_at timestamp without time zone DEFAULT now()
+    updated_at timestamp without time zone DEFAULT now(),
+    link_foto_360 text
 );
 
 CREATE TABLE public.timelines (

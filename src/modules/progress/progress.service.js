@@ -33,13 +33,11 @@ export const createProgress = async (data, userContext) => {
     `);
     const userIds = assignments.map(a => a.user_id ?? a.userId);
     if (userIds.length > 0) {
-      const pct = result?.progress_percentage ?? result?.progressPercentage ?? data?.progress_percentage ?? data?.progressPercentage ?? 0;
-      const stage = result?.tahap ?? data?.tahap ?? "Progress";
       await sendPushNotification(
         userIds,
         'Progress Rumah Terbaru!',
-        `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} telah diperbarui ke ${pct}% (${stage}).`,
-        { type: 'progress_update', unitId, progressPercentage: pct }
+        `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} telah diperbarui ke ${data.progress_percentage ?? data.progressPercentage}% (${data.tahap}).`,
+        { type: 'progress_update', unitId }
       );
     }
   } catch (e) {
@@ -53,26 +51,7 @@ export const modifyProgress = async (id, data, userContext) => {
   const result = await repo.updateProgress(id, data, userContext);
   if (!result) throw new Error('Progress not found or access denied');
 
-  try {
-    const unitId = result.unit_id ?? result.unitId;
-    const unit = await findUnitById(unitId, userContext);
-    const assignments = await db.execute(sql`
-      SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid
-    `);
-    const userIds = assignments.map(a => a.user_id ?? a.userId);
-    if (userIds.length > 0 && unit) {
-      const pct = result?.progress_percentage ?? result?.progressPercentage ?? data?.progress_percentage ?? data?.progressPercentage ?? 0;
-      const stage = result?.tahap ?? data?.tahap ?? "Progress";
-      await sendPushNotification(
-        userIds,
-        'Perubahan Progress Rumah!',
-        `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} diperbarui ke ${pct}% (${stage}).`,
-        { type: 'progress_update', unitId, progressPercentage: pct }
-      );
-    }
-  } catch (e) {
-    console.error('Failed to trigger progress modify push notification:', e.message);
-  }
+  // Push notification untuk perubahan progress telah dinonaktifkan atas permintaan.
 
   return result;
 };

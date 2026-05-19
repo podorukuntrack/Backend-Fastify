@@ -6,7 +6,8 @@ export const createRetentionSchema = {
     unitId: z.string().uuid("Format Unit ID tidak valid"),
     dueDate: z.string().datetime("Format tanggal tidak valid (gunakan ISO-8601)"),
     status: z.enum(['active', 'released', 'claimed']).default('active'),
-    notes: z.string().optional()
+    notes: z.string().optional(),
+    linkFoto360: z.string().optional().nullable().or(z.literal(''))
   })
 };
 
@@ -15,7 +16,8 @@ export const updateRetentionSchema = {
   body: z.object({
     dueDate: z.string().datetime().optional(),
     status: z.enum(['active', 'released', 'claimed']).optional(),
-    notes: z.string().optional()
+    notes: z.string().optional(),
+    linkFoto360: z.string().optional().nullable().or(z.literal(''))
   })
 };
 

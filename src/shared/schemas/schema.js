@@ -57,6 +57,8 @@ export const projects = pgTable("projects", {
   lokasi: text("lokasi"),
   status: varchar("status", { length: 50 }).default("active"),
   createdBy: uuid("created_by").references(() => users.id),
+  logoUrl: text("logo_url"),
+  themeColor: varchar("theme_color", { length: 50 }).default("#4f46e5"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -116,6 +118,7 @@ export const units = pgTable("units", {
 
   // Progress 0 - 100
   progressPercentage: integer("progress_percentage").notNull().default(0),
+  imageUrl: text("image_url"),
 
   createdAt: timestamp("created_at", {
     withTimezone: true,
@@ -255,6 +258,7 @@ export const retentions = pgTable("retentions", {
   dueDate: timestamp("due_date").notNull(), // Batas waktu masa retensi
   status: varchar("status", { length: 50 }).default("active"), // active, released, claimed
   notes: text("notes"),
+  linkFoto360: text("link_foto_360"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -272,6 +276,7 @@ export const handovers = pgTable("handovers", {
   actualDate: timestamp("actual_date"), // Diisi saat serah terima benar-benar terjadi
   status: varchar("status", { length: 50 }).default("menunggu_respon_customer"), // menunggu_respon_customer, menunggu_konfirmasi_admin, dijadwalkan, selesai, delayed, completed, scheduled
   notes: text("notes"),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

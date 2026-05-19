@@ -121,6 +121,10 @@ export default async function retentionRoutes(fastify, options) {
             description: 'Catatan retensi (opsional)',
             example: 'Retensi untuk garansi kualitas pengerjaan'
           },
+          linkFoto360: {
+            type: ['string', 'null'],
+            description: 'Link foto 360 unit'
+          },
           companyId: {
             type: 'string',
             format: 'uuid',
@@ -180,6 +184,10 @@ export default async function retentionRoutes(fastify, options) {
             type: 'string',
             description: 'Catatan baru',
             example: 'Retensi dilepaskan setelah inspeksi final'
+          },
+          linkFoto360: {
+            type: ['string', 'null'],
+            description: 'Link foto 360 unit'
           }
         }
       },

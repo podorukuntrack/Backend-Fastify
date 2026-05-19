@@ -13,6 +13,7 @@ const normalizeInput = (data) => {
   if (data.scheduled_date) normalized.scheduledDate = data.scheduled_date;
   if (data.proposed_date) normalized.proposedDate = data.proposed_date;
   if (data.actual_date) normalized.actualDate = data.actual_date;
+  if (data.image_url !== undefined) normalized.imageUrl = data.image_url;
   return normalized;
 };
 

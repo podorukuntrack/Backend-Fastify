@@ -17,6 +17,7 @@ const mapHandoverRow = (row) => {
     actual_date: toISO(row.actualDate),
     status: row.status,
     notes: row.notes,
+    image_url: row.imageUrl,
     created_at: toISO(row.createdAt),
     updated_at: toISO(row.updatedAt),
   };

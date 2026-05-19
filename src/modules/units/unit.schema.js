@@ -22,6 +22,8 @@ export const createUnitSchema = {
     status_pembangunan: statusPembangunanEnum.optional(),
     progressPercentage: z.number().int().min(0).max(100).default(0).optional(),
     progress_percentage: z.number().int().min(0).max(100).optional(),
+    imageUrl: z.string().optional().nullable(),
+    image_url: z.string().optional().nullable(),
   }).refine((data) => data.clusterId || data.cluster_id, {
     message: "Cluster ID wajib diisi",
     path: ["cluster_id"],
@@ -53,6 +55,8 @@ export const updateUnitSchema = {
     status_pembangunan: statusPembangunanEnum.optional(),
     progressPercentage: z.number().int().min(0).max(100).optional(),
     progress_percentage: z.number().int().min(0).max(100).optional(),
+    imageUrl: z.string().optional().nullable(),
+    image_url: z.string().optional().nullable(),
   }),
 };
 
@@ -89,6 +93,8 @@ const unitItemBulkSchema = z.object({
   status_pembangunan: statusPembangunanEnum.default('belum_mulai').optional(),
   progressPercentage: z.number().int().min(0).max(100).default(0).optional(),
   progress_percentage: z.number().int().min(0).max(100).default(0).optional(),
+  imageUrl: z.string().optional().nullable(),
+  image_url: z.string().optional().nullable(),
 }).refine((data) => data.clusterId || data.cluster_id, {
   message: "Cluster ID wajib diisi",
   path: ["cluster_id"],

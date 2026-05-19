@@ -119,6 +119,10 @@ export default async function handoverRoutes(fastify, options) {
             description: 'Catatan atau instruksi serah terima',
             example: 'Serah terima disertai dengan pemeriksaan kelengkapan fasilitas'
           },
+          imageUrl: {
+            type: ['string', 'null'],
+            description: 'URL foto serah terima'
+          },
           companyId: {
             type: 'string',
             format: 'uuid',
@@ -183,6 +187,10 @@ export default async function handoverRoutes(fastify, options) {
             type: 'string',
             description: 'Catatan pembaruan',
             example: 'Serah terima sudah dilaksanakan, semua fasilitas OK'
+          },
+          imageUrl: {
+            type: ['string', 'null'],
+            description: 'URL foto serah terima'
           }
         }
       },

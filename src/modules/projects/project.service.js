@@ -10,6 +10,8 @@ export const getProjects = async (userContext) => {
     deskripsi: project.deskripsi,
     lokasi: project.lokasi,
     status: project.status,
+    logo_url: project.logoUrl,
+    theme_color: project.themeColor,
     created_at: project.createdAt.toISOString(),
   }));
 };
@@ -24,6 +26,8 @@ export const getProject = async (id, userContext) => {
     deskripsi: project.deskripsi,
     lokasi: project.lokasi,
     status: project.status,
+    logo_url: project.logoUrl,
+    theme_color: project.themeColor,
     created_at: project.createdAt.toISOString(),
   };
 };
@@ -42,6 +46,8 @@ export const createProject = async (data, userContext) => {
     deskripsi: data.deskripsi,
     lokasi: data.lokasi,
     status: data.status || "active",
+    logoUrl: data.logo_url,
+    themeColor: data.theme_color,
     companyId,
     createdBy: userContext.sub,
   });
@@ -53,6 +59,8 @@ export const modifyProject = async (id, data, userContext) => {
     deskripsi: data.deskripsi,
     lokasi: data.lokasi,
     status: data.status,
+    logoUrl: data.logo_url,
+    themeColor: data.theme_color,
   };
 
   Object.keys(updateData).forEach(
@@ -69,6 +77,8 @@ export const modifyProject = async (id, data, userContext) => {
     deskripsi: updatedProject.deskripsi,
     lokasi: updatedProject.lokasi,
     status: updatedProject.status,
+    logo_url: updatedProject.logoUrl,
+    theme_color: updatedProject.themeColor,
     created_at: updatedProject.createdAt,
   };
 };

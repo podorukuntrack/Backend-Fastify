@@ -54,6 +54,8 @@ export default async function projectRoutes(fastify, options) {
                     deskripsi: { type: "string" },
                     lokasi: { type: "string" }, // Tambahkan ini agar muncul
                     status: { type: "string" },
+                    logo_url: { type: ["string", "null"] },
+                    theme_color: { type: ["string", "null"] },
                     created_at: { type: "string", format: "date-time" }, // Tambahkan ini
                   },
                 },
@@ -82,6 +84,8 @@ export default async function projectRoutes(fastify, options) {
             deskripsi: { type: "string" },
             lokasi: { type: "string" },
             status: { type: "string" },
+            logo_url: { type: ["string", "null"] },
+            theme_color: { type: ["string", "null"] },
           },
         },
         response: {
@@ -141,6 +145,8 @@ export default async function projectRoutes(fastify, options) {
                   name: { type: "string" },
                   description: { type: "string" },
                   status: { type: "string" },
+                  logo_url: { type: ["string", "null"] },
+                  theme_color: { type: ["string", "null"] },
                   createdAt: { type: "string", format: "date-time" },
                 },
               },
@@ -203,6 +209,14 @@ export default async function projectRoutes(fastify, options) {
               enum: ["active", "completed", "on_hold"],
               description: "Status project",
               example: "ongoing",
+            },
+            logo_url: {
+              type: ["string", "null"],
+              description: "Tautan logo baru",
+            },
+            theme_color: {
+              type: ["string", "null"],
+              description: "Warna tema baru",
             },
             endDate: {
               type: "string",

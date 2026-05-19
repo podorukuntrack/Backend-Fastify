@@ -11,6 +11,7 @@ const normalizeInput = (data) => {
     unitId: data.unitId ?? data.unit_id,
     dueDate: data.dueDate ?? data.due_date,
     companyId: data.companyId ?? data.company_id,
+    linkFoto360: data.linkFoto360 ?? data.link_foto_360,
   };
 };
 

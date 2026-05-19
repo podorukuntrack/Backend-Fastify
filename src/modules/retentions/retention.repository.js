@@ -14,6 +14,7 @@ const mapRetentionRow = (row) => {
     due_date: toISO(row.dueDate),
     status: row.status,
     notes: row.notes,
+    link_foto_360: row.linkFoto360,
     created_at: toISO(row.createdAt),
     updated_at: toISO(row.updatedAt),
   };

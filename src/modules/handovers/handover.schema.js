@@ -8,7 +8,8 @@ export const createHandoverSchema = {
     scheduledDate: z.string().datetime(),
     proposedDate: z.string().datetime().optional().nullable(),
     status: z.enum(['menunggu_respon_customer', 'menunggu_konfirmasi_admin', 'dijadwalkan', 'selesai', 'gagal', 'delayed', 'completed', 'scheduled']).default('menunggu_respon_customer'),
-    notes: z.string().optional().nullable()
+    notes: z.string().optional().nullable(),
+    imageUrl: z.string().optional().nullable().or(z.literal(''))
   })
 };
 
@@ -19,7 +20,8 @@ export const updateHandoverSchema = {
     proposedDate: z.string().datetime().optional().nullable(),
     actualDate: z.string().datetime().optional().nullable(),
     status: z.enum(['menunggu_respon_customer', 'menunggu_konfirmasi_admin', 'dijadwalkan', 'selesai', 'gagal', 'delayed', 'completed', 'scheduled']).optional(),
-    notes: z.string().optional().nullable()
+    notes: z.string().optional().nullable(),
+    imageUrl: z.string().optional().nullable().or(z.literal(''))
   })
 };
 

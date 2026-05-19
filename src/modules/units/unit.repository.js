@@ -10,6 +10,7 @@ const mapUnitRow = (row) => ({
   luas_bangunan: row.luas_bangunan,
   status_pembangunan: row.status_pembangunan,
   progress_percentage: row.progress_percentage,
+  image_url: row.image_url,
   created_at: row.created_at,
   updated_at: row.updated_at,
   nama_perusahaan: row.nama_perusahaan,
@@ -36,6 +37,7 @@ const normalizeUnitInput = (data) => ({
   luas_bangunan: data.luas_bangunan ?? data.luasBangunan ?? null,
   status_pembangunan: data.status_pembangunan ?? data.statusPembangunan ?? 'belum_mulai',
   progress_percentage: data.progress_percentage ?? data.progressPercentage ?? 0,
+  image_url: data.image_url ?? data.imageUrl ?? null,
 });
 
 export const findAllUnits = async (userContext, filters = {}) => {
@@ -65,6 +67,7 @@ export const findAllUnits = async (userContext, filters = {}) => {
       u.luas_bangunan,
       u.status_pembangunan,
       u.progress_percentage,
+      u.image_url,
       u.created_at,
       u.updated_at,
       c.nama_cluster,
@@ -109,6 +112,7 @@ export const findUnitById = async (id, userContext) => {
       u.luas_bangunan,
       u.status_pembangunan,
       u.progress_percentage,
+      u.image_url,
       u.created_at,
       u.updated_at,
       c.nama_cluster,
@@ -140,7 +144,8 @@ export const insertUnit = async (data) => {
       luas_tanah,
       luas_bangunan,
       status_pembangunan,
-      progress_percentage
+      progress_percentage,
+      image_url
     )
     VALUES (
       ${value.cluster_id},
@@ -149,9 +154,10 @@ export const insertUnit = async (data) => {
       ${value.luas_tanah},
       ${value.luas_bangunan},
       ${value.status_pembangunan},
-      ${value.progress_percentage}
+      ${value.progress_percentage},
+      ${value.image_url}
     )
-    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, created_at, updated_at
+    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, created_at, updated_at
   `);
 
   return mapUnitRow(rows[0]);
@@ -181,9 +187,10 @@ export const updateUnit = async (id, data, userContext) => {
            luas_bangunan = COALESCE(${value.luas_bangunan ?? null}, luas_bangunan),
            status_pembangunan = COALESCE(${value.status_pembangunan ?? null}, status_pembangunan),
            progress_percentage = COALESCE(${value.progress_percentage ?? null}, progress_percentage),
+           image_url = COALESCE(${value.image_url ?? null}, image_url),
            updated_at = NOW()
      WHERE id = ${id}
-    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, created_at, updated_at
+    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, created_at, updated_at
   `);
 
   return mapUnitRow(rows[0]);
@@ -196,7 +203,7 @@ export const deleteUnit = async (id, userContext) => {
   const rows = await db.execute(sql`
     DELETE FROM units
      WHERE id = ${id}
-    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, created_at, updated_at
+    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, created_at, updated_at
   `);
 
   return mapUnitRow(rows[0]);
