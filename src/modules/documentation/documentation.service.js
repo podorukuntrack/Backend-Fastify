@@ -61,10 +61,17 @@ export const uploadDocument = async (fileBuffer, originalFilename, mimeType, fie
   const r2Data = await uploadFileToR2(fileBuffer, originalFilename, mimeType);
 
   // Siapkan data untuk database
+  let dbJenis = jenis;
+  if (dbJenis === 'unit' || dbJenis === 'foto_progress') {
+    dbJenis = 'foto';
+  } else if (!['foto', 'video', 'dokumen', 'foto_360'].includes(dbJenis)) {
+    dbJenis = 'foto';
+  }
+
   const docData = {
     unit_id: unitId,
     progress_id: progressId || null,
-    jenis,
+    jenis: dbJenis,
     url: r2Data.fileUrl,
     r2_key: r2Data.fileKey,
     nama_file: originalFilename,

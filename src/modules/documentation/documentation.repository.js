@@ -63,7 +63,7 @@ export const findAllDocs = async (userContext, filters = {}) => {
     LEFT JOIN progress pr ON pr.id = d.progress_id
     WHERE ${scopeCondition}
       AND (${unitId}::uuid IS NULL OR d.unit_id = ${unitId}::uuid)
-      AND (${jenis}::text IS NULL OR d.jenis = ${jenis}::text)
+      AND (${jenis}::text IS NULL OR d.jenis::text = ${jenis}::text)
     ORDER BY d.created_at DESC
   `);
 
