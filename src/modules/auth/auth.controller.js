@@ -21,7 +21,7 @@ export const loginHandler = async (request, reply) => {
   }
 };
 
-import { findUserById } from '../users/user.repository.js';
+import { findUserById } from './auth.repository.js';
 import { findCompanyById } from '../companies/company.repository.js';
 
 export const getMeHandler = async (request, reply) => {
