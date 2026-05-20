@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   company_id: uuid("company_id").references(() => companies.id),
   nama: varchar("nama", { length: 255 }).notNull(), // ✅ key = nama
   email: varchar("email", { length: 255 }).notNull(),
+  nomor_telepon: varchar("nomor_telepon", { length: 20 }),
   password_hash: text("password_hash").notNull(),
   role: varchar("role", { length: 50 }).notNull(),
   created_at: timestamp("created_at").defaultNow(),
