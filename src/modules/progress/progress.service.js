@@ -48,10 +48,38 @@ export const createProgress = async (data, userContext) => {
 };
 
 export const modifyProgress = async (id, data, userContext) => {
+  const existing = await repo.findProgressById(id, userContext);
+  if (!existing) throw new Error('Progress not found or access denied');
+
   const result = await repo.updateProgress(id, data, userContext);
   if (!result) throw new Error('Progress not found or access denied');
 
-  // Push notification untuk perubahan progress telah dinonaktifkan atas permintaan.
+  // Hanya kirim notifikasi jika tahap (stage) atau persentase progress berubah
+  const isPercentageChanged = result.progress_percentage !== existing.progress_percentage;
+  const isTahapChanged = result.tahap !== existing.tahap;
+
+  if (isPercentageChanged || isTahapChanged) {
+    try {
+      const targetUnitId = result.unit_id ?? result.unitId;
+      const unit = await findUnitById(targetUnitId, userContext);
+      if (unit) {
+        const assignments = await db.execute(sql`
+          SELECT user_id FROM property_assignments WHERE unit_id = ${targetUnitId}::uuid
+        `);
+        const userIds = assignments.map(a => a.user_id ?? a.userId);
+        if (userIds.length > 0) {
+          await sendPushNotification(
+            userIds,
+            'Pembaruan Progress Rumah!',
+            `Progress pembangunan unit ${unit.nomor_unit ?? unit.nomorUnit} (${result.tahap}) telah diperbarui menjadi ${result.progress_percentage}%.`,
+            { type: 'progress_update', unitId: targetUnitId }
+          );
+        }
+      }
+    } catch (e) {
+      console.error('Failed to trigger progress modify push notification:', e.message);
+    }
+  }
 
   return result;
 };
