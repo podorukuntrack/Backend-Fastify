@@ -147,7 +147,19 @@ export const updateUser = async (id, data, userContext) => {
            status = COALESCE(${data.status ?? null}, status),
            updated_at = NOW()
      WHERE id = ${id}
-       AND (${companyId}::uuid IS NULL OR company_id = ${companyId}::uuid)
+       AND (
+         ${companyId}::uuid IS NULL 
+         OR (role != 'customer' AND company_id = ${companyId}::uuid)
+         OR (role = 'customer' AND EXISTS (
+           SELECT 1 
+           FROM property_assignments pa
+           JOIN units un ON un.id = pa.unit_id
+           JOIN clusters cl ON cl.id = un.cluster_id
+           JOIN projects pr ON pr.id = cl.project_id
+           WHERE pa.user_id = users.id 
+             AND pr.company_id = ${companyId}::uuid
+         ))
+       )
     RETURNING id, company_id, nama, email, nomor_telepon, role, status, created_at, updated_at
   `);
   return result[0];
@@ -158,7 +170,19 @@ export const deleteUser = async (id, userContext) => {
   const result = await db.execute(sql`
     DELETE FROM users
      WHERE id = ${id}
-       AND (${companyId}::uuid IS NULL OR company_id = ${companyId}::uuid)
+       AND (
+         ${companyId}::uuid IS NULL 
+         OR (role != 'customer' AND company_id = ${companyId}::uuid)
+         OR (role = 'customer' AND EXISTS (
+           SELECT 1 
+           FROM property_assignments pa
+           JOIN units un ON un.id = pa.unit_id
+           JOIN clusters cl ON cl.id = un.cluster_id
+           JOIN projects pr ON pr.id = cl.project_id
+           WHERE pa.user_id = users.id 
+             AND pr.company_id = ${companyId}::uuid
+         ))
+       )
     RETURNING id
   `);
   return result[0];
