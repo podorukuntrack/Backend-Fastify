@@ -1,14 +1,14 @@
 import { db } from './src/config/database.js';
 import { sql } from 'drizzle-orm';
 
-async function fixDb() {
+async function checkDb() {
   try {
-    await db.execute(sql`ALTER TABLE whatsapp_logs ADD COLUMN IF NOT EXISTS company_id uuid REFERENCES companies(id);`);
-    console.log('Successfully added company_id to whatsapp_logs');
+    const res = await db.execute(sql`SELECT column_name FROM information_schema.columns WHERE table_name = 'whatsapp_logs';`);
+    console.log('Columns in whatsapp_logs:', res);
   } catch (error) {
-    console.error('Error altering table:', error);
+    console.error('Error:', error);
   }
   process.exit(0);
 }
 
-fixDb();
+checkDb();

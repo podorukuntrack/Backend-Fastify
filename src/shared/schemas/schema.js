@@ -325,12 +325,16 @@ export const ticketMessages = pgTable("ticket_messages", {
 
 export const whatsappLogs = pgTable("whatsapp_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id")
-    .references(() => companies.id),
-  phone: varchar("phone", { length: 20 }).notNull(),
-  message: text("message").notNull(),
-  status: varchar("status", { length: 50 }).default("sent"), // sent, failed
+  companyId: uuid("company_id").references(() => companies.id),
+  userId: uuid("user_id").references(() => users.id),
+  phone: varchar("nomor_tujuan", { length: 50 }),
+  message: text("message_body"),
+  templateName: varchar("template_name", { length: 255 }),
+  responsePayload: text("response_payload"),
+  providerMessageId: varchar("provider_message_id", { length: 255 }),
+  status: varchar("status", { length: 50 }).default("sent"),
   sentAt: timestamp("sent_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 export const userDevices = pgTable("user_devices", {
   id: uuid("id").defaultRandom().primaryKey(),
