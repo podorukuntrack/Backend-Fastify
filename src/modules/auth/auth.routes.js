@@ -1,6 +1,6 @@
 // src/modules/auth/auth.routes.js
 
-import { loginHandler, getMeHandler, registerHandler, forgotPasswordHandler, changePasswordHandler } from "./auth.controller.js";
+import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler } from "./auth.controller.js";
 import * as service from "./auth.service.js";
 
 export default async function authRoutes(fastify, options) {
@@ -159,21 +159,61 @@ export default async function authRoutes(fastify, options) {
   );
 
   fastify.post(
-    "/forgot-password",
+    "/forgot-password/request-otp",
     {
       schema: {
-        description: "Lupa Password (dikirim via WhatsApp)",
+        description: "Minta OTP untuk Lupa Password (via WA/Email)",
         tags: ["Auth"],
         body: {
           type: "object",
-          required: ["email"],
+          required: ["method", "contact"],
           properties: {
-            email: { type: "string", format: "email" },
+            method: { type: "string", enum: ["wa", "email"] },
+            contact: { type: "string" },
           },
         },
       },
     },
-    forgotPasswordHandler
+    requestOtpHandler
+  );
+
+  fastify.post(
+    "/forgot-password/verify-otp",
+    {
+      schema: {
+        description: "Verifikasi OTP Lupa Password",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["contact", "otp"],
+          properties: {
+            contact: { type: "string" },
+            otp: { type: "string", minLength: 6, maxLength: 6 },
+          },
+        },
+      },
+    },
+    verifyOtpHandler
+  );
+
+  fastify.post(
+    "/forgot-password/reset",
+    {
+      schema: {
+        description: "Reset Password dengan Token",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["contact", "resetToken", "newPassword"],
+          properties: {
+            contact: { type: "string" },
+            resetToken: { type: "string" },
+            newPassword: { type: "string", minLength: 6 },
+          },
+        },
+      },
+    },
+    resetPasswordHandler
   );
 
   fastify.post(

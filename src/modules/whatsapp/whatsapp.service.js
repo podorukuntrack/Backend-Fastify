@@ -8,14 +8,27 @@ export const sendWhatsAppMessage = async (phone, messageText, userContext) => {
   const token = process.env.WHATSAPP_TOKEN;
 
   try {
-    /* CONTOH FETCH KE WA API
-    const response = await fetch(apiUrl, {
+    // Fonnte API Integration
+    const response = await fetch(apiUrl || 'https://api.fonnte.com/send', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, message: messageText })
+      headers: { 
+        'Authorization': token, 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ 
+        target: phone, 
+        message: messageText 
+      })
     });
-    if (!response.ok) throw new Error('API Provider Error');
-    */
+    
+    if (!response.ok) {
+      throw new Error(`Fonnte API Error: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    if (!result.status) {
+      throw new Error(`Fonnte Error: ${result.reason}`);
+    }
 
     // Catat ke log
     await db.insert(whatsappLogs).values({

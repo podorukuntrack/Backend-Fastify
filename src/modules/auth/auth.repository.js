@@ -14,6 +14,16 @@ export const findUserByEmail = async (email) => {
   return result[0] || null;
 };
 
+export const findUserByPhone = async (phone) => {
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.nomor_telepon, phone))
+    .limit(1);
+
+  return result[0] || null;
+};
+
 export const saveRefreshToken = async (
   userId,
   tokenHash,

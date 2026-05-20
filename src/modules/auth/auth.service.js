@@ -9,11 +9,14 @@ import {
   revokeRefreshTokenByHash,
   saveRefreshToken,
   findUserById,
-  updateUserPassword
+  updateUserPassword,
+  findUserByPhone
 } from './auth.repository.js';
 import { insertUser } from '../users/user.repository.js';
 import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
 import { findCompanyById } from '../companies/company.repository.js';
+import { getRedisClient } from '../../shared/utils/cache.js';
+import { sendOTPByEmail } from './auth.email.js';
 
 export const loginUser = async (email, password, fastify) => {
   const user = await findUserByEmail(email);
@@ -215,33 +218,82 @@ export const registerCustomer = async (data, fastify) => {
   return await loginUser(data.email, data.password, fastify);
 };
 
-export const forgotPassword = async (email) => {
-  const user = await findUserByEmail(email);
+export const requestOtp = async (method, contact) => {
+  let user;
+  if (method === 'email') {
+    user = await findUserByEmail(contact);
+  } else if (method === 'wa') {
+    user = await findUserByPhone(contact);
+  }
+
   if (!user) {
-    // Kita tidak ingin memberi tahu penyerang apakah email terdaftar atau tidak
-    return true; 
+    return true; // Prevent enumeration
   }
 
-  if (!user.nomor_telepon) {
-    throw new Error('Pengguna tidak memiliki nomor WhatsApp yang terdaftar.');
-  }
-
-  // Generate 6 digit random number
-  const newPassword = Math.floor(100000 + Math.random() * 900000).toString();
-  const passwordHash = await bcrypt.hash(newPassword, 10);
-
-  // Update password di DB
-  await updateUserPassword(user.id, passwordHash);
-
-  // Kirim WhatsApp
-  const message = `Halo ${user.nama},\n\nPassword baru Anda adalah: *${newPassword}*\n\nSilakan gunakan password ini untuk login. Setelah berhasil masuk, kami sarankan Anda segera menggantinya di menu Profil.`;
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const redisClient = getRedisClient();
   
-  // Memakai context dummy yang meminjam companyId dari user
-  const context = { role: user.role, companyId: user.company_id };
-  await sendWhatsAppMessage(user.nomor_telepon, message, context);
+  if (redisClient) {
+    await redisClient.set(`otp:${contact}`, otp, 'EX', 300); // 5 minutes
+  } else {
+    throw new Error('Redis is not available');
+  }
+
+  if (method === 'wa') {
+    if (!user.nomor_telepon) {
+       throw new Error('Pengguna tidak memiliki nomor WhatsApp yang terdaftar.');
+    }
+    const message = `Halo ${user.nama},\n\nKode OTP Lupa Password Anda adalah: *${otp}*\n\nKode ini berlaku selama 5 menit. Jangan berikan kode ini kepada siapapun.`;
+    const context = { role: user.role, companyId: user.company_id };
+    await sendWhatsAppMessage(user.nomor_telepon, message, context);
+  } else if (method === 'email') {
+    await sendOTPByEmail(user.email, otp); // Pastikan kirim ke user.email yang valid
+  }
 
   return true;
 };
+
+export const verifyOtp = async (contact, otp) => {
+  const redisClient = getRedisClient();
+  if (!redisClient) throw new Error('Redis is not available');
+
+  const storedOtp = await redisClient.get(`otp:${contact}`);
+  if (!storedOtp || storedOtp !== otp) {
+    throw new Error('OTP tidak valid atau sudah kedaluwarsa');
+  }
+
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  await redisClient.set(`reset_token:${contact}`, resetToken, 'EX', 900); // 15 mins
+  await redisClient.del(`otp:${contact}`);
+
+  return resetToken;
+};
+
+export const resetPassword = async (contact, resetToken, newPassword) => {
+  const redisClient = getRedisClient();
+  if (!redisClient) throw new Error('Redis is not available');
+
+  const storedToken = await redisClient.get(`reset_token:${contact}`);
+  if (!storedToken || storedToken !== resetToken) {
+    throw new Error('Token reset tidak valid atau sudah kedaluwarsa');
+  }
+
+  let user = await findUserByEmail(contact);
+  if (!user) {
+    user = await findUserByPhone(contact);
+  }
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await updateUserPassword(user.id, passwordHash);
+
+  await redisClient.del(`reset_token:${contact}`);
+  return true;
+};
+
 
 export const changePassword = async (userId, oldPassword, newPassword) => {
   const user = await findUserById(userId);

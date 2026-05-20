@@ -83,17 +83,52 @@ export const registerHandler = async (request, reply) => {
   }
 };
 
-export const forgotPasswordHandler = async (request, reply) => {
+export const requestOtpHandler = async (request, reply) => {
   try {
-    const { email } = request.body;
-    await service.forgotPassword(email);
+    const { method, contact } = request.body;
+    await service.requestOtp(method, contact);
     
     return reply.code(200).send({
       success: true,
-      message: 'Jika email terdaftar, instruksi reset password telah dikirim ke nomor WhatsApp terkait.',
+      message: 'Jika kontak terdaftar, OTP telah dikirim.',
     });
   } catch (error) {
-    if (error.message === 'Pengguna tidak memiliki nomor WhatsApp yang terdaftar.') {
+    if (error.message.includes('Pengguna tidak memiliki nomor WhatsApp')) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+    throw error;
+  }
+};
+
+export const verifyOtpHandler = async (request, reply) => {
+  try {
+    const { contact, otp } = request.body;
+    const resetToken = await service.verifyOtp(contact, otp);
+    
+    return reply.code(200).send({
+      success: true,
+      message: 'OTP valid',
+      data: { resetToken }
+    });
+  } catch (error) {
+    if (error.message.includes('OTP tidak valid')) {
+      return reply.code(400).send({ success: false, message: error.message });
+    }
+    throw error;
+  }
+};
+
+export const resetPasswordHandler = async (request, reply) => {
+  try {
+    const { contact, resetToken, newPassword } = request.body;
+    await service.resetPassword(contact, resetToken, newPassword);
+    
+    return reply.code(200).send({
+      success: true,
+      message: 'Password berhasil diubah',
+    });
+  } catch (error) {
+    if (error.message.includes('Token reset tidak valid') || error.message.includes('User not found')) {
       return reply.code(400).send({ success: false, message: error.message });
     }
     throw error;
