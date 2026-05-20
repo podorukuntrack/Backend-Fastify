@@ -32,7 +32,7 @@ export const sendWhatsAppMessage = async (phone, messageText, userContext) => {
 
     // Catat ke log
     await db.insert(whatsappLogs).values({
-      companyId: userContext.role === 'super_admin' ? null : userContext.companyId,
+      companyId: userContext?.companyId || null,
       phone,
       message: messageText,
       status: 'sent'
@@ -40,13 +40,18 @@ export const sendWhatsAppMessage = async (phone, messageText, userContext) => {
 
     return true;
   } catch (error) {
+    console.error('WhatsApp Service Error:', error);
     // Catat gagal
-    await db.insert(whatsappLogs).values({
-      companyId: userContext.role === 'super_admin' ? null : userContext.companyId,
-      phone,
-      message: messageText,
-      status: 'failed'
-    });
-    throw new Error('Failed to send WhatsApp message');
+    try {
+      await db.insert(whatsappLogs).values({
+        companyId: userContext?.companyId || null,
+        phone,
+        message: messageText,
+        status: 'failed'
+      });
+    } catch (dbError) {
+      console.error('Failed to insert whatsapp logs:', dbError);
+    }
+    throw error; // Throw the actual error so we know what's wrong
   }
 };

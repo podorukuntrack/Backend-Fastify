@@ -326,8 +326,7 @@ export const ticketMessages = pgTable("ticket_messages", {
 export const whatsappLogs = pgTable("whatsapp_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id")
-    .references(() => companies.id)
-    .notNull(),
+    .references(() => companies.id),
   phone: varchar("phone", { length: 20 }).notNull(),
   message: text("message").notNull(),
   status: varchar("status", { length: 50 }).default("sent"), // sent, failed
