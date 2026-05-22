@@ -36,7 +36,8 @@ export const deleteHandler = async (request, reply) => {
     }
     return reply.code(200).send({ success: true, message: 'Cluster deleted', data: {} });
   } catch (error) {
-    if (error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates')) {
+    const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');
+    if (isConstraint) {
       return reply.code(409).send({ success: false, message: 'Cluster tidak dapat dihapus karena masih memiliki Unit di dalamnya. Harap hapus unit terlebih dahulu.', errors: [] });
     }
     return reply.code(409).send({ success: false, message: error.message || 'Gagal menghapus cluster', errors: [] });
