@@ -83,6 +83,27 @@ export const registerHandler = async (request, reply) => {
   }
 };
 
+export const googleLoginHandler = async (request, reply) => {
+  try {
+    const { idToken } = request.body;
+    const tokens = await service.googleLoginUser(idToken, request.server);
+    
+    return reply.code(200).send({
+      success: true,
+      message: 'Login Google berhasil',
+      data: tokens
+    });
+  } catch (error) {
+    if (error.message.includes('Akses Ditolak') || error.message.includes('tidak valid') || error.message.includes('diperlukan')) {
+      return reply.code(400).send({
+        success: false,
+        message: error.message
+      });
+    }
+    throw error;
+  }
+};
+
 export const requestOtpHandler = async (request, reply) => {
   try {
     const { method, contact } = request.body;

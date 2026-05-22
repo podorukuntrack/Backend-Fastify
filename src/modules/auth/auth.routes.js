@@ -1,6 +1,4 @@
-// src/modules/auth/auth.routes.js
-
-import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler } from "./auth.controller.js";
+import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler, googleLoginHandler } from "./auth.controller.js";
 import * as service from "./auth.service.js";
 
 export default async function authRoutes(fastify, options) {
@@ -84,6 +82,24 @@ export default async function authRoutes(fastify, options) {
       },
     },
     registerHandler,
+  );
+
+  fastify.post(
+    "/google-login",
+    {
+      schema: {
+        description: "Login/Register customer dengan Google ID Token",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["idToken"],
+          properties: {
+            idToken: { type: "string" },
+          },
+        },
+      },
+    },
+    googleLoginHandler,
   );
 
   fastify.post(

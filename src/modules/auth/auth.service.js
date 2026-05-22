@@ -311,3 +311,94 @@ export const changePassword = async (userId, oldPassword, newPassword) => {
 
   return true;
 };
+
+export const googleLoginUser = async (idToken, fastify) => {
+  if (!idToken) {
+    throw new Error('ID Token Google diperlukan');
+  }
+
+  // 1. Verifikasi ID Token ke Google API
+  let tokenInfo;
+  try {
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+    tokenInfo = await response.json();
+    if (!response.ok || tokenInfo.error) {
+      throw new Error(tokenInfo.error_description || 'Token Google tidak valid');
+    }
+  } catch (error) {
+    console.error('Google verification error:', error);
+    throw new Error('Gagal memverifikasi akun Google dengan server Google: ' + error.message);
+  }
+
+  const email = tokenInfo.email;
+  const nama = tokenInfo.name || 'User Google';
+
+  if (!email) {
+    throw new Error('Email tidak ditemukan dari akun Google.');
+  }
+
+  // 2. Cari user berdasarkan email
+  let user = await findUserByEmail(email);
+
+  if (!user) {
+    // 3. Register user baru jika tidak ditemukan
+    // Generate secure random password hash
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const password_hash = await bcrypt.hash(randomPassword, 10);
+
+    user = await insertUser({
+      nama: nama,
+      email: email,
+      password_hash: password_hash,
+      nomor_telepon: null,
+      role: 'customer',
+      status: 'active',
+      company_id: null,
+    });
+  }
+
+  // 4. RESTRICTION: Hanya allow customer
+  if (user.role !== 'customer') {
+    throw new Error('Akses Ditolak: Akun Google ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.');
+  }
+
+  // 5. Generate JWT tokens
+  const payload = {
+    sub: user.id,
+    companyId: user.company_id,
+    role: user.role,
+    email: user.email,
+  };
+
+  const accessToken = fastify.jwt.sign(payload, {
+    expiresIn: '15m',
+  });
+  
+  const rawRefreshToken = crypto.randomBytes(40).toString('hex');
+  const hashedRefreshToken = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+
+  await saveRefreshToken(user.id, hashedRefreshToken, expiresAt);
+
+  let company = null;
+  if (user.company_id) {
+    company = await findCompanyById(user.company_id);
+  }
+
+  return {
+    accessToken,
+    refreshToken: rawRefreshToken,
+    user: {
+      id: user.id,
+      name: user.nama,
+      email: user.email,
+      role: user.role,
+      companyId: user.company_id,
+      company: company ? {
+        name: company.nama_pt,
+        logoUrl: company.logo_url,
+        themeColor: company.theme_color || '#4f46e5'
+      } : null
+    },
+  };
+};

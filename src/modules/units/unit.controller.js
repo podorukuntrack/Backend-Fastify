@@ -72,9 +72,9 @@ export const deleteHandler = async (request, reply) => {
 
     return reply.code(200).send({ success: true, message: 'Unit deleted', data: {} });
   } catch (error) {
-    if (error.code === '23503') {
-      return reply.code(400).send({ success: false, message: 'Unit tidak dapat dihapus karena sudah memiliki data terkait (seperti progres pembangunan atau data serah terima).', errors: [] });
+    if (error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates')) {
+      return reply.code(409).send({ success: false, message: 'Unit tidak dapat dihapus karena sudah memiliki data terkait (seperti progres pembangunan atau data serah terima).', errors: [] });
     }
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    return reply.code(409).send({ success: false, message: error.message || 'Gagal menghapus unit', errors: [] });
   }
 };
