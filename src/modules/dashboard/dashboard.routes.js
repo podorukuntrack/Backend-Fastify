@@ -144,8 +144,8 @@ export default async function dashboardRoutes(fastify, options) {
                JOIN projects p ON p.id = c.project_id
               WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
                 AND pa.tipe_pembayaran = 'cash_lunas'
-                AND EXTRACT(MONTH FROM pa.created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
-                AND EXTRACT(YEAR FROM pa.created_at) = EXTRACT(YEAR FROM CURRENT_DATE))
+                AND EXTRACT(MONTH FROM pa.tanggal_pembelian) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM pa.tanggal_pembelian) = EXTRACT(YEAR FROM CURRENT_DATE))
           ) AS revenue_this_month,
 
           (SELECT COUNT(*)::int
