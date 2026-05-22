@@ -166,7 +166,7 @@ export const insertDoc = async (data) => {
       ${data.ukuran_bytes ?? 0},
       ${data.created_by}
     )
-    RETURNING id
+    RETURNING id, url
   `);
 
   return rows[0];

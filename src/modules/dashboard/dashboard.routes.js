@@ -126,14 +126,27 @@ export default async function dashboardRoutes(fastify, options) {
              JOIN projects p ON p.id = c.project_id
             WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS total_revenue,
 
-          (SELECT COALESCE(SUM(pa.total_dibayar), 0)
-             FROM property_assignments pa
-             JOIN units u ON pa.unit_id = u.id
-             JOIN clusters c ON u.cluster_id = c.id
-             JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
-              AND EXTRACT(MONTH FROM pa.updated_at) = EXTRACT(MONTH FROM CURRENT_DATE)
-              AND EXTRACT(YEAR FROM pa.updated_at) = EXTRACT(YEAR FROM CURRENT_DATE)) AS revenue_this_month,
+          (
+            (SELECT COALESCE(SUM(ph.jumlah_bayar), 0)
+               FROM payment_history ph
+               JOIN property_assignments pa ON ph.assignment_id = pa.id
+               JOIN units u ON pa.unit_id = u.id
+               JOIN clusters c ON u.cluster_id = c.id
+               JOIN projects p ON p.id = c.project_id
+              WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+                AND EXTRACT(MONTH FROM ph.tanggal_bayar) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM ph.tanggal_bayar) = EXTRACT(YEAR FROM CURRENT_DATE))
+            +
+            (SELECT COALESCE(SUM(pa.harga_total), 0)
+               FROM property_assignments pa
+               JOIN units u ON pa.unit_id = u.id
+               JOIN clusters c ON u.cluster_id = c.id
+               JOIN projects p ON p.id = c.project_id
+              WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+                AND pa.tipe_pembayaran = 'cash_lunas'
+                AND EXTRACT(MONTH FROM pa.created_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM pa.created_at) = EXTRACT(YEAR FROM CURRENT_DATE))
+          ) AS revenue_this_month,
 
           (SELECT COUNT(*)::int
              FROM customer_tickets ct
