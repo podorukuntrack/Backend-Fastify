@@ -35,3 +35,15 @@ export const createAssignmentPayment = async (id, data, userContext) => {
   if (!result) throw new Error('Assignment not found or access denied');
   return result;
 };
+
+export const removeAssignmentPayment = async (assignmentId, paymentId, userContext) => {
+  const result = await repo.deletePayment(assignmentId, paymentId, userContext);
+  if (!result) throw new Error('Payment or Assignment not found, or access denied');
+  return result;
+};
+
+export const removeAssignment = async (id, userContext) => {
+  const result = await repo.deleteAssignment(id, userContext);
+  if (!result) throw new Error('Assignment not found or access denied');
+  return result;
+};

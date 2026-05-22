@@ -237,3 +237,40 @@ export const insertPayment = async (assignmentId, data, userContext) => {
 
   return rows[0];
 };
+
+export const deletePayment = async (assignmentId, paymentId, userContext) => {
+  const assignment = await findAssignmentById(assignmentId, userContext);
+  if (!assignment) return null;
+
+  // Hapus dari payment_history dan kembalikan jumlah yang dihapus
+  const rows = await db.execute(sql`
+    DELETE FROM payment_history
+    WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
+    RETURNING jumlah_bayar
+  `);
+
+  if (rows.length === 0) return null;
+  const deletedAmount = rows[0].jumlah_bayar;
+
+  // Kurangi total_dibayar di assignment
+  await db.execute(sql`
+    UPDATE property_assignments
+       SET total_dibayar = GREATEST(0, total_dibayar - ${deletedAmount}),
+           updated_at = NOW()
+     WHERE id = ${assignmentId}
+  `);
+
+  return true;
+};
+export const deleteAssignment = async (id, userContext) => {
+  const existing = await findAssignmentById(id, userContext);
+  if (!existing) return null;
+
+  const rows = await db.execute(sql`
+    DELETE FROM property_assignments
+    WHERE id = ${id}
+    RETURNING id
+  `);
+
+  return rows[0];
+};

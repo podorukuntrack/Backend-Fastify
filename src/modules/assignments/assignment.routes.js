@@ -365,4 +365,61 @@ export default async function assignmentRoutes(fastify, options) {
     },
     controller.createPaymentHandler,
   );
+
+  fastify.delete(
+    "/:id/payments/:paymentId",
+    {
+      schema: {
+        description: "Menghapus pembayaran assignment",
+        tags: ["Assignments"],
+        params: {
+          type: "object",
+          required: ["id", "paymentId"],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            paymentId: { type: "string", format: "uuid" },
+          },
+        },
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: [
+        authorize("super_admin", "admin"),
+        // validate(schema.assignmentIdParamSchema), // Can't easily use if it only validates 'id'
+      ],
+    },
+    controller.deletePaymentHandler,
+  );
+
+  // DELETE - Hapus assignment
+  fastify.delete(
+    "/:id",
+    {
+      schema: {
+        description: "Menghapus assignment",
+        tags: ["Assignments"],
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: {
+            id: { type: "string", format: "uuid" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+            },
+          },
+        },
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: [
+        authorize("super_admin", "admin"),
+        validate(schema.assignmentIdParamSchema),
+      ],
+    },
+    controller.deleteHandler,
+  );
 }

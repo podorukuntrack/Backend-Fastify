@@ -57,3 +57,25 @@ export const createPaymentHandler = async (request, reply) => {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };
+
+export const deletePaymentHandler = async (request, reply) => {
+  try {
+    const data = await service.removeAssignmentPayment(request.params.id, request.params.paymentId, request.user);
+    return reply.code(200).send({ success: true, message: 'Payment deleted', data });
+  } catch (error) {
+    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+  }
+};
+
+export const deleteHandler = async (request, reply) => {
+  try {
+    const deleted = await service.removeAssignment(request.params.id, request.user);
+    return reply.code(200).send({ success: true, message: 'Assignment deleted', data: deleted });
+  } catch (error) {
+    const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');
+    if (isConstraint) {
+      return reply.code(409).send({ success: false, message: 'Penugasan tidak dapat dihapus karena sudah memiliki histori pembayaran, dokumen serah terima, atau data garansi. Harap hapus isinya terlebih dahulu.', errors: [] });
+    }
+    return reply.code(409).send({ success: false, message: error.message || 'Gagal menghapus assignment', errors: [] });
+  }
+};
