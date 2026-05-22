@@ -62,13 +62,19 @@ export const bulkCreateHandler = async (request, reply) => {
 
 export const deleteHandler = async (request, reply) => {
   try {
-    await service.removeUnit(request.params.id, request.user);
+    const deleted = await service.removeUnit(request.params.id, request.user);
+    if (!deleted) {
+      return reply.code(404).send({ success: false, message: 'Unit tidak ditemukan', errors: [] });
+    }
     
     // Invalidate cache setelah delete
     await delCache(`unit:detail:${request.params.id}`);
 
     return reply.code(200).send({ success: true, message: 'Unit deleted', data: {} });
   } catch (error) {
+    if (error.code === '23503') {
+      return reply.code(400).send({ success: false, message: 'Unit tidak dapat dihapus karena sudah memiliki data terkait (seperti progres pembangunan atau data serah terima).', errors: [] });
+    }
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };

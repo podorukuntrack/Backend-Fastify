@@ -30,9 +30,15 @@ export const updateHandler = async (request, reply) => {
 
 export const deleteHandler = async (request, reply) => {
   try {
-    await service.removeCluster(request.params.id, request.user);
+    const deleted = await service.removeCluster(request.params.id, request.user);
+    if (!deleted) {
+      return reply.code(404).send({ success: false, message: 'Cluster tidak ditemukan', errors: [] });
+    }
     return reply.code(200).send({ success: true, message: 'Cluster deleted', data: {} });
   } catch (error) {
+    if (error.code === '23503') {
+      return reply.code(400).send({ success: false, message: 'Cluster tidak dapat dihapus karena masih memiliki Unit di dalamnya. Harap hapus unit terlebih dahulu.', errors: [] });
+    }
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };

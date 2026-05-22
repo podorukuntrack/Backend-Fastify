@@ -35,9 +35,15 @@ export const updateHandler = async (request, reply) => {
 
 export const deleteHandler = async (request, reply) => {
   try {
-    await service.removeProject(request.params.id, request.user);
+    const deleted = await service.removeProject(request.params.id, request.user);
+    if (!deleted) {
+      return reply.code(404).send({ success: false, message: 'Project tidak ditemukan', errors: [] });
+    }
     return reply.code(200).send({ success: true, message: 'Project deleted', data: {} });
   } catch (error) {
+    if (error.code === '23503') {
+      return reply.code(400).send({ success: false, message: 'Project tidak dapat dihapus karena masih memiliki data (Cluster/Unit). Harap hapus isinya terlebih dahulu.', errors: [] });
+    }
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };
