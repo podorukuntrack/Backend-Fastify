@@ -262,9 +262,35 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
 
   return true;
 };
+export const checkDependencies = async (assignmentId, unitId) => {
+  const errors = [];
+  
+  const paymentRes = await db.execute(sql`SELECT COUNT(*) as count FROM payment_history WHERE assignment_id = ${assignmentId}`);
+  if (Number(paymentRes[0].count) > 0) errors.push('Riwayat Pembayaran');
+
+  const timelineRes = await db.execute(sql`SELECT COUNT(*) as count FROM timelines WHERE unit_id = ${unitId}`);
+  if (Number(timelineRes[0].count) > 0) errors.push('Timelines');
+
+  const progressRes = await db.execute(sql`SELECT COUNT(*) as count FROM progress WHERE unit_id = ${unitId}`);
+  if (Number(progressRes[0].count) > 0) errors.push('Progress Pembangunan');
+
+  const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${unitId}`);
+  if (Number(handoverRes[0].count) > 0) errors.push('Serah Terima');
+
+  const retentionRes = await db.execute(sql`SELECT COUNT(*) as count FROM retentions WHERE unit_id = ${unitId}`);
+  if (Number(retentionRes[0].count) > 0) errors.push('Retensi / Garansi');
+
+  return errors;
+};
+
 export const deleteAssignment = async (id, userContext) => {
   const existing = await findAssignmentById(id, userContext);
   if (!existing) return null;
+
+  const dependencies = await checkDependencies(id, existing.unit.id);
+  if (dependencies.length > 0) {
+    throw new Error(`Tidak dapat membatalkan penugasan. Harap hapus data berikut terlebih dahulu: ${dependencies.join(', ')}`);
+  }
 
   const rows = await db.execute(sql`
     DELETE FROM property_assignments
