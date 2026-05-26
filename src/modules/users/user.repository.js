@@ -179,7 +179,8 @@ export const deleteUser = async (id, userContext) => {
       try {
         await db.execute(query);
       } catch (err) {
-        if (err.code !== '42P01') throw err; // 42P01 = undefined_table (relation does not exist)
+        const pgErrorCode = err.code || (err.cause && err.cause.code);
+        if (pgErrorCode !== '42P01') throw err; // 42P01 = undefined_table (relation does not exist)
       }
     };
 
