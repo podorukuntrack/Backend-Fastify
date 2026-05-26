@@ -175,49 +175,62 @@ export const deleteUser = async (id, userContext) => {
   if (!existing) return null;
 
   if (existing.role === 'customer') {
-    // 1. Ambil semua unit dan assignment yang terhubung ke customer ini
-    const assignmentsRes = await db.execute(sql`
-      SELECT id AS assignment_id, unit_id
-      FROM property_assignments
-      WHERE user_id = ${id}
+    // 1. Hapus data yang terhubung dengan assignment_id
+    await db.execute(sql`
+      DELETE FROM payment_history 
+      WHERE assignment_id IN (SELECT id FROM property_assignments WHERE user_id = ${id})
+    `);
+
+    // 2. Hapus data yang terhubung dengan unit_id
+    // Hapus documentations (baik foto progress maupun lain-lain)
+    await db.execute(sql`
+      DELETE FROM documentations 
+      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
     `);
     
-    if (assignmentsRes.length > 0) {
-      const unitIds = assignmentsRes.map(a => a.unit_id);
-      const assignmentIds = assignmentsRes.map(a => a.assignment_id);
+    // Hapus retentions
+    await db.execute(sql`
+      DELETE FROM retentions 
+      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
+    `);
 
-      // 2. Hapus data yang terhubung dengan unit_id
-      if (unitIds.length > 0) {
-        // Hapus documentations (baik foto progress maupun lain-lain)
-        await db.execute(sql`DELETE FROM documentations WHERE unit_id = ANY(${unitIds}::uuid[])`);
-        // Hapus retentions
-        await db.execute(sql`DELETE FROM retentions WHERE unit_id = ANY(${unitIds}::uuid[])`);
-        // Hapus handover defects & handovers
-        await db.execute(sql`
-          DELETE FROM handover_defects 
-          WHERE handover_id IN (SELECT id FROM handovers WHERE unit_id = ANY(${unitIds}::uuid[]))
-        `);
-        await db.execute(sql`DELETE FROM handovers WHERE unit_id = ANY(${unitIds}::uuid[])`);
-        // Hapus progress
-        await db.execute(sql`DELETE FROM progress WHERE unit_id = ANY(${unitIds}::uuid[])`);
-        // Hapus timelines
-        await db.execute(sql`DELETE FROM timelines WHERE unit_id = ANY(${unitIds}::uuid[])`);
-        // Reset status unit
-        await db.execute(sql`
-          UPDATE units 
-          SET progress_percentage = 0, status_pembangunan = 'planned' 
-          WHERE id = ANY(${unitIds}::uuid[])
-        `);
-      }
+    // Hapus handover defects
+    await db.execute(sql`
+      DELETE FROM handover_defects 
+      WHERE handover_id IN (
+        SELECT id FROM handovers WHERE unit_id IN (
+          SELECT unit_id FROM property_assignments WHERE user_id = ${id}
+        )
+      )
+    `);
 
-      // 3. Hapus data yang terhubung dengan assignment_id
-      if (assignmentIds.length > 0) {
-        await db.execute(sql`DELETE FROM payment_history WHERE assignment_id = ANY(${assignmentIds}::uuid[])`);
-      }
-      
-      // Hapus assignments
-      await db.execute(sql`DELETE FROM property_assignments WHERE user_id = ${id}`);
-    }
+    // Hapus handovers
+    await db.execute(sql`
+      DELETE FROM handovers 
+      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
+    `);
+
+    // Hapus progress
+    await db.execute(sql`
+      DELETE FROM progress 
+      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
+    `);
+
+    // Hapus timelines
+    await db.execute(sql`
+      DELETE FROM timelines 
+      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
+    `);
+
+    // Reset status unit
+    await db.execute(sql`
+      UPDATE units 
+      SET progress_percentage = 0, status_pembangunan = 'planned' 
+      WHERE id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
+    `);
+
+    // 3. Hapus assignments itu sendiri
+    await db.execute(sql`DELETE FROM property_assignments WHERE user_id = ${id}`);
 
     // 4. Hapus data personal customer
     await db.execute(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
