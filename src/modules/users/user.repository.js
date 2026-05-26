@@ -186,62 +186,44 @@ export const deleteUser = async (id, userContext) => {
       }
     };
 
-    // 1. Hapus data yang terhubung dengan assignment_id
-    await tryDelete(sql`
-      DELETE FROM payment_history 
-      WHERE assignment_id IN (SELECT id FROM property_assignments WHERE user_id = ${id})
+    // 1. Ambil ID unit dan assignment
+    const assignmentsRes = await db.execute(sql`
+      SELECT id AS assignment_id, unit_id
+      FROM property_assignments
+      WHERE user_id = ${id}
     `);
 
-    // 2. Hapus data yang terhubung dengan unit_id
-    // Hapus documentations (baik foto progress maupun lain-lain)
-    await tryDelete(sql`
-      DELETE FROM documentations 
-      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
-    `);
-    
-    // Hapus retentions
-    await tryDelete(sql`
-      DELETE FROM retentions 
-      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
-    `);
+    if (assignmentsRes.length > 0) {
+      const unitIds = assignmentsRes.map(a => a.unit_id).filter(Boolean);
+      const assignmentIds = assignmentsRes.map(a => a.assignment_id).filter(Boolean);
 
-    // Hapus handover defects
-    await tryDelete(sql`
-      DELETE FROM handover_defects 
-      WHERE handover_id IN (
-        SELECT id FROM handovers WHERE unit_id IN (
-          SELECT unit_id FROM property_assignments WHERE user_id = ${id}
-        )
-      )
-    `);
+      if (unitIds.length > 0 || assignmentIds.length > 0) {
+        const unitIdsSql = unitIds.length > 0 ? unitIds.map(u => `'${u}'`).join(', ') : "'00000000-0000-0000-0000-000000000000'";
+        const assignmentIdsSql = assignmentIds.length > 0 ? assignmentIds.map(u => `'${u}'`).join(', ') : "'00000000-0000-0000-0000-000000000000'";
 
-    // Hapus handovers
-    await tryDelete(sql`
-      DELETE FROM handovers 
-      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
-    `);
+        // Hapus data yang terhubung dengan assignment_id
+        await tryDelete(sql.raw(`DELETE FROM payment_history WHERE assignment_id IN (${assignmentIdsSql})`));
 
-    // Hapus progress
-    await tryDelete(sql`
-      DELETE FROM progress 
-      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
-    `);
+        // Hapus data yang terhubung dengan unit_id
+        await tryDelete(sql.raw(`DELETE FROM documentations WHERE unit_id IN (${unitIdsSql})`));
+        await tryDelete(sql.raw(`DELETE FROM retentions WHERE unit_id IN (${unitIdsSql})`));
+        
+        await tryDelete(sql.raw(`
+          DELETE FROM handover_defects 
+          WHERE handover_id IN (SELECT id FROM handovers WHERE unit_id IN (${unitIdsSql}))
+        `));
+        
+        await tryDelete(sql.raw(`DELETE FROM handovers WHERE unit_id IN (${unitIdsSql})`));
+        await tryDelete(sql.raw(`DELETE FROM progress WHERE unit_id IN (${unitIdsSql})`));
+        await tryDelete(sql.raw(`DELETE FROM timelines WHERE unit_id IN (${unitIdsSql})`));
 
-    // Hapus timelines
-    await tryDelete(sql`
-      DELETE FROM timelines 
-      WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
-    `);
+        // Hapus assignments SEBELUM hapus units
+        await tryDelete(sql.raw(`DELETE FROM property_assignments WHERE id IN (${assignmentIdsSql})`));
 
-    // Reset status unit (jika gagal misal karena beda format enum di DB produksi, abaikan)
-    await tryDelete(sql`
-      UPDATE units 
-      SET progress_percentage = 0, status_pembangunan = 'planned' 
-      WHERE id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
-    `);
-
-    // 3. Hapus assignments itu sendiri
-    await tryDelete(sql`DELETE FROM property_assignments WHERE user_id = ${id}`);
+        // Terakhir hapus unitnya
+        await tryDelete(sql.raw(`DELETE FROM units WHERE id IN (${unitIdsSql})`));
+      }
+    }
 
     // 4. Hapus data personal customer
     await tryDelete(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
