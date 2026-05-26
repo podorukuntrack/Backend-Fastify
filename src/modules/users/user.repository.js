@@ -175,27 +175,35 @@ export const deleteUser = async (id, userContext) => {
   if (!existing) return null;
 
   if (existing.role === 'customer') {
+    const tryDelete = async (query) => {
+      try {
+        await db.execute(query);
+      } catch (err) {
+        if (err.code !== '42P01') throw err; // 42P01 = undefined_table (relation does not exist)
+      }
+    };
+
     // 1. Hapus data yang terhubung dengan assignment_id
-    await db.execute(sql`
+    await tryDelete(sql`
       DELETE FROM payment_history 
       WHERE assignment_id IN (SELECT id FROM property_assignments WHERE user_id = ${id})
     `);
 
     // 2. Hapus data yang terhubung dengan unit_id
     // Hapus documentations (baik foto progress maupun lain-lain)
-    await db.execute(sql`
+    await tryDelete(sql`
       DELETE FROM documentations 
       WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
     `);
     
     // Hapus retentions
-    await db.execute(sql`
+    await tryDelete(sql`
       DELETE FROM retentions 
       WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
     `);
 
     // Hapus handover defects
-    await db.execute(sql`
+    await tryDelete(sql`
       DELETE FROM handover_defects 
       WHERE handover_id IN (
         SELECT id FROM handovers WHERE unit_id IN (
@@ -205,24 +213,24 @@ export const deleteUser = async (id, userContext) => {
     `);
 
     // Hapus handovers
-    await db.execute(sql`
+    await tryDelete(sql`
       DELETE FROM handovers 
       WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
     `);
 
     // Hapus progress
-    await db.execute(sql`
+    await tryDelete(sql`
       DELETE FROM progress 
       WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
     `);
 
     // Hapus timelines
-    await db.execute(sql`
+    await tryDelete(sql`
       DELETE FROM timelines 
       WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
     `);
 
-    // Reset status unit
+    // Reset status unit (tabel units dipastikan ada, gunakan db.execute langsung agar jika gagal tetap throw)
     await db.execute(sql`
       UPDATE units 
       SET progress_percentage = 0, status_pembangunan = 'planned' 
@@ -230,17 +238,17 @@ export const deleteUser = async (id, userContext) => {
     `);
 
     // 3. Hapus assignments itu sendiri
-    await db.execute(sql`DELETE FROM property_assignments WHERE user_id = ${id}`);
+    await tryDelete(sql`DELETE FROM property_assignments WHERE user_id = ${id}`);
 
     // 4. Hapus data personal customer
-    await db.execute(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
-    await db.execute(sql`
+    await tryDelete(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
+    await tryDelete(sql`
       DELETE FROM ticket_messages 
       WHERE ticket_id IN (SELECT id FROM tickets WHERE user_id = ${id})
     `);
-    await db.execute(sql`DELETE FROM tickets WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM whatsapp_logs WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
+    await tryDelete(sql`DELETE FROM tickets WHERE user_id = ${id}`);
+    await tryDelete(sql`DELETE FROM whatsapp_logs WHERE user_id = ${id}`);
+    await tryDelete(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
   } else {
     // Jika admin/staff, bersihkan saja token dan devices (jika ada)
     await db.execute(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
