@@ -34,6 +34,16 @@ export const updateHandler = async (request, reply) => {
   }
 };
 
+export const deleteHandler = async (request, reply) => {
+  try {
+    await service.removeHandover(request.params.id, request.user);
+    return reply.code(200).send({ success: true, message: 'Handover deleted', data: {} });
+  } catch (error) {
+    console.error('[DELETE handover] ERROR:', error.message, error.stack);
+    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+  }
+};
+
 export const createDefectHandler = async (request, reply) => {
   try {
     const data = await service.reportDefect(request.params.id, request.body, request.user);

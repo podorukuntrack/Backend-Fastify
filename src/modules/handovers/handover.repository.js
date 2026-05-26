@@ -65,6 +65,14 @@ export const updateHandover = async (id, data, userContext) => {
   return mapHandoverRow(result[0]);
 };
 
+export const deleteHandover = async (id, userContext) => {
+  // Delete handover defects first to avoid foreign key constraints
+  await db.delete(handoverDefects).where(eq(handoverDefects.handoverId, id));
+  
+  const result = await db.delete(handovers).where(eq(handovers.id, id)).returning();
+  return mapHandoverRow(result[0]);
+};
+
 // === DEFECTS / CACAT BANGUNAN ===
 export const insertDefect = async (data) => {
   const result = await db.insert(handoverDefects).values(data).returning();

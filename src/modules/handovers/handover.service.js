@@ -135,6 +135,14 @@ export const modifyHandover = async (id, data, userContext) => {
   return result;
 };
 
+export const removeHandover = async (id, userContext) => {
+  const handover = await repo.findHandoverById(id, userContext);
+  if (!handover) throw new Error('Handover not found or access denied');
+  
+  const result = await repo.deleteHandover(id, userContext);
+  return result;
+};
+
 export const reportDefect = async (handoverId, data, userContext) => {
   const handover = await repo.findHandoverById(handoverId, userContext);
   if (!handover) throw new Error('Handover not found or access denied');

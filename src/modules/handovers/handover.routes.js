@@ -209,6 +209,38 @@ export default async function handoverRoutes(fastify, options) {
     preHandler: [writeRoles, validate(schema.updateHandoverSchema)]
   }, controller.updateHandler);
 
+  // DELETE - Hapus handover
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Menghapus data serah terima beserta komplainnya',
+      tags: ['Handovers'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: {
+            type: 'string',
+            format: 'uuid',
+            description: 'ID handover yang ingin dihapus',
+            example: '550e8400-e29b-41d4-a716-446655440000'
+          }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles]
+  }, controller.deleteHandler);
+
   // POST - Lapor defect/kerusakan saat serah terima
   fastify.post('/:id/defects', {
     schema: {
