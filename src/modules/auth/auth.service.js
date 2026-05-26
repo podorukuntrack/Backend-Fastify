@@ -1,6 +1,4 @@
 import { upsertDeviceToken, deleteDeviceToken } from '../users/device.repository.js';
-
-
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import {
@@ -230,13 +228,32 @@ export const requestOtp = async (method, contact) => {
     return true; // Prevent enumeration
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  // Detect test accounts for Google Play Console review
+  const cleanContact = contact.replace(/[^0-9]/g, '');
+  const isTestAccount = 
+    contact.toLowerCase().includes('tester') || 
+    contact.toLowerCase().includes('reviewer') || 
+    contact.toLowerCase() === 'podorukuntester@gmail.com' || 
+    cleanContact === '081234567890' || 
+    cleanContact === '6281234567890' ||
+    cleanContact === '082286361965' || 
+    cleanContact === '6282286361965' ||
+    cleanContact === '089999999999' ||
+    cleanContact === '629999999999';
+
+  // Use a static OTP '123456' for test accounts
+  const otp = isTestAccount ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
   const redisClient = getRedisClient();
   
   if (redisClient) {
     await redisClient.set(`otp:${contact}`, otp, 'EX', 300); // 5 minutes
   } else {
     throw new Error('Redis is not available');
+  }
+
+  // Skip sending actual WA/Email for test accounts
+  if (isTestAccount) {
+    return true;
   }
 
   if (method === 'wa') {
@@ -257,7 +274,28 @@ export const verifyOtp = async (contact, otp) => {
   const redisClient = getRedisClient();
   if (!redisClient) throw new Error('Redis is not available');
 
+  const cleanContact = contact.replace(/[^0-9]/g, '');
+  const isTestAccount = 
+    contact.toLowerCase().includes('tester') || 
+    contact.toLowerCase().includes('reviewer') || 
+    contact.toLowerCase() === 'podorukuntester@gmail.com' || 
+    cleanContact === '081234567890' || 
+    cleanContact === '6281234567890' ||
+    cleanContact === '082286361965' || 
+    cleanContact === '6282286361965' ||
+    cleanContact === '089999999999' ||
+    cleanContact === '629999999999';
+
   const storedOtp = await redisClient.get(`otp:${contact}`);
+  
+  // Accept static '123456' for test/review accounts
+  if (isTestAccount && (otp === '123456' || storedOtp === otp)) {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    await redisClient.set(`reset_token:${contact}`, resetToken, 'EX', 900); // 15 mins
+    await redisClient.del(`otp:${contact}`);
+    return resetToken;
+  }
+
   if (!storedOtp || storedOtp !== otp) {
     throw new Error('OTP tidak valid atau sudah kedaluwarsa');
   }
@@ -293,7 +331,6 @@ export const resetPassword = async (contact, resetToken, newPassword) => {
   await redisClient.del(`reset_token:${contact}`);
   return true;
 };
-
 
 export const changePassword = async (userId, oldPassword, newPassword) => {
   const user = await findUserById(userId);
@@ -342,7 +379,6 @@ export const googleLoginUser = async (idToken, fastify) => {
 
   if (!user) {
     // 3. Register user baru jika tidak ditemukan
-    // Generate secure random password hash
     const randomPassword = crypto.randomBytes(32).toString('hex');
     const password_hash = await bcrypt.hash(randomPassword, 10);
 
