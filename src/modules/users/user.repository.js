@@ -11,17 +11,17 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
   let conditionSql;
 
   if (userContext.role === 'super_admin') {
-    // Super admin hanya lihat admin
-    conditionSql = sql`u.role = 'admin'`;
+    // Super admin bisa lihat semua
+    conditionSql = sql`true`;
 
   } else if (userContext.role === 'admin') {
     if (allCustomers) {
       // Admin request all customers for assignment: return ALL users with role = 'customer'
       conditionSql = sql`u.role = 'customer'`;
     } else {
-      // Normal admin view: non-customer from same company OR customer assigned to unit under admin's company
+      // Normal admin view: non-customer dari company yg sama, atau customer dari company yg sama, atau customer yg diassign ke company admin
       conditionSql = sql`(
-        (u.role != 'customer' AND u.company_id = ${userContext.companyId}::uuid)
+        u.company_id = ${userContext.companyId}::uuid
         OR
         (u.role = 'customer' AND EXISTS (
           SELECT 1 
@@ -83,14 +83,14 @@ export const findUserById = async (id, userContext) => {
   let conditionSql;
 
   if (userContext.role === 'super_admin') {
-    // Super admin hanya bisa lihat admin
-    conditionSql = sql`id = ${id} AND role = 'admin'`;
+    // Super admin bisa lihat semua
+    conditionSql = sql`id = ${id}`;
 
   } else if (userContext.role === 'admin') {
-    // Admin bisa lihat non-customer dari perusahaannya
+    // Admin bisa lihat semua akun yg ada di company-nya,
     // atau customer yang memiliki unit di perusahaannya
     conditionSql = sql`id = ${id} AND (
-      (role != 'customer' AND company_id = ${userContext.companyId}::uuid)
+      company_id = ${userContext.companyId}::uuid
       OR
       (role = 'customer' AND EXISTS (
         SELECT 1 
