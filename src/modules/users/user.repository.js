@@ -57,6 +57,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
       u.updated_at
     FROM users u
     WHERE ${conditionSql}
+      AND u.id != ${userContext.sub}::uuid
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
       AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
     ORDER BY u.created_at DESC
@@ -68,6 +69,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
     SELECT COUNT(*)::int AS count
     FROM users u
     WHERE ${conditionSql}
+      AND u.id != ${userContext.sub}::uuid
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
       AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
   `);
