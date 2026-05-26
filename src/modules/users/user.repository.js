@@ -180,7 +180,9 @@ export const deleteUser = async (id, userContext) => {
         await db.execute(query);
       } catch (err) {
         const pgErrorCode = err.code || (err.cause && err.cause.code);
-        if (pgErrorCode !== '42P01') throw err; // 42P01 = undefined_table (relation does not exist)
+        // 42P01 = undefined_table (relation does not exist)
+        // 22P02 = invalid_text_representation (invalid enum value, etc)
+        if (pgErrorCode !== '42P01' && pgErrorCode !== '22P02') throw err; 
       }
     };
 
@@ -231,8 +233,8 @@ export const deleteUser = async (id, userContext) => {
       WHERE unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
     `);
 
-    // Reset status unit (tabel units dipastikan ada, gunakan db.execute langsung agar jika gagal tetap throw)
-    await db.execute(sql`
+    // Reset status unit (jika gagal misal karena beda format enum di DB produksi, abaikan)
+    await tryDelete(sql`
       UPDATE units 
       SET progress_percentage = 0, status_pembangunan = 'planned' 
       WHERE id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${id})
