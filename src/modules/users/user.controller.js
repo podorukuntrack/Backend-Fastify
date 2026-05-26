@@ -45,6 +45,7 @@ export const deleteHandler = async (request, reply) => {
     await service.removeUser(request.params.id, request.user);
     return reply.code(200).send({ success: true, message: 'User deleted', data: {} });
   } catch (error) {
+    console.error('Delete User Error:', error);
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };
