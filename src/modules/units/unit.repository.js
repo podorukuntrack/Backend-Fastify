@@ -119,7 +119,8 @@ export const findUnitById = async (id, userContext) => {
       c.jumlah_unit,
       p.id AS project_id,
       p.nama_proyek,
-      cp.nama_pt AS nama_perusahaan
+      cp.nama_pt AS nama_perusahaan,
+      cp.kode_pt
     FROM units u
     JOIN clusters c ON c.id = u.cluster_id
     JOIN projects p ON p.id = c.project_id
@@ -129,7 +130,24 @@ export const findUnitById = async (id, userContext) => {
     LIMIT 1
   `);
 
-  return rows[0] ? mapUnitRow(rows[0]) : null;
+  if (!rows[0]) return null;
+
+  const unitData = mapUnitRow(rows[0]);
+
+  // Lookup admin phone dynamically based on company code (email: admin@[kode_pt].com)
+  let adminPhone = null;
+  if (rows[0].kode_pt) {
+    const adminEmail = `admin@${rows[0].kode_pt.trim().toLowerCase()}.com`;
+    const adminRows = await db.execute(sql`
+      SELECT nomor_telepon FROM users WHERE LOWER(email) = LOWER(${adminEmail}) LIMIT 1
+    `);
+    adminPhone = adminRows[0]?.nomor_telepon || null;
+  }
+
+  return {
+    ...unitData,
+    admin_phone: adminPhone,
+  };
 };
 
 export const findUnitDetailById = findUnitById;
