@@ -13,17 +13,17 @@ export const sendWhatsAppMessage = async (phone, messageText, userContext) => {
 
     // Kirim HTTP POST ke OpenWA Docker Microservice
     const apiKey = process.env.OPENWA_API_KEY || 'podorukuntrack_secret_123';
-    const response = await fetch('http://localhost:2785/api/sendText', {
+    const sessionId = process.env.OPENWA_SESSION_ID || 'podorukuntrack';
+    
+    const response = await fetch(`http://localhost:2785/api/sessions/${sessionId}/messages/send-text`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'X-Api-Key': apiKey
+        'X-API-Key': apiKey
       },
       body: JSON.stringify({
-        args: {
-          to: target,
-          content: messageText
-        }
+        chatId: target,
+        text: messageText
       })
     });
 
