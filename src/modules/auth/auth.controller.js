@@ -31,7 +31,11 @@ export const loginHandler = async (request, reply) => {
     return reply.code(200).send({
       success: true,
       message: 'Login successful',
-      data: { user: tokens.user }
+      data: { 
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: tokens.user 
+      }
     });
   } catch (error) {
     if (error.message === 'Invalid credentials') {
@@ -92,7 +96,11 @@ export const registerHandler = async (request, reply) => {
     return reply.code(201).send({
       success: true,
       message: 'Registrasi berhasil',
-      data: { user: tokens.user }
+      data: { 
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: tokens.user 
+      }
     });
   } catch (error) {
     if (error.message === 'Email sudah terdaftar') {
@@ -115,7 +123,11 @@ export const googleLoginHandler = async (request, reply) => {
     return reply.code(200).send({
       success: true,
       message: 'Login Google berhasil',
-      data: { user: tokens.user }
+      data: { 
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: tokens.user 
+      }
     });
   } catch (error) {
     if (error.message.includes('Akses Ditolak') || error.message.includes('tidak valid') || error.message.includes('diperlukan')) {

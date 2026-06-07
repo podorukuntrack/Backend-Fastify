@@ -31,6 +31,8 @@ export default async function authRoutes(fastify, options) {
               data: {
                 type: "object",
                 properties: {
+                  accessToken: { type: "string" },
+                  refreshToken: { type: "string" },
                   user: {
                     type: "object",
                     properties: {
@@ -140,7 +142,11 @@ export default async function authRoutes(fastify, options) {
       return reply.code(200).send({
         success: true,
         message: "Token refreshed",
-        data: { user: tokens.user },
+        data: { 
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          user: tokens.user 
+        },
       });
     } catch (error) {
       return reply.code(401).send({
