@@ -8,7 +8,6 @@ import fastifyHelmet from "@fastify/helmet";
 import authPlugin from "./plugins/auth.js";
 import swaggerPlugin from "./plugins/swagger.js";
 import redisPlugin from "./plugins/redis.js";
-import whatsappPlugin, { getWaClient } from "./plugins/whatsapp.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import companyRoutes from "./modules/companies/company.routes.js";
@@ -106,7 +105,6 @@ export async function buildApp() {
   await app.register(authPlugin);
   await app.register(swaggerPlugin);
   await app.register(redisPlugin);
-  await app.register(whatsappPlugin);
 
   app.setErrorHandler(globalErrorHandler);
 
@@ -184,22 +182,14 @@ export async function buildApp() {
   // ── WhatsApp Health Check (Khusus untuk Uptime Kuma) ──
   app.get("/health/whatsapp", async (_request, reply) => {
     try {
-      const waClient = getWaClient();
-      if (!waClient) {
-        return reply.code(503).send({ 
-          success: false, 
-          status: 'error', 
-          message: 'WhatsApp Client not initialized' 
-        });
-      }
-      
-      const waState = await waClient.getConnectionState();
-      const isConnected = waState === 'CONNECTED';
+      // Ping ke Microservice OpenWA Docker
+      const response = await fetch("http://localhost:2785/api/docs");
+      const isConnected = response.ok;
       
       return reply.code(isConnected ? 200 : 503).send({
         success: isConnected,
         status: isConnected ? 'ok' : 'error',
-        state: waState,
+        message: isConnected ? 'OpenWA Microservice is running' : 'OpenWA Microservice is unreachable',
         timestamp: new Date().toISOString()
       });
     } catch (err) {

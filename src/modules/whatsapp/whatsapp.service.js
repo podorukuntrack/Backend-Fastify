@@ -1,25 +1,30 @@
 // src/modules/whatsapp/whatsapp.service.js
 import { db } from '../../config/database.js';
 import { whatsappLogs } from '../../shared/schemas/schema.js';
-import { getWaClient } from '../../plugins/whatsapp.js';
+
 
 export const sendWhatsAppMessage = async (phone, messageText, userContext) => {
   try {
-    const waClient = getWaClient();
-    if (!waClient) {
-      throw new Error('WhatsApp Client is not ready');
-    }
-
     let cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.startsWith('0')) {
       cleanPhone = '62' + cleanPhone.substring(1);
     }
     const target = `${cleanPhone}@c.us`;
 
-    const result = await waClient.sendText(target, messageText);
-    
-    if (result === false) {
-      throw new Error('Failed to send message via openWA');
+    // Kirim HTTP POST ke OpenWA Docker Microservice
+    const response = await fetch('http://localhost:2785/api/sendText', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        args: {
+          to: target,
+          content: messageText
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to send message via OpenWA Microservice: ${response.statusText}`);
     }
 
     // Catat ke log
