@@ -119,16 +119,35 @@ export default async function authRoutes(fastify, options) {
     },
     async (request, reply) => {
     try {
-      const { refreshToken } = request.body;
+      const refreshToken = request.cookies?.refreshToken || request.body?.refreshToken;
+      if (!refreshToken) {
+        throw new Error("Refresh token required");
+      }
       const tokens = await service.refreshTokenService(
         refreshToken,
         fastify,
       );
 
+      reply.setCookie('accessToken', tokens.accessToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 15 * 60
+      });
+
+      reply.setCookie('refreshToken', tokens.refreshToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 60 * 60
+      });
+
       return reply.code(200).send({
         success: true,
         message: "Token refreshed",
-        data: tokens,
+        data: { user: tokens.user },
       });
     } catch (error) {
       return reply.code(401).send({
@@ -155,9 +174,14 @@ export default async function authRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-    const { refreshToken } = request.body;
+    const refreshToken = request.cookies?.refreshToken || request.body?.refreshToken;
 
-    await service.logoutUser(refreshToken);
+    if (refreshToken) {
+      await service.logoutUser(refreshToken);
+    }
+
+    reply.clearCookie('accessToken', { path: '/' });
+    reply.clearCookie('refreshToken', { path: '/' });
 
     return reply.code(200).send({
       success: true,

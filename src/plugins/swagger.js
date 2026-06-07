@@ -65,12 +65,8 @@ async function swaggerPlugin(fastify) {
 
       servers: [
         {
-          url: 'http://localhost:3000',
-          description: 'Development Server'
-        },
-        {
-          url: 'https://api.podorukuntrack.com',
-          description: 'Production Server'
+          url: process.env.API_URL || 'http://localhost:3000',
+          description: 'API Server'
         }
       ],
 

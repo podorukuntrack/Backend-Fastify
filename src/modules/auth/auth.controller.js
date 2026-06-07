@@ -1,6 +1,24 @@
 // src/modules/auth/auth.controller.js
 import * as service from './auth.service.js';
 
+const setAuthCookies = (reply, tokens) => {
+  reply.setCookie('accessToken', tokens.accessToken, {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 15 * 60
+  });
+
+  reply.setCookie('refreshToken', tokens.refreshToken, {
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60
+  });
+};
+
 export const loginHandler = async (request, reply) => {
   try {
     const { email, password } = request.body;
@@ -8,10 +26,12 @@ export const loginHandler = async (request, reply) => {
     
     const tokens = await service.loginUser(email, password, request.server);
     
+    setAuthCookies(reply, tokens);
+    
     return reply.code(200).send({
       success: true,
       message: 'Login successful',
-      data: tokens
+      data: { user: tokens.user }
     });
   } catch (error) {
     if (error.message === 'Invalid credentials') {
@@ -67,10 +87,12 @@ export const registerHandler = async (request, reply) => {
   try {
     const tokens = await service.registerCustomer(request.body, request.server);
     
+    setAuthCookies(reply, tokens);
+    
     return reply.code(201).send({
       success: true,
       message: 'Registrasi berhasil',
-      data: tokens
+      data: { user: tokens.user }
     });
   } catch (error) {
     if (error.message === 'Email sudah terdaftar') {
@@ -88,10 +110,12 @@ export const googleLoginHandler = async (request, reply) => {
     const { idToken } = request.body;
     const tokens = await service.googleLoginUser(idToken, request.server);
     
+    setAuthCookies(reply, tokens);
+    
     return reply.code(200).send({
       success: true,
       message: 'Login Google berhasil',
-      data: tokens
+      data: { user: tokens.user }
     });
   } catch (error) {
     if (error.message.includes('Akses Ditolak') || error.message.includes('tidak valid') || error.message.includes('diperlukan')) {

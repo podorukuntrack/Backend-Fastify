@@ -8,6 +8,10 @@ export default fp(async function (fastify, opts) {
 
   fastify.register(fastifyJwt, {
     secret: process.env.JWT_SECRET,
+    cookie: {
+      cookieName: 'accessToken',
+      signed: false
+    }
   });
 
   fastify.decorate('authenticate', async function (request, reply) {

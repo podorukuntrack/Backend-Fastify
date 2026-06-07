@@ -1,10 +1,14 @@
 import Fastify from "fastify";
 import fastifyMultipart from "@fastify/multipart";
 import fastifyCors from "@fastify/cors";
+import fastifyCookie from "@fastify/cookie";
+import fastifyRateLimit from "@fastify/rate-limit";
+import fastifyHelmet from "@fastify/helmet";
 
 import authPlugin from "./plugins/auth.js";
 import swaggerPlugin from "./plugins/swagger.js";
 import redisPlugin from "./plugins/redis.js";
+import whatsappPlugin from "./plugins/whatsapp.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import companyRoutes from "./modules/companies/company.routes.js";
@@ -45,10 +49,17 @@ export async function buildApp() {
   });
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",")
-    : [];
+    : ["http://localhost:5173", "http://localhost:3000"];
 
   await app.register(fastifyCors, {
-    origin: true,
+    origin: (origin, cb) => {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return cb(null, true);
+      }
+      return cb(new Error("Not allowed by CORS"), false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -60,9 +71,42 @@ export async function buildApp() {
     ],
   });
 
+  await app.register(fastifyRateLimit, {
+    max: 100,
+    timeWindow: '1 minute'
+  });
+
+  await app.register(fastifyCookie, {
+    secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || "my-secret",
+    hook: 'onRequest',
+  });
+
+  await app.register(fastifyHelmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "validator.swagger.io", "https://fastify.io"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        connectSrc: ["'self'"],
+      }
+    },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    },
+    frameguard: {
+      action: 'sameorigin'
+    },
+    noSniff: true
+  });
+
   await app.register(authPlugin);
   await app.register(swaggerPlugin);
   await app.register(redisPlugin);
+  await app.register(whatsappPlugin);
 
   app.setErrorHandler(globalErrorHandler);
 
