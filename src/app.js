@@ -8,7 +8,7 @@ import fastifyHelmet from "@fastify/helmet";
 import authPlugin from "./plugins/auth.js";
 import swaggerPlugin from "./plugins/swagger.js";
 import redisPlugin from "./plugins/redis.js";
-import whatsappPlugin from "./plugins/whatsapp.js";
+import whatsappPlugin, { getWaClient } from "./plugins/whatsapp.js";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import companyRoutes from "./modules/companies/company.routes.js";
@@ -179,6 +179,36 @@ export async function buildApp() {
       timestamp: new Date().toISOString(),
       checks,
     });
+  });
+
+  // ── WhatsApp Health Check (Khusus untuk Uptime Kuma) ──
+  app.get("/health/whatsapp", async (_request, reply) => {
+    try {
+      const waClient = getWaClient();
+      if (!waClient) {
+        return reply.code(503).send({ 
+          success: false, 
+          status: 'error', 
+          message: 'WhatsApp Client not initialized' 
+        });
+      }
+      
+      const waState = await waClient.getConnectionState();
+      const isConnected = waState === 'CONNECTED';
+      
+      return reply.code(isConnected ? 200 : 503).send({
+        success: isConnected,
+        status: isConnected ? 'ok' : 'error',
+        state: waState,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      return reply.code(503).send({ 
+        success: false, 
+        status: 'error', 
+        message: err.message 
+      });
+    }
   });
 
   return app;

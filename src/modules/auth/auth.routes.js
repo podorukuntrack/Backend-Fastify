@@ -31,8 +31,6 @@ export default async function authRoutes(fastify, options) {
               data: {
                 type: "object",
                 properties: {
-                  accessToken: { type: "string" },
-                  refreshToken: { type: "string" },
                   user: {
                     type: "object",
                     properties: {
@@ -47,11 +45,7 @@ export default async function authRoutes(fastify, options) {
                     required: ["id", "email", "role"],
                   },
                 },
-                required: [
-                  "accessToken",
-                  "refreshToken",
-                  "user",
-                ],
+                required: ["user"],
               },
             },
             required: ["success", "message", "data"],
@@ -110,7 +104,6 @@ export default async function authRoutes(fastify, options) {
         tags: ["Auth"],
         body: {
           type: "object",
-          required: ["refreshToken"],
           properties: {
             refreshToken: { type: "string" },
           },
@@ -166,7 +159,6 @@ export default async function authRoutes(fastify, options) {
         tags: ["Auth"],
         body: {
           type: "object",
-          required: ["refreshToken"],
           properties: {
             refreshToken: { type: "string" },
           },
