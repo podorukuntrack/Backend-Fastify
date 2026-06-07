@@ -12,6 +12,7 @@ async function whatsappPlugin(fastify, options) {
     blockCrashLogs: true,
     disableSpins: true,
     headless: true,
+    useChrome: true,
     hostNotificationLang: 'id', // Set notification to Indonesian
     logConsole: false,
     popup: false,
