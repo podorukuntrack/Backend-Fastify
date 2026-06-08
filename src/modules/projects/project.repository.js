@@ -47,11 +47,12 @@ export const getProjectStats = async (id, userContext) => {
   const statsResult = await db.execute(sql`
     SELECT 
       COUNT(u.id) as total_units,
-      SUM(CASE WHEN u.status = 'sold' THEN 1 ELSE 0 END) as sold_units,
-      SUM(CASE WHEN u.status = 'available' THEN 1 ELSE 0 END) as available_units
+      SUM(CASE WHEN pa.id IS NOT NULL AND pa.status_kepemilikan = 'active' THEN 1 ELSE 0 END) as sold_units,
+      SUM(CASE WHEN pa.id IS NULL OR pa.status_kepemilikan != 'active' THEN 1 ELSE 0 END) as available_units
     FROM units u
     JOIN clusters c ON u.cluster_id = c.id
-    WHERE c.project_id = ${id} AND u.company_id = ${project.companyId}
+    LEFT JOIN property_assignments pa ON pa.unit_id = u.id
+    WHERE c.project_id = ${id}
   `);
 
   return statsResult[0];

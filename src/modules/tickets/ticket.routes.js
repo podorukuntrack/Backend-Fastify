@@ -150,7 +150,7 @@ export default async function ticketRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },
@@ -199,7 +199,7 @@ export default async function ticketRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },
@@ -286,7 +286,7 @@ export default async function ticketRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },

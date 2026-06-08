@@ -5,8 +5,17 @@ export const getAdminStats = async (companyId) => {
   const result = await db.execute(sql`
     SELECT 
       (SELECT COUNT(*) FROM projects WHERE company_id = ${companyId}) as total_projects,
-      (SELECT COUNT(*) FROM units WHERE company_id = ${companyId}) as total_units,
-      (SELECT COUNT(*) FROM units WHERE company_id = ${companyId} AND status = 'sold') as units_sold,
+      (SELECT COUNT(u.id) 
+       FROM units u 
+       JOIN clusters c ON u.cluster_id = c.id 
+       JOIN projects p ON c.project_id = p.id 
+       WHERE p.company_id = ${companyId}) as total_units,
+      (SELECT COUNT(pa.id) 
+       FROM property_assignments pa 
+       JOIN units u ON pa.unit_id = u.id 
+       JOIN clusters c ON u.cluster_id = c.id 
+       JOIN projects p ON c.project_id = p.id 
+       WHERE p.company_id = ${companyId} AND pa.status_kepemilikan = 'active') as units_sold,
       (SELECT COUNT(*) FROM tickets WHERE company_id = ${companyId} AND status != 'closed') as open_tickets,
       (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE company_id = ${companyId} AND status = 'verified') as total_revenue
   `);

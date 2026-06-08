@@ -94,15 +94,7 @@ export default async function projectRoutes(fastify, options) {
             properties: {
               success: { type: "boolean" },
               message: { type: "string" },
-              data: {
-                type: "object",
-                properties: {
-                  id: { type: "string", format: "uuid" },
-                  name: { type: "string" },
-                  description: { type: "string" },
-                  companyId: { type: "string", format: "uuid" },
-                },
-              },
+              data: { type: "object", additionalProperties: true },
             },
           },
         },
@@ -138,18 +130,7 @@ export default async function projectRoutes(fastify, options) {
             properties: {
               success: { type: "boolean" },
               message: { type: "string" },
-              data: {
-                type: "object",
-                properties: {
-                  id: { type: "string", format: "uuid" },
-                  name: { type: "string" },
-                  description: { type: "string" },
-                  status: { type: "string" },
-                  logo_url: { type: ["string", "null"] },
-                  theme_color: { type: ["string", "null"] },
-                  createdAt: { type: "string", format: "date-time" },
-                },
-              },
+              data: { type: "object", additionalProperties: true },
             },
           },
           404: {

@@ -5,8 +5,12 @@ export const getAllHandler = async (request, reply) => {
   const { page, limit, search, role, all_customers } = request.query;
   const result = await service.getUsers(page, limit, request.user, { search, role, all_customers });
   
-  // Custom response untuk pagination
-  return reply.code(200).send(result);
+  return reply.code(200).send({
+    success: true,
+    message: 'Users retrieved',
+    data: result.data,
+    meta: result.meta
+  });
 };
 
 export const getByIdHandler = async (request, reply) => {

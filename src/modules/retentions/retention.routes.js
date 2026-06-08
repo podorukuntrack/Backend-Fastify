@@ -139,7 +139,7 @@ export default async function retentionRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },
@@ -197,7 +197,7 @@ export default async function retentionRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },

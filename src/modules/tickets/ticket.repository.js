@@ -29,3 +29,16 @@ export const insertTicketMessage = async (data) => {
 export const getTicketMessages = async (ticketId) => {
   return await db.select().from(ticketMessages).where(eq(ticketMessages.ticketId, ticketId)).orderBy(ticketMessages.createdAt);
 };
+
+export const updateTicketStatus = async (id, data) => {
+  const result = await db
+    .update(tickets)
+    .set({
+      status: data.status,
+      priority: data.priority,
+      updatedAt: new Date(),
+    })
+    .where(eq(tickets.id, id))
+    .returning();
+  return result[0];
+};

@@ -149,7 +149,7 @@ export default async function dashboardRoutes(fastify, options) {
           ) AS revenue_this_month,
 
           (SELECT COUNT(*)::int
-             FROM customer_tickets ct
+             FROM tickets ct
              JOIN property_assignments pa ON ct.assignment_id = pa.id
              JOIN units u ON pa.unit_id = u.id
              JOIN clusters c ON u.cluster_id = c.id
@@ -275,7 +275,7 @@ export default async function dashboardRoutes(fastify, options) {
       WHERE p.company_id = ${cid}) AS units_sold,
 
     (SELECT COUNT(*) 
-       FROM customer_tickets ct
+       FROM tickets ct
        JOIN property_assignments pa ON ct.assignment_id = pa.id
        JOIN units u ON pa.unit_id = u.id
        JOIN clusters c ON u.cluster_id = c.id

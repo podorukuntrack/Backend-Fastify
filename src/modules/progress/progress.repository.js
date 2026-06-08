@@ -18,16 +18,24 @@ const mapProgressRow = (row) => ({
     : null,
 });
 
-const normalizeProgressInput = (data) => ({
-  unit_id: data.unit_id ?? data.unitId,
-  tahap: data.tahap ?? data.stage ?? "Progress",
-  progress_percentage: Math.min(
-    100,
-    data.progress_percentage ?? data.progressPercentage ?? 0,
-  ),
-  tanggal_update: data.tanggal_update ?? new Date(),
-  catatan: data.catatan ?? data.notes ?? null,
-});
+const normalizeProgressInput = (data) => {
+  let tanggal = data.tanggal_update ?? data.tanggalUpdate ?? null;
+  if (tanggal instanceof Date) {
+    tanggal = tanggal.toISOString();
+  } else if (!tanggal) {
+    tanggal = new Date().toISOString();
+  }
+  return {
+    unit_id: data.unit_id ?? data.unitId,
+    tahap: data.tahap ?? data.stage ?? "Progress",
+    progress_percentage: Math.min(
+      100,
+      data.progress_percentage ?? data.progressPercentage ?? 0,
+    ),
+    tanggal_update: tanggal,
+    catatan: data.catatan ?? data.notes ?? null,
+  };
+};
 
 export const findAllProgress = async (userContext, filters = {}) => {
   const unitId = filters.unit_id ?? filters.unitId ?? null;

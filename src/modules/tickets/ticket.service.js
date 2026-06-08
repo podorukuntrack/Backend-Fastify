@@ -11,9 +11,7 @@ export const getTicketDetail = async (id, userContext) => {
 };
 
 export const createTicket = async (data, userContext) => {
-  if (userContext.role !== 'super_admin') {
-    data.companyId = userContext.companyId;
-  }
+  data.companyId = data.companyId ?? data.company_id ?? userContext.companyId;
   // User ID pembuat tiket
   data.userId = userContext.sub; 
   return await repo.insertTicket(data);
