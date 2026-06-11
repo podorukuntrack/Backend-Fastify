@@ -52,7 +52,8 @@ export const findRefreshTokenByHash = async (tokenHash) => {
       u.email,
       u.role,
       u.company_id,
-      u.nama
+      u.nama,
+      u.nomor_telepon
     FROM refresh_tokens rt
     JOIN users u ON u.id = rt.user_id
     WHERE rt.token_hash = ${tokenHash}
@@ -85,4 +86,17 @@ export const updateUserPassword = async (userId, newPasswordHash) => {
     .update(users)
     .set({ password_hash: newPasswordHash, updated_at: new Date() })
     .where(eq(users.id, userId));
+};
+
+export const updateUserProfile = async (userId, nama, nomorTelepon) => {
+  const result = await db
+    .update(users)
+    .set({
+      nama,
+      nomor_telepon: nomorTelepon,
+      updated_at: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning();
+  return result[0] || null;
 };

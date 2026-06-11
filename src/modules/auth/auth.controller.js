@@ -71,6 +71,7 @@ export const getMeHandler = async (request, reply) => {
         name: user.nama,
         email: user.email,
         role: user.role,
+        nomorTelepon: user.nomor_telepon,
         companyId: user.company_id,
         company: company ? {
           name: company.nama_pt,
@@ -208,5 +209,31 @@ export const changePasswordHandler = async (request, reply) => {
       return reply.code(400).send({ success: false, message: error.message });
     }
     throw error;
+  }
+};
+
+export const updateProfileHandler = async (request, reply) => {
+  try {
+    const userId = request.user.sub;
+    const { nama, nomorTelepon } = request.body;
+
+    const updated = await service.updateProfile(userId, { nama, nomorTelepon });
+    
+    return reply.code(200).send({
+      success: true,
+      message: 'Profil berhasil diperbarui',
+      data: updated
+    });
+  } catch (error) {
+    if (error.message.includes('sudah digunakan')) {
+      return reply.code(400).send({
+        success: false,
+        message: error.message
+      });
+    }
+    return reply.code(500).send({
+      success: false,
+      message: error.message
+    });
   }
 };

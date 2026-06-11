@@ -8,7 +8,8 @@ import {
   saveRefreshToken,
   findUserById,
   updateUserPassword,
-  findUserByPhone
+  findUserByPhone,
+  updateUserProfile
 } from './auth.repository.js';
 import { insertUser } from '../users/user.repository.js';
 import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
@@ -86,6 +87,7 @@ export const loginUser = async (email, password, fastify) => {
       name: user.nama,
       email: user.email,
       role: user.role,
+      nomorTelepon: user.nomor_telepon,
       companyId: user.company_id,
       company: company ? {
         name: company.nama_pt,
@@ -159,6 +161,7 @@ export const refreshTokenService = async (
       name: storedToken.nama,
       email: storedToken.email,
       role: storedToken.role,
+      nomorTelepon: storedToken.nomor_telepon,
       companyId: storedToken.company_id,
       company: company ? {
         name: company.nama_pt,
@@ -429,6 +432,7 @@ export const googleLoginUser = async (idToken, fastify) => {
       name: user.nama,
       email: user.email,
       role: user.role,
+      nomorTelepon: user.nomor_telepon,
       companyId: user.company_id,
       company: company ? {
         name: company.nama_pt,
@@ -436,5 +440,47 @@ export const googleLoginUser = async (idToken, fastify) => {
         themeColor: company.theme_color || '#4f46e5'
       } : null
     },
+  };
+};
+
+export const updateProfile = async (userId, data) => {
+  const user = await findUserById(userId);
+  if (!user) {
+    throw new Error('User tidak ditemukan');
+  }
+
+  // Validasi keunikan nomor telepon jika diinput
+  if (data.nomorTelepon) {
+    const existingPhoneUser = await findUserByPhone(data.nomorTelepon);
+    if (existingPhoneUser && existingPhoneUser.id !== userId) {
+      throw new Error('Nomor telepon sudah digunakan oleh akun lain');
+    }
+  }
+
+  const namaToUpdate = data.nama !== undefined ? data.nama : user.nama;
+  const teleponToUpdate = data.nomorTelepon !== undefined ? data.nomorTelepon : user.nomor_telepon;
+
+  const result = await updateUserProfile(userId, namaToUpdate, teleponToUpdate);
+  if (!result) {
+    throw new Error('Gagal memperbarui profil');
+  }
+
+  let company = null;
+  if (result.company_id) {
+    company = await findCompanyById(result.company_id);
+  }
+
+  return {
+    id: result.id,
+    name: result.nama,
+    email: result.email,
+    role: result.role,
+    nomorTelepon: result.nomor_telepon,
+    companyId: result.company_id,
+    company: company ? {
+      name: company.nama_pt,
+      logoUrl: company.logo_url,
+      themeColor: company.theme_color || '#4f46e5'
+    } : null
   };
 };

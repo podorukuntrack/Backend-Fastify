@@ -1,4 +1,4 @@
-import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler, googleLoginHandler } from "./auth.controller.js";
+import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler, googleLoginHandler, updateProfileHandler } from "./auth.controller.js";
 import * as service from "./auth.service.js";
 
 export default async function authRoutes(fastify, options) {
@@ -273,6 +273,26 @@ export default async function authRoutes(fastify, options) {
       },
     },
     changePasswordHandler
+  );
+
+  fastify.patch(
+    "/profile",
+    {
+      preValidation: [fastify.authenticate],
+      schema: {
+        description: "Update Profil Pengguna (Nama & Nomor Telepon)",
+        tags: ["Auth"],
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: "object",
+          properties: {
+            nama: { type: "string" },
+            nomorTelepon: { type: "string" },
+          },
+        },
+      },
+    },
+    updateProfileHandler
   );
 
   fastify.post(
