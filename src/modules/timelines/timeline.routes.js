@@ -141,7 +141,7 @@ export default async function timelineRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },
@@ -202,7 +202,7 @@ export default async function timelineRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },

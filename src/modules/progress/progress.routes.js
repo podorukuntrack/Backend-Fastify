@@ -227,14 +227,7 @@ export default async function progressRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: {
-              type: 'object',
-              properties: {
-                id: { type: 'string', format: 'uuid' },
-                unitId: { type: 'string', format: 'uuid' },
-                percentage: { type: 'number' }
-              }
-            }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },
@@ -302,7 +295,7 @@ export default async function progressRoutes(fastify, options) {
           properties: {
             success: { type: 'boolean' },
             message: { type: 'string' },
-            data: { type: 'object' }
+            data: { type: 'object', additionalProperties: true }
           }
         }
       },

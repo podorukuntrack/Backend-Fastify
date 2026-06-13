@@ -6,9 +6,12 @@ export const getTimelines = async (userContext, filters = {}) => {
 };
 
 export const createTimeline = async (data, userContext) => {
-  if (userContext.role === 'admin') data.companyId = userContext.companyId;
   const project = await findProjectById(data.projectId, userContext);
   if (!project) throw new Error('Project not found or access denied');
+  
+  // Inherit companyId from project
+  data.companyId = project.companyId;
+  
   return await repo.insertTimeline(data);
 };
 

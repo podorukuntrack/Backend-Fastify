@@ -246,20 +246,21 @@ CREATE TABLE public.construction_timelines (
     CONSTRAINT construction_timelines_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'ongoing'::text, 'completed'::text, 'delayed'::text])))
 );
 
-CREATE TABLE public.customer_tickets (
+CREATE TABLE public.tickets (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
     assignment_id uuid,
-    customer_id uuid NOT NULL,
+    user_id uuid NOT NULL,
     subject text NOT NULL,
     status text DEFAULT 'open'::text NOT NULL,
     priority text DEFAULT 'normal'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT customer_tickets_priority_check CHECK ((priority = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text, 'urgent'::text]))),
-    CONSTRAINT customer_tickets_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'resolved'::text, 'closed'::text])))
+    CONSTRAINT tickets_priority_check CHECK ((priority = ANY (ARRAY['low'::text, 'normal'::text, 'high'::text, 'urgent'::text]))),
+    CONSTRAINT tickets_status_check CHECK ((status = ANY (ARRAY['open'::text, 'in_progress'::text, 'resolved'::text, 'closed'::text])))
 );
 
-CREATE TABLE public.customer_ticket_messages (
+CREATE TABLE public.ticket_messages (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     ticket_id uuid NOT NULL,
     sender_id uuid NOT NULL,
@@ -347,6 +348,7 @@ CREATE TABLE public.audit_logs (
 
 CREATE TABLE public.whatsapp_logs (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
     user_id uuid,
     nomor_tujuan text NOT NULL,
     template_name text,
@@ -359,13 +361,26 @@ CREATE TABLE public.whatsapp_logs (
     CONSTRAINT whatsapp_logs_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'delivered'::text, 'read'::text, 'failed'::text])))
 );
 
-CREATE TABLE IF NOT EXISTS public.user_devices (
-    id uuid DEFAULT gen_random_uuid() NOT NULL PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    fcm_token text NOT NULL UNIQUE,
+CREATE TABLE public.user_devices (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    fcm_token text NOT NULL,
     device_type character varying(20),
-    created_at timestamp without time zone DEFAULT now(),
-    updated_at timestamp without time zone DEFAULT now()
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE public.payments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    unit_id uuid NOT NULL,
+    amount numeric(15,2) NOT NULL,
+    payment_date timestamp with time zone NOT NULL,
+    method character varying(50) NOT NULL,
+    status character varying(50) DEFAULT 'pending'::character varying,
+    receipt_url text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 -- ------------------------------------
@@ -383,11 +398,11 @@ ALTER TABLE ONLY public.companies
 ALTER TABLE ONLY public.construction_timelines
     ADD CONSTRAINT construction_timelines_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.customer_ticket_messages
-    ADD CONSTRAINT customer_ticket_messages_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.ticket_messages
+    ADD CONSTRAINT ticket_messages_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.customer_tickets
-    ADD CONSTRAINT customer_tickets_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.documentation
     ADD CONSTRAINT documentation_pkey PRIMARY KEY (id);
@@ -400,6 +415,9 @@ ALTER TABLE ONLY public.handovers
 
 ALTER TABLE ONLY public.payment_history
     ADD CONSTRAINT payment_history_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.progress
     ADD CONSTRAINT progress_pkey PRIMARY KEY (id);
@@ -431,6 +449,9 @@ ALTER TABLE ONLY public.users
 ALTER TABLE ONLY public.whatsapp_logs
     ADD CONSTRAINT whatsapp_logs_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY public.user_devices
+    ADD CONSTRAINT user_devices_pkey PRIMARY KEY (id);
+
 -- ------------------------------------
 -- Unique Constraints
 -- ------------------------------------
@@ -449,6 +470,9 @@ ALTER TABLE ONLY public.units
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_email_key UNIQUE (email);
 
+ALTER TABLE ONLY public.user_devices
+    ADD CONSTRAINT user_devices_fcm_token_key UNIQUE (fcm_token);
+
 -- ------------------------------------
 -- Indexes
 -- ------------------------------------
@@ -459,7 +483,7 @@ CREATE INDEX idx_docs_unit ON public.documentation USING btree (unit_id);
 CREATE INDEX idx_payments_assignment ON public.payment_history USING btree (assignment_id);
 CREATE INDEX idx_progress_unit_date ON public.progress USING btree (unit_id, tanggal_update DESC);
 CREATE INDEX idx_projects_company ON public.projects USING btree (company_id);
-CREATE INDEX idx_tickets_customer ON public.customer_tickets USING btree (customer_id);
+CREATE INDEX idx_tickets_user ON public.tickets USING btree (user_id);
 CREATE INDEX idx_units_cluster ON public.units USING btree (cluster_id);
 CREATE INDEX idx_users_company ON public.users USING btree (company_id);
 CREATE INDEX idx_whatsapp_logs_user ON public.whatsapp_logs USING btree (user_id);
@@ -483,8 +507,8 @@ CREATE TRIGGER trg_construction_timelines_updated_at
     BEFORE UPDATE ON public.construction_timelines
     FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
-CREATE TRIGGER trg_customer_tickets_updated_at
-    BEFORE UPDATE ON public.customer_tickets
+CREATE TRIGGER trg_tickets_updated_at
+    BEFORE UPDATE ON public.tickets
     FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
 CREATE TRIGGER trg_progress_updated_at
@@ -513,6 +537,14 @@ CREATE TRIGGER trg_update_payment
 
 CREATE TRIGGER trg_users_updated_at
     BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+
+CREATE TRIGGER trg_payments_updated_at
+    BEFORE UPDATE ON public.payments
+    FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
+
+CREATE TRIGGER trg_user_devices_updated_at
+    BEFORE UPDATE ON public.user_devices
     FOR EACH ROW EXECUTE FUNCTION public.fn_set_updated_at();
 
 -- ------------------------------------
@@ -582,20 +614,24 @@ ALTER TABLE ONLY public.construction_timelines
     ADD CONSTRAINT construction_timelines_unit_id_fkey
     FOREIGN KEY (unit_id) REFERENCES public.units(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.customer_tickets
-    ADD CONSTRAINT customer_tickets_assignment_id_fkey
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_assignment_id_fkey
     FOREIGN KEY (assignment_id) REFERENCES public.property_assignments(id) ON DELETE SET NULL;
 
-ALTER TABLE ONLY public.customer_tickets
-    ADD CONSTRAINT customer_tickets_customer_id_fkey
-    FOREIGN KEY (customer_id) REFERENCES public.users(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.customer_ticket_messages
-    ADD CONSTRAINT customer_ticket_messages_ticket_id_fkey
-    FOREIGN KEY (ticket_id) REFERENCES public.customer_tickets(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT tickets_company_id_fkey
+    FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.customer_ticket_messages
-    ADD CONSTRAINT customer_ticket_messages_sender_id_fkey
+ALTER TABLE ONLY public.ticket_messages
+    ADD CONSTRAINT ticket_messages_ticket_id_fkey
+    FOREIGN KEY (ticket_id) REFERENCES public.tickets(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.ticket_messages
+    ADD CONSTRAINT ticket_messages_sender_id_fkey
     FOREIGN KEY (sender_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.handovers
@@ -649,6 +685,22 @@ ALTER TABLE ONLY public.audit_logs
 ALTER TABLE ONLY public.whatsapp_logs
     ADD CONSTRAINT whatsapp_logs_user_id_fkey
     FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+ALTER TABLE ONLY public.user_devices
+    ADD CONSTRAINT user_devices_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_company_id_fkey
+    FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_unit_id_fkey
+    FOREIGN KEY (unit_id) REFERENCES public.units(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.whatsapp_logs
+    ADD CONSTRAINT whatsapp_logs_company_id_fkey
+    FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE SET NULL;
 
 -- ------------------------------------
 -- Views

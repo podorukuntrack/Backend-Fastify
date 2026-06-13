@@ -185,7 +185,7 @@ export default async function assignmentRoutes(fastify, options) {
             properties: {
               success: { type: "boolean" },
               message: { type: "string" },
-              data: { type: "object" },
+              data: { type: "object", additionalProperties: true },
             },
           },
         },
@@ -226,14 +226,7 @@ export default async function assignmentRoutes(fastify, options) {
               message: { type: "string" },
               data: {
                 type: "object",
-                properties: {
-                  id: { type: "string", format: "uuid" },
-                  contractorName: { type: "string" },
-                  taskDescription: { type: "string" },
-                  status: { type: "string" },
-                  startDate: { type: "string", format: "date-time" },
-                  endDate: { type: "string", format: "date-time" },
-                },
+                additionalProperties: true,
               },
             },
           },
@@ -320,7 +313,7 @@ export default async function assignmentRoutes(fastify, options) {
             properties: {
               success: { type: "boolean" },
               message: { type: "string" },
-              data: { type: "object" },
+              data: { type: "object", additionalProperties: true },
             },
           },
         },
