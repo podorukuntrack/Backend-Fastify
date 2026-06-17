@@ -1,6 +1,6 @@
 # PodoRukunTrack Backend API
 
-Fastify-based REST API untuk sistem manajemen properti dan konstruksi. Dilengkapi dengan fitur penjualan, pembayaran, progress tracking, customer service, dan integrasi WhatsApp.
+Fastify-based REST API untuk sistem manajemen properti dan konstruksi. Dilengkapi dengan fitur penjualan, pembayaran, progress tracking, customer service, dan integrasi WhatsApp. fikri
 
 ## 🛠️ Tech Stack
 
