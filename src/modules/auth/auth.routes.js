@@ -1,4 +1,4 @@
-import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler, googleLoginHandler, updateProfileHandler } from "./auth.controller.js";
+import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler, googleLoginHandler, updateProfileHandler, appleLoginHandler, deleteAccountHandler } from "./auth.controller.js";
 import * as service from "./auth.service.js";
 
 export default async function authRoutes(fastify, options) {
@@ -96,6 +96,25 @@ export default async function authRoutes(fastify, options) {
       },
     },
     googleLoginHandler,
+  );
+
+  fastify.post(
+    "/apple-login",
+    {
+      schema: {
+        description: "Login/Register customer dengan Apple ID Token",
+        tags: ["Auth"],
+        body: {
+          type: "object",
+          required: ["idToken"],
+          properties: {
+            idToken: { type: "string" },
+            fullName: { type: "string" },
+          },
+        },
+      },
+    },
+    appleLoginHandler,
   );
 
   fastify.post(
@@ -366,5 +385,18 @@ export default async function authRoutes(fastify, options) {
         });
       }
     },
+  );
+
+  fastify.delete(
+    "/account",
+    {
+      preValidation: [fastify.authenticate],
+      schema: {
+        description: "Hapus akun pengguna secara permanen (anonymize)",
+        tags: ["Auth"],
+        security: [{ bearerAuth: [] }],
+      },
+    },
+    deleteAccountHandler,
   );
 }

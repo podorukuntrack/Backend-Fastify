@@ -237,3 +237,51 @@ export const updateProfileHandler = async (request, reply) => {
     });
   }
 };
+
+export const appleLoginHandler = async (request, reply) => {
+  try {
+    const { idToken, fullName } = request.body;
+    const tokens = await service.appleLoginUser(idToken, fullName, request.server);
+    
+    setAuthCookies(reply, tokens);
+    
+    return reply.code(200).send({
+      success: true,
+      message: 'Login Apple berhasil',
+      data: { 
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: tokens.user 
+      }
+    });
+  } catch (error) {
+    if (error.message.includes('Akses Ditolak') || error.message.includes('tidak valid') || error.message.includes('diperlukan')) {
+      return reply.code(400).send({
+        success: false,
+        message: error.message
+      });
+    }
+    throw error;
+  }
+};
+
+export const deleteAccountHandler = async (request, reply) => {
+  try {
+    const userId = request.user.sub;
+    const result = await service.deleteUserAccount(userId);
+    
+    reply.clearCookie('accessToken');
+    reply.clearCookie('refreshToken');
+
+    return reply.code(200).send({
+      success: true,
+      message: 'Akun Anda telah berhasil dihapus secara permanen',
+      data: result
+    });
+  } catch (error) {
+    return reply.code(500).send({
+      success: false,
+      message: error.message
+    });
+  }
+};

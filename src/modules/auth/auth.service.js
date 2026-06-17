@@ -9,8 +9,10 @@ import {
   findUserById,
   updateUserPassword,
   findUserByPhone,
-  updateUserProfile
+  updateUserProfile,
+  anonymizeUserAccount
 } from './auth.repository.js';
+import { verifyAppleToken } from './apple-auth.service.js';
 import { insertUser } from '../users/user.repository.js';
 import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
 import { findCompanyById } from '../companies/company.repository.js';
@@ -483,4 +485,90 @@ export const updateProfile = async (userId, data) => {
       themeColor: company.theme_color || '#4f46e5'
     } : null
   };
+};
+
+export const appleLoginUser = async (idToken, userFullName, fastify) => {
+  if (!idToken) {
+    throw new Error('ID Token Apple diperlukan');
+  }
+
+  // 1. Verifikasi ID Token ke Apple API
+  const { appleUserId, email } = await verifyAppleToken(idToken);
+
+  if (!email) {
+    throw new Error('Email tidak ditemukan dari akun Apple.');
+  }
+
+  // 2. Cari user berdasarkan email
+  let user = await findUserByEmail(email);
+
+  if (!user) {
+    // 3. Register user baru jika tidak ditemukan
+    const randomPassword = crypto.randomBytes(32).toString('hex');
+    const password_hash = await bcrypt.hash(randomPassword, 10);
+
+    user = await insertUser({
+      nama: userFullName || 'User Apple',
+      email: email,
+      password_hash: password_hash,
+      nomor_telepon: null,
+      role: 'customer',
+      status: 'active',
+      company_id: null,
+    });
+  }
+
+  // 4. RESTRICTION: Hanya allow customer
+  if (user.role !== 'customer') {
+    throw new Error('Akses Ditolak: Akun Apple ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.');
+  }
+
+  // 5. Generate JWT tokens
+  const payload = {
+    sub: user.id,
+    companyId: user.company_id,
+    role: user.role,
+    email: user.email,
+  };
+
+  const accessToken = fastify.jwt.sign(payload, {
+    expiresIn: '15m',
+  });
+  
+  const rawRefreshToken = crypto.randomBytes(40).toString('hex');
+  const hashedRefreshToken = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
+  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+
+  await saveRefreshToken(user.id, hashedRefreshToken, expiresAt);
+
+  let company = null;
+  if (user.company_id) {
+    company = await findCompanyById(user.company_id);
+  }
+
+  return {
+    accessToken,
+    refreshToken: rawRefreshToken,
+    user: {
+      id: user.id,
+      name: user.nama,
+      email: user.email,
+      role: user.role,
+      nomorTelepon: user.nomor_telepon,
+      companyId: user.company_id,
+      company: company ? {
+        name: company.nama_pt,
+        logoUrl: company.logo_url,
+        themeColor: company.theme_color || '#4f46e5'
+      } : null
+    },
+  };
+};
+
+export const deleteUserAccount = async (userId) => {
+  const result = await anonymizeUserAccount(userId);
+  if (!result) {
+    throw new Error('Gagal menghapus akun pengguna');
+  }
+  return { success: true };
 };

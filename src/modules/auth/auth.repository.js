@@ -3,6 +3,7 @@
 import { db } from '../../config/database.js';
 import { users, refreshTokens } from '../../shared/schemas/schema.js';
 import { eq, sql } from 'drizzle-orm';
+import crypto from 'crypto';
 
 export const findUserByEmail = async (email) => {
   const result = await db
@@ -99,4 +100,33 @@ export const updateUserProfile = async (userId, nama, nomorTelepon) => {
     .where(eq(users.id, userId))
     .returning();
   return result[0] || null;
+};
+
+export const anonymizeUserAccount = async (userId) => {
+  const result = await db.transaction(async (tx) => {
+    // 1. Delete refresh tokens
+    await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
+    
+    // 2. Delete FCM device tokens
+    await tx.execute(sql`DELETE FROM user_devices WHERE user_id = ${userId}`);
+
+    // 3. Anonymize user profile info
+    const randomHex = crypto.randomBytes(8).toString('hex');
+    const anonEmail = `deleted_${userId.substring(0, 8)}_${randomHex}@podorukun.com`;
+    
+    const [updatedUser] = await tx
+      .update(users)
+      .set({
+        nama: 'Pengguna Terhapus',
+        email: anonEmail,
+        nomor_telepon: null,
+        password_hash: 'DELETED_' + crypto.randomBytes(32).toString('hex'),
+        updated_at: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    return updatedUser || null;
+  });
+  return result;
 };
