@@ -1,22 +1,30 @@
-// src/modules/users/user.controller.js
 import * as service from './user.service.js';
+import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
   const { page, limit, search, role, all_customers } = request.query;
-  const result = await service.getUsers(page, limit, request.user, { search, role, all_customers });
+  const cacheKey = `users:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  
+  const { data, source } = await withCache(cacheKey, async () => {
+    return await service.getUsers(page, limit, request.user, { search, role, all_customers });
+  }, 3600);
   
   return reply.code(200).send({
     success: true,
     message: 'Users retrieved',
-    data: result.data,
-    meta: result.meta
+    data: data.data,
+    meta: data.meta,
+    source
   });
 };
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const data = await service.getUser(request.params.id, request.user);
-    return reply.code(200).send({ success: true, message: 'Success', data });
+    const cacheKey = `users:detail:${request.user.id}:${request.params.id}`;
+    const { data, source } = await withCache(cacheKey, async () => {
+      return await service.getUser(request.params.id, request.user);
+    }, 3600);
+    return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
@@ -25,11 +33,11 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   try {
     const data = await service.createUser(request.body, request.user);
+    await clearCachePattern('users:*');
     return reply.code(201).send({ success: true, message: 'User created', data });
   } catch (error) {
-    // Tangani error duplicate email dari PostgreSQL
-    if (error.code === '23505') {
-      return reply.code(409).send({ success: false, message: 'Email already exists', errors: [] });
+    if (error.code === '23505' || error.message.includes('terdaftar')) {
+      return reply.code(409).send({ success: false, message: 'Email sudah terdaftar. Silakan gunakan email lain.', errors: [] });
     }
     throw error;
   }
@@ -38,15 +46,18 @@ export const createHandler = async (request, reply) => {
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyUser(request.params.id, request.body, request.user);
+    await clearCachePattern('users:*');
     return reply.code(200).send({ success: true, message: 'User updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    const statusCode = error.message.includes('terdaftar') ? 400 : 404;
+    return reply.code(statusCode).send({ success: false, message: error.message, errors: [] });
   }
 };
 
 export const deleteHandler = async (request, reply) => {
   try {
     await service.removeUser(request.params.id, request.user);
+    await clearCachePattern('users:*');
     return reply.code(200).send({ success: true, message: 'User deleted', data: {} });
   } catch (error) {
     console.error('Delete User Error:', error);

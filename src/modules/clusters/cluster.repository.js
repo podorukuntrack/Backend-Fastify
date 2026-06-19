@@ -37,6 +37,16 @@ export const findAllClusters = async (userContext, filters = {}) => {
     scopeCondition = sql`p.company_id = ${userContext.companyId}::uuid`;
   }
 
+  const countResult = await db.execute(sql`
+    SELECT COUNT(*)::int as count
+    FROM clusters c
+    JOIN projects p ON p.id = c.project_id
+    WHERE ${scopeCondition}
+      AND (${projectId}::uuid IS NULL OR c.project_id = ${projectId}::uuid)
+      AND (${search} = '' OR c.nama_cluster ILIKE ${`%${search}%`})
+  `);
+  const total = countResult[0]?.count || 0;
+
   const rows = await db.execute(sql`
     SELECT
       c.id,
@@ -56,7 +66,7 @@ export const findAllClusters = async (userContext, filters = {}) => {
     OFFSET ${offset}
   `);
 
-  return rows.map(mapClusterRow);
+  return { data: rows.map(mapClusterRow), total };
 };
 
 export const findClusterById = async (id, userContext) => {

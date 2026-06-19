@@ -7,8 +7,8 @@ export default async function retentionRoutes(fastify, options) {
   // Semua request wajib lolos JWT
   fastify.addHook('preValidation', fastify.authenticate);
   
-  const readRoles = authorize('super_admin', 'admin', 'customer');
-  const writeRoles = authorize('super_admin', 'admin');
+  const readRoles = authorize('super_admin', 'admin', 'customer', 'customer_service');
+  const writeRoles = authorize('super_admin', 'admin', 'customer_service');
 
   // GET - Dapatkan semua retensi
   fastify.get('/', {
@@ -236,4 +236,54 @@ export default async function retentionRoutes(fastify, options) {
     },
     preHandler: [writeRoles, validate(schema.retentionIdParamSchema)]
   }, controller.deleteHandler);
+
+  // --- Complaints ---
+
+  // GET - Daftar keluhan retensi
+  fastify.get('/:id/complaints', {
+    schema: {
+      tags: ['Retentions'],
+      params: schema.retentionIdParamSchema.params,
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'array' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles, validate(schema.retentionIdParamSchema)]
+  }, controller.getComplaintsHandler);
+
+  // POST - Tambah keluhan retensi
+  fastify.post('/:id/complaints', {
+    schema: {
+      tags: ['Retentions'],
+      params: schema.retentionIdParamSchema.params,
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles, validate(schema.createComplaintSchema)]
+  }, controller.createComplaintHandler);
+
+  // PATCH - Update keluhan retensi
+  fastify.patch('/:id/complaints/:complaintId', {
+    schema: {
+      tags: ['Retentions'],
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles, validate(schema.updateComplaintSchema)]
+  }, controller.updateComplaintHandler);
+
+  // DELETE - Hapus keluhan retensi
+  fastify.delete('/:id/complaints/:complaintId', {
+    schema: {
+      tags: ['Retentions'],
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.complaintIdParamSchema)]
+  }, controller.deleteComplaintHandler);
 }

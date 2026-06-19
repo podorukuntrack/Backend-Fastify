@@ -1,15 +1,21 @@
 import * as service from './project.service.js';
-import { getCache, setCache } from '../../shared/utils/cache.js';
+import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const data = await service.getProjects(request.user);
-  return reply.code(200).send({ success: true, message: 'Projects retrieved', data });
+  const cacheKey = `projects:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const { data, source } = await withCache(cacheKey, async () => {
+    return await service.getProjects(request.user);
+  }, 3600);
+  return reply.code(200).send({ success: true, message: 'Projects retrieved', data, source });
 };
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const data = await service.getProject(request.params.id, request.user);
-    return reply.code(200).send({ success: true, message: 'Project retrieved', data });
+    const cacheKey = `projects:detail:${request.user.id}:${request.params.id}`;
+    const { data, source } = await withCache(cacheKey, async () => {
+      return await service.getProject(request.params.id, request.user);
+    }, 3600);
+    return reply.code(200).send({ success: true, message: 'Project retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
@@ -18,6 +24,7 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   try {
     const data = await service.createProject(request.body, request.user);
+    await clearCachePattern('projects:*');
     return reply.code(201).send({ success: true, message: 'Project created', data });
   } catch (error) {
     return reply.code(error.statusCode || 400).send({ success: false, message: error.message, errors: [] });
@@ -27,6 +34,7 @@ export const createHandler = async (request, reply) => {
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyProject(request.params.id, request.body, request.user);
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Project updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -39,6 +47,7 @@ export const deleteHandler = async (request, reply) => {
     if (!deleted) {
       return reply.code(404).send({ success: false, message: 'Project tidak ditemukan', errors: [] });
     }
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Project deleted', data: {} });
   } catch (error) {
     const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');
@@ -52,21 +61,13 @@ export const deleteHandler = async (request, reply) => {
 export const getStatsHandler = async (request, reply) => {
   try {
     const projectId = request.params.id;
-    const cacheKey = `project:stats:${projectId}`;
+    const cacheKey = `projects:stats:${projectId}`;
     
-    // 1. Cek Cache
-    const cachedData = await getCache(cacheKey);
-    if (cachedData) {
-      return reply.code(200).send({ success: true, message: 'Project stats retrieved (from cache)', data: cachedData, source: 'cache' });
-    }
+    const { data, source } = await withCache(cacheKey, async () => {
+      return await service.getProjectStatistics(projectId, request.user);
+    }, 300);
 
-    // 2. Fetch dari Service
-    const data = await service.getProjectStatistics(projectId, request.user);
-    
-    // 3. Simpan Cache (TTL 5 menit)
-    await setCache(cacheKey, data, 300);
-
-    return reply.code(200).send({ success: true, message: 'Project stats retrieved', data, source: 'database' });
+    return reply.code(200).send({ success: true, message: 'Project stats retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }

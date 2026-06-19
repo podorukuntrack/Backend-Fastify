@@ -1,5 +1,6 @@
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { units } from '../../shared/schemas/schema.js';
 
 const mapUnitRow = (row) => ({
   id: row.id,
@@ -182,13 +183,35 @@ export const insertUnit = async (data) => {
 };
 
 export const insertUnits = async (unitsData) => {
-  const result = [];
+  if (!unitsData || unitsData.length === 0) return [];
 
-  for (const data of unitsData) {
-    result.push(await insertUnit(data));
-  }
+  const values = unitsData.map(normalizeUnitInput).map(value => ({
+    clusterId: value.cluster_id,
+    nomorUnit: value.nomor_unit,
+    tipeRumah: value.tipe_rumah,
+    luasTanah: value.luas_tanah,
+    luasBangunan: value.luas_bangunan,
+    statusPembangunan: value.status_pembangunan,
+    progressPercentage: value.progress_percentage,
+    imageUrl: value.image_url
+  }));
 
-  return result;
+  const rows = await db.insert(units).values(values).returning();
+  
+  // map unit rows back to expected shape
+  return rows.map(r => mapUnitRow({
+    id: r.id,
+    cluster_id: r.clusterId,
+    nomor_unit: r.nomorUnit,
+    tipe_rumah: r.tipeRumah,
+    luas_tanah: r.luasTanah,
+    luas_bangunan: r.luasBangunan,
+    status_pembangunan: r.statusPembangunan,
+    progress_percentage: r.progressPercentage,
+    image_url: r.imageUrl,
+    created_at: r.createdAt,
+    updated_at: r.updatedAt
+  }));
 };
 
 export const updateUnit = async (id, data, userContext) => {

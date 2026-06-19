@@ -1,6 +1,7 @@
   // src/modules/users/user.service.js
   import bcrypt from 'bcrypt';
   import * as repo from './user.repository.js';
+  import { findUserByEmail } from '../auth/auth.repository.js';
 
   export const getUsers = async (page, limit, userContext, filters = {}) => {
     const { data, total } = await repo.findUsers(page, limit, userContext, filters);
@@ -29,6 +30,11 @@
       data.company_id = userContext.companyId;
     }
 
+    const existingEmail = await findUserByEmail(data.email);
+    if (existingEmail) {
+      throw new Error('Email sudah terdaftar. Silakan gunakan email lain.');
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(data.password, salt);
 
@@ -55,6 +61,13 @@
       role: data.role,
       status: data.status,
     };
+
+    if (data.email) {
+      const existingEmail = await findUserByEmail(data.email);
+      if (existingEmail && existingEmail.id !== id) {
+        throw new Error('Email sudah terdaftar pada akun lain. Silakan gunakan email lain.');
+      }
+    }
 
     if (data.password) {
       const salt = await bcrypt.genSalt(10);

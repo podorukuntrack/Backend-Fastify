@@ -201,6 +201,7 @@ CREATE TABLE public.payment_history (
     jumlah_bayar numeric(15,2) NOT NULL,
     tanggal_bayar date DEFAULT CURRENT_DATE NOT NULL,
     catatan text,
+    bukti_pembayaran text,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT payment_history_jumlah_bayar_check CHECK ((jumlah_bayar > (0)::numeric))
@@ -280,7 +281,8 @@ CREATE TABLE public.handovers (
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
     proposed_date timestamp without time zone,
-    image_url text
+    image_url text,
+    document_url text
 );
 
 CREATE TABLE public.handover_defects (
@@ -302,7 +304,9 @@ CREATE TABLE public.retentions (
     notes text,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
-    link_foto_360 text
+    link_foto_360 text,
+    photo_before_url text,
+    photo_after_url text
 );
 
 CREATE TABLE public.timelines (
@@ -748,3 +752,22 @@ FROM (((public.units u
     JOIN public.clusters c ON ((c.id = u.cluster_id)))
     JOIN public.projects p ON ((p.id = c.project_id)))
     JOIN public.companies comp ON ((comp.id = p.company_id)));
+CREATE TABLE public.retention_complaints (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    retention_id uuid NOT NULL,
+    description text,
+    photo_before_url text,
+    photo_after_url text,
+    status character varying(50) DEFAULT 'pending',
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE ONLY public.retention_complaints
+    ADD CONSTRAINT retention_complaints_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.retention_complaints
+    ADD CONSTRAINT retention_complaints_retention_id_fkey FOREIGN KEY (retention_id) REFERENCES public.retentions(id) ON DELETE CASCADE;
+
+CREATE INDEX retention_complaints_retention_idx ON public.retention_complaints USING btree (retention_id);
+

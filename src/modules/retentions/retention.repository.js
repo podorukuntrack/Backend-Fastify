@@ -1,5 +1,5 @@
 import { db } from '../../config/database.js';
-import { retentions } from '../../shared/schemas/schema.js';
+import { retentions, retentionComplaints } from '../../shared/schemas/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 
@@ -15,6 +15,8 @@ const mapRetentionRow = (row) => {
     status: row.status,
     notes: row.notes,
     link_foto_360: row.linkFoto360,
+    photo_before_url: row.photoBeforeUrl,
+    photo_after_url: row.photoAfterUrl,
     created_at: toISO(row.createdAt),
     updated_at: toISO(row.updatedAt),
   };
@@ -58,4 +60,39 @@ export const deleteRetention = async (id, userContext) => {
   
   const result = await db.delete(retentions).where(condition).returning();
   return mapRetentionRow(result[0]);
+};
+
+const mapComplaintRow = (row) => {
+  if (!row) return null;
+  return {
+    id: row.id,
+    retention_id: row.retentionId,
+    description: row.description,
+    photo_before_url: row.photoBeforeUrl,
+    photo_after_url: row.photoAfterUrl,
+    status: row.status,
+    created_at: toISO(row.createdAt),
+    updated_at: toISO(row.updatedAt),
+  };
+};
+
+export const findComplaintsByRetentionId = async (retentionId) => {
+  const result = await db.select().from(retentionComplaints).where(eq(retentionComplaints.retentionId, retentionId)).orderBy(retentionComplaints.createdAt);
+  return result.map(mapComplaintRow);
+};
+
+export const insertComplaint = async (data) => {
+  const result = await db.insert(retentionComplaints).values(data).returning();
+  return mapComplaintRow(result[0]);
+};
+
+export const updateComplaint = async (id, data) => {
+  data.updatedAt = new Date();
+  const result = await db.update(retentionComplaints).set(data).where(eq(retentionComplaints.id, id)).returning();
+  return mapComplaintRow(result[0]);
+};
+
+export const deleteComplaint = async (id) => {
+  const result = await db.delete(retentionComplaints).where(eq(retentionComplaints.id, id)).returning();
+  return mapComplaintRow(result[0]);
 };

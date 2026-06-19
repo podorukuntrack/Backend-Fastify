@@ -47,26 +47,23 @@ export const loginHandler = async (request, reply) => {
 
 import { findUserById } from './auth.repository.js';
 import { findCompanyById } from '../companies/company.repository.js';
+import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getMeHandler = async (request, reply) => {
   try {
-    const user = await findUserById(request.user.sub);
-    if (!user) {
-      return reply.code(404).send({
-        success: false,
-        message: 'User not found'
-      });
-    }
+    const cacheKey = `users:me:${request.user.sub}`;
+    const { data, source } = await withCache(cacheKey, async () => {
+      const user = await findUserById(request.user.sub);
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-    let company = null;
-    if (user.company_id) {
-      company = await findCompanyById(user.company_id);
-    }
+      let company = null;
+      if (user.company_id) {
+        company = await findCompanyById(user.company_id);
+      }
 
-    return reply.code(200).send({
-      success: true,
-      message: 'Current user retrieved',
-      data: {
+      return {
         id: user.id,
         name: user.nama,
         email: user.email,
@@ -78,9 +75,22 @@ export const getMeHandler = async (request, reply) => {
           logoUrl: company.logo_url,
           themeColor: company.theme_color || '#4f46e5'
         } : null
-      }
+      };
+    }, 3600);
+
+    return reply.code(200).send({
+      success: true,
+      message: 'Current user retrieved',
+      data,
+      source
     });
   } catch (error) {
+    if (error.message === 'User not found') {
+      return reply.code(404).send({
+        success: false,
+        message: 'User not found'
+      });
+    }
     return reply.code(500).send({
       success: false,
       message: error.message
@@ -218,6 +228,7 @@ export const updateProfileHandler = async (request, reply) => {
     const { nama, nomorTelepon } = request.body;
 
     const updated = await service.updateProfile(userId, { nama, nomorTelepon });
+    await clearCachePattern('users:*');
     
     return reply.code(200).send({
       success: true,
@@ -269,6 +280,7 @@ export const deleteAccountHandler = async (request, reply) => {
   try {
     const userId = request.user.sub;
     const result = await service.deleteUserAccount(userId);
+    await clearCachePattern('users:*');
     
     reply.clearCookie('accessToken');
     reply.clearCookie('refreshToken');

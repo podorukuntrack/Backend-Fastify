@@ -7,7 +7,9 @@ export const createRetentionSchema = {
     dueDate: z.string().datetime("Format tanggal tidak valid (gunakan ISO-8601)"),
     status: z.enum(['active', 'released', 'claimed']).default('active'),
     notes: z.string().optional(),
-    linkFoto360: z.string().optional().nullable().or(z.literal(''))
+    linkFoto360: z.string().optional().nullable().or(z.literal('')),
+    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
+    photoAfterUrl: z.string().optional().nullable().or(z.literal(''))
   })
 };
 
@@ -17,10 +19,42 @@ export const updateRetentionSchema = {
     dueDate: z.string().datetime().optional(),
     status: z.enum(['active', 'released', 'claimed']).optional(),
     notes: z.string().optional(),
-    linkFoto360: z.string().optional().nullable().or(z.literal(''))
+    linkFoto360: z.string().optional().nullable().or(z.literal('')),
+    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
+    photoAfterUrl: z.string().optional().nullable().or(z.literal(''))
   })
 };
 
 export const retentionIdParamSchema = {
   params: z.object({ id: z.string().uuid("Format ID tidak valid") })
+};
+
+export const createComplaintSchema = {
+  params: z.object({ id: z.string().uuid("Format Retention ID tidak valid") }),
+  body: z.object({
+    description: z.string().optional().nullable(),
+    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
+    photoAfterUrl: z.string().optional().nullable().or(z.literal('')),
+    status: z.enum(['pending', 'resolved']).default('pending'),
+  })
+};
+
+export const updateComplaintSchema = {
+  params: z.object({ 
+    id: z.string().uuid("Format Retention ID tidak valid"),
+    complaintId: z.string().uuid("Format Complaint ID tidak valid")
+  }),
+  body: z.object({
+    description: z.string().optional().nullable(),
+    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
+    photoAfterUrl: z.string().optional().nullable().or(z.literal('')),
+    status: z.enum(['pending', 'resolved']).optional(),
+  })
+};
+
+export const complaintIdParamSchema = {
+  params: z.object({ 
+    id: z.string().uuid("Format Retention ID tidak valid"),
+    complaintId: z.string().uuid("Format Complaint ID tidak valid")
+  })
 };
