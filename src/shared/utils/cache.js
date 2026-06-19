@@ -39,6 +39,7 @@ export const setCache = async (key, value, ttl = 3600) => {
  * @returns {Promise<any | null>} Mengembalikan data yang di-parse, atau null jika tidak ada/error
  */
 export const getCache = async (key) => {
+  return null; // Force bypass cache
   if (!redisClient) {
     console.warn('⚠️ [Cache] Redis client is not initialized. Skipping getCache.');
     return null;
