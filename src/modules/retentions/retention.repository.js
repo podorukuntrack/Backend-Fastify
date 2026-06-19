@@ -15,6 +15,8 @@ const mapRetentionRow = (row) => {
     status: row.status,
     notes: row.notes,
     link_foto_360: row.linkFoto360,
+    photo_before_url: row.photoBeforeUrl,
+    photo_after_url: row.photoAfterUrl,
     created_at: toISO(row.createdAt),
     updated_at: toISO(row.updatedAt),
   };

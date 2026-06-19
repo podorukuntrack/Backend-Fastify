@@ -201,6 +201,7 @@ CREATE TABLE public.payment_history (
     jumlah_bayar numeric(15,2) NOT NULL,
     tanggal_bayar date DEFAULT CURRENT_DATE NOT NULL,
     catatan text,
+    bukti_pembayaran text,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT payment_history_jumlah_bayar_check CHECK ((jumlah_bayar > (0)::numeric))
@@ -280,7 +281,8 @@ CREATE TABLE public.handovers (
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
     proposed_date timestamp without time zone,
-    image_url text
+    image_url text,
+    document_url text
 );
 
 CREATE TABLE public.handover_defects (
@@ -302,7 +304,9 @@ CREATE TABLE public.retentions (
     notes text,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
-    link_foto_360 text
+    link_foto_360 text,
+    photo_before_url text,
+    photo_after_url text
 );
 
 CREATE TABLE public.timelines (

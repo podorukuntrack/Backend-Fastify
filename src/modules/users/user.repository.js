@@ -11,8 +11,8 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
   let conditionSql;
 
   if (userContext.role === 'super_admin') {
-    // Super admin bisa lihat semua
-    conditionSql = sql`true`;
+    // Super admin cukup melihat akun admin/non-customer
+    conditionSql = sql`u.role != 'customer'`;
 
   } else if (userContext.role === 'admin') {
     if (allCustomers) {

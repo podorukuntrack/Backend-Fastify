@@ -260,6 +260,8 @@ export const retentions = pgTable("retentions", {
   status: varchar("status", { length: 50 }).default("active"), // active, released, claimed
   notes: text("notes"),
   linkFoto360: text("link_foto_360"),
+  photoBeforeUrl: text("photo_before_url"),
+  photoAfterUrl: text("photo_after_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -278,6 +280,7 @@ export const handovers = pgTable("handovers", {
   status: varchar("status", { length: 50 }).default("menunggu_respon_customer"), // menunggu_respon_customer, menunggu_konfirmasi_admin, dijadwalkan, selesai, delayed, completed, scheduled
   notes: text("notes"),
   imageUrl: text("image_url"),
+  documentUrl: text("document_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

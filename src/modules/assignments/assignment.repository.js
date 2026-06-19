@@ -209,6 +209,7 @@ export const findPaymentsByAssignmentId = async (assignmentId, userContext) => {
       ph.jumlah_bayar,
       ph.tanggal_bayar,
       ph.catatan,
+      ph.bukti_pembayaran,
       ph.created_at,
       creator.nama AS dicatat_oleh
     FROM payment_history ph
@@ -223,9 +224,9 @@ export const insertPayment = async (assignmentId, data, userContext) => {
   if (!assignment) return null;
 
   const rows = await db.execute(sql`
-    INSERT INTO payment_history (assignment_id, jumlah_bayar, tanggal_bayar, catatan, created_by)
-    VALUES (${assignmentId}, ${data.jumlah_bayar}, ${data.tanggal_bayar ?? null}, ${data.catatan ?? null}, ${userContext.sub})
-    RETURNING id, jumlah_bayar, tanggal_bayar, catatan, created_at
+    INSERT INTO payment_history (assignment_id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_by)
+    VALUES (${assignmentId}, ${data.jumlah_bayar}, ${data.tanggal_bayar ?? null}, ${data.catatan ?? null}, ${data.bukti_pembayaran ?? null}, ${userContext.sub})
+    RETURNING id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_at
   `);
 
   await db.execute(sql`

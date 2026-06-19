@@ -1,8 +1,8 @@
 import * as service from './cluster.service.js';
 
 export const getAllHandler = async (request, reply) => {
-  const data = await service.getClusters(request.user, request.query);
-  return reply.code(200).send({ success: true, message: 'Clusters retrieved', data });
+  const result = await service.getClusters(request.user, request.query);
+  return reply.code(200).send({ success: true, message: 'Clusters retrieved', data: result.data, meta: { total: result.total } });
 };
 
 export const getByIdHandler = async (request, reply) => {
