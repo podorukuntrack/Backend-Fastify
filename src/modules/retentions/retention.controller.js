@@ -1,14 +1,21 @@
 import * as service from './retention.service.js';
+import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const data = await service.getRetentionsList(request.user, request.query);
-  return reply.code(200).send({ success: true, message: 'Retentions retrieved', data });
+  const cacheKey = `retentions:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const { data, source } = await withCache(cacheKey, async () => {
+    return await service.getRetentionsList(request.user, request.query);
+  }, 3600);
+  return reply.code(200).send({ success: true, message: 'Retentions retrieved', data, source });
 };
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const data = await service.getRetentionDetail(request.params.id, request.user);
-    return reply.code(200).send({ success: true, message: 'Retention retrieved', data });
+    const cacheKey = `retentions:detail:${request.user.id}:${request.params.id}`;
+    const { data, source } = await withCache(cacheKey, async () => {
+      return await service.getRetentionDetail(request.params.id, request.user);
+    }, 3600);
+    return reply.code(200).send({ success: true, message: 'Retention retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
@@ -17,6 +24,9 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   try {
     const data = await service.createRetention(request.body, request.user);
+    await clearCachePattern('retentions:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
     return reply.code(201).send({ success: true, message: 'Retention recorded', data });
   } catch (error) {
     return reply.code(403).send({ success: false, message: error.message, errors: [] });
@@ -26,6 +36,9 @@ export const createHandler = async (request, reply) => {
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyRetention(request.params.id, request.body, request.user);
+    await clearCachePattern('retentions:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Retention updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -35,6 +48,9 @@ export const updateHandler = async (request, reply) => {
 export const deleteHandler = async (request, reply) => {
   try {
     await service.removeRetention(request.params.id, request.user);
+    await clearCachePattern('retentions:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Retention deleted', data: {} });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

@@ -1,22 +1,33 @@
 import * as service from './assignment.service.js';
+import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const data = await service.getAssignments(request.user, request.query);
-  const total = await service.getAssignmentsMeta(request.user);
+  const cacheKey = `assignments:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const { data: cachedRes, source } = await withCache(cacheKey, async () => {
+    const data = await service.getAssignments(request.user, request.query);
+    const total = await service.getAssignmentsMeta(request.user);
+    return { data, total };
+  }, 3600);
+
   const page = Number(request.query.page ?? 1);
-  const limit = Number((request.query.limit ?? data.length) || 20);
+  const limit = Number((request.query.limit ?? cachedRes.data.length) || 20);
+  
   return reply.code(200).send({
     success: true,
     message: 'Assignments retrieved',
-    data,
-    meta: { page, limit, total, totalPages: Math.max(Math.ceil(total / limit), 1) },
+    data: cachedRes.data,
+    meta: { page, limit, total: cachedRes.total, totalPages: Math.max(Math.ceil(cachedRes.total / limit), 1) },
+    source
   });
 };
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const data = await service.getAssignment(request.params.id, request.user);
-    return reply.code(200).send({ success: true, message: 'Assignment retrieved', data });
+    const cacheKey = `assignments:detail:${request.user.id}:${request.params.id}`;
+    const { data, source } = await withCache(cacheKey, async () => {
+      return await service.getAssignment(request.params.id, request.user);
+    }, 3600);
+    return reply.code(200).send({ success: true, message: 'Assignment retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
@@ -25,6 +36,10 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   try {
     const data = await service.createAssignment(request.body, request.user);
+    await clearCachePattern('assignments:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('users:*');
+    await clearCachePattern('projects:*');
     return reply.code(201).send({ success: true, message: 'Assignment created', data });
   } catch (error) {
     return reply.code(403).send({ success: false, message: error.message, errors: [] });
@@ -34,6 +49,10 @@ export const createHandler = async (request, reply) => {
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyAssignment(request.params.id, request.body, request.user);
+    await clearCachePattern('assignments:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('users:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Assignment updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -42,8 +61,11 @@ export const updateHandler = async (request, reply) => {
 
 export const getPaymentsHandler = async (request, reply) => {
   try {
-    const data = await service.getAssignmentPayments(request.params.id, request.user);
-    return reply.code(200).send({ success: true, message: 'Payments retrieved', data });
+    const cacheKey = `assignments:payments:${request.user.id}:${request.params.id}`;
+    const { data, source } = await withCache(cacheKey, async () => {
+      return await service.getAssignmentPayments(request.params.id, request.user);
+    }, 3600);
+    return reply.code(200).send({ success: true, message: 'Payments retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
@@ -52,6 +74,9 @@ export const getPaymentsHandler = async (request, reply) => {
 export const createPaymentHandler = async (request, reply) => {
   try {
     const data = await service.createAssignmentPayment(request.params.id, request.body, request.user);
+    await clearCachePattern('assignments:*');
+    await clearCachePattern('payments:*');
+    await clearCachePattern('projects:*');
     return reply.code(201).send({ success: true, message: 'Payment created', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -61,6 +86,9 @@ export const createPaymentHandler = async (request, reply) => {
 export const deletePaymentHandler = async (request, reply) => {
   try {
     const data = await service.removeAssignmentPayment(request.params.id, request.params.paymentId, request.user);
+    await clearCachePattern('assignments:*');
+    await clearCachePattern('payments:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Payment deleted', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -70,6 +98,10 @@ export const deletePaymentHandler = async (request, reply) => {
 export const deleteHandler = async (request, reply) => {
   try {
     const deleted = await service.removeAssignment(request.params.id, request.user);
+    await clearCachePattern('assignments:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('users:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Assignment deleted', data: deleted });
   } catch (error) {
     const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');

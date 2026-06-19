@@ -1,14 +1,21 @@
 import * as service from './handover.service.js';
+import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const data = await service.getHandovers(request.user, request.query);
-  return reply.code(200).send({ success: true, message: 'Handovers retrieved', data });
+  const cacheKey = `handovers:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const { data, source } = await withCache(cacheKey, async () => {
+    return await service.getHandovers(request.user, request.query);
+  }, 3600);
+  return reply.code(200).send({ success: true, message: 'Handovers retrieved', data, source });
 };
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const data = await service.getHandover(request.params.id, request.user);
-    return reply.code(200).send({ success: true, message: 'Handover retrieved', data });
+    const cacheKey = `handovers:detail:${request.user.id}:${request.params.id}`;
+    const { data, source } = await withCache(cacheKey, async () => {
+      return await service.getHandover(request.params.id, request.user);
+    }, 3600);
+    return reply.code(200).send({ success: true, message: 'Handover retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
@@ -17,6 +24,9 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   try {
     const data = await service.createHandover(request.body, request.user);
+    await clearCachePattern('handovers:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
     return reply.code(201).send({ success: true, message: 'Handover scheduled', data });
   } catch (error) {
     return reply.code(403).send({ success: false, message: error.message, errors: [] });
@@ -25,11 +35,12 @@ export const createHandler = async (request, reply) => {
 
 export const updateHandler = async (request, reply) => {
   try {
-    console.log('[PATCH handover] id:', request.params.id, 'body:', JSON.stringify(request.body));
     const data = await service.modifyHandover(request.params.id, request.body, request.user);
+    await clearCachePattern('handovers:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Handover updated', data });
   } catch (error) {
-    console.error('[PATCH handover] ERROR:', error.message, error.stack);
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };
@@ -37,9 +48,11 @@ export const updateHandler = async (request, reply) => {
 export const deleteHandler = async (request, reply) => {
   try {
     await service.removeHandover(request.params.id, request.user);
+    await clearCachePattern('handovers:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Handover deleted', data: {} });
   } catch (error) {
-    console.error('[DELETE handover] ERROR:', error.message, error.stack);
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };
@@ -47,6 +60,7 @@ export const deleteHandler = async (request, reply) => {
 export const createDefectHandler = async (request, reply) => {
   try {
     const data = await service.reportDefect(request.params.id, request.body, request.user);
+    await clearCachePattern('handovers:*');
     return reply.code(201).send({ success: true, message: 'Defect reported', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -56,6 +70,7 @@ export const createDefectHandler = async (request, reply) => {
 export const respondHandler = async (request, reply) => {
   try {
     const data = await service.modifyHandover(request.params.id, request.body, request.user);
+    await clearCachePattern('handovers:*');
     return reply.code(200).send({ success: true, message: 'Handover response saved', data });
   } catch (error) {
     return reply.code(400).send({ success: false, message: error.message, errors: [] });
@@ -65,6 +80,9 @@ export const respondHandler = async (request, reply) => {
 export const confirmHandler = async (request, reply) => {
   try {
     const data = await service.modifyHandover(request.params.id, { status: 'selesai' }, request.user);
+    await clearCachePattern('handovers:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Handover confirmed completed', data });
   } catch (error) {
     return reply.code(400).send({ success: false, message: error.message, errors: [] });

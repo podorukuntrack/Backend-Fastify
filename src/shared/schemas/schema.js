@@ -8,7 +8,8 @@ import {
   integer,
   timestamp,
   pgEnum,
-  decimal
+  decimal,
+  index
 } from "drizzle-orm/pg-core";
 
 // Definisi Role
@@ -30,13 +31,15 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   company_id: uuid("company_id").references(() => companies.id),
   nama: varchar("nama", { length: 255 }).notNull(), // ✅ key = nama
-  email: varchar("email", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
   nomor_telepon: varchar("nomor_telepon", { length: 20 }),
   password_hash: text("password_hash").notNull(),
   role: varchar("role", { length: 50 }).notNull(),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("users_company_idx").on(table.company_id),
+}));
 
 export const refreshTokens = pgTable("refresh_tokens", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -46,7 +49,9 @@ export const refreshTokens = pgTable("refresh_tokens", {
   token: text("token_hash").notNull(), // Hash dari refresh token
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  userIdx: index("rt_user_idx").on(table.userId),
+}));
 
 export const projects = pgTable("projects", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -62,7 +67,9 @@ export const projects = pgTable("projects", {
   themeColor: varchar("theme_color", { length: 50 }).default("#4f46e5"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("projects_company_idx").on(table.companyId),
+}));
 
 export const clusters = pgTable("clusters", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -81,7 +88,10 @@ export const clusters = pgTable("clusters", {
   })
     .defaultNow()
     .notNull(),
-});
+}, (table) => ({
+  companyIdx: index("clusters_company_idx").on(table.companyId),
+  projectIdx: index("clusters_project_idx").on(table.projectId),
+}));
 
 export const units = pgTable("units", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -132,7 +142,9 @@ export const units = pgTable("units", {
   })
     .defaultNow()
     .notNull(),
-});
+}, (table) => ({
+  clusterIdx: index("units_cluster_idx").on(table.clusterId),
+}));
 // src/shared/schemas/schema.js (Tambahan untuk Phase 2)
 
 export const progress = pgTable("progress", {
@@ -169,7 +181,9 @@ export const progress = pgTable("progress", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+}, (table) => ({
+  unitIdx: index("progress_unit_idx").on(table.unitId),
+}));
 
 export const documentations = pgTable("documentations", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -191,7 +205,11 @@ export const documentations = pgTable("documentations", {
     .references(() => users.id)
     .notNull(), // User/Admin yang mengupload
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("docs_company_idx").on(table.companyId),
+  unitIdx: index("docs_unit_idx").on(table.unitId),
+  progressIdx: index("docs_progress_idx").on(table.progressId),
+}));
 
 export const assignments = pgTable("assignments", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -208,7 +226,10 @@ export const assignments = pgTable("assignments", {
   endDate: timestamp("end_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("assignments_company_idx").on(table.companyId),
+  projectIdx: index("assignments_project_idx").on(table.projectId),
+}));
 
 export const payments = pgTable("payments", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -225,7 +246,10 @@ export const payments = pgTable("payments", {
   receiptUrl: text("receipt_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("payments_company_idx").on(table.companyId),
+  unitIdx: index("payments_unit_idx").on(table.unitId),
+}));
 
 // src/shared/schemas/schema.js (Tambahan untuk Phase 3)
 
@@ -246,7 +270,11 @@ export const timelines = pgTable("timelines", {
   status: varchar("status", { length: 50 }).default("planned"), // planned, on_progress, completed, delayed
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("timelines_company_idx").on(table.companyId),
+  projectIdx: index("timelines_project_idx").on(table.projectId),
+  unitIdx: index("timelines_unit_idx").on(table.unitId),
+}));
 
 export const retentions = pgTable("retentions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -264,7 +292,10 @@ export const retentions = pgTable("retentions", {
   photoAfterUrl: text("photo_after_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("retentions_company_idx").on(table.companyId),
+  unitIdx: index("retentions_unit_idx").on(table.unitId),
+}));
 
 export const handovers = pgTable("handovers", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -283,7 +314,10 @@ export const handovers = pgTable("handovers", {
   documentUrl: text("document_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("handovers_company_idx").on(table.companyId),
+  unitIdx: index("handovers_unit_idx").on(table.unitId),
+}));
 
 export const handoverDefects = pgTable("handover_defects", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -295,7 +329,9 @@ export const handoverDefects = pgTable("handover_defects", {
   status: varchar("status", { length: 50 }).default("reported"), // reported, fixing, resolved
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  handoverIdx: index("defects_handover_idx").on(table.handoverId),
+}));
 
 // src/shared/schemas/schema.js (Tambahan untuk Phase 4)
 
@@ -312,7 +348,10 @@ export const tickets = pgTable("tickets", {
   priority: varchar("priority", { length: 50 }).default("normal"), // low, normal, high
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("tickets_company_idx").on(table.companyId),
+  userIdx: index("tickets_user_idx").on(table.userId),
+}));
 
 export const ticketMessages = pgTable("ticket_messages", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -324,7 +363,9 @@ export const ticketMessages = pgTable("ticket_messages", {
     .notNull(), // Bisa customer atau CS/admin
   message: text("message").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  ticketIdx: index("tm_ticket_idx").on(table.ticketId),
+}));
 
 export const whatsappLogs = pgTable("whatsapp_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -338,7 +379,10 @@ export const whatsappLogs = pgTable("whatsapp_logs", {
   status: varchar("status", { length: 50 }).default("sent"),
   sentAt: timestamp("sent_at").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+  companyIdx: index("wa_company_idx").on(table.companyId),
+  userIdx: index("wa_user_idx").on(table.userId),
+}));
 export const userDevices = pgTable("user_devices", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
@@ -348,4 +392,6 @@ export const userDevices = pgTable("user_devices", {
   deviceType: varchar("device_type", { length: 20 }), // ios, android
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  userIdx: index("devices_user_idx").on(table.userId),
+}));

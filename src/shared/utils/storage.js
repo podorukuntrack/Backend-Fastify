@@ -3,6 +3,7 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client
 import crypto from 'crypto';
 import path from 'path';
 import dotenv from 'dotenv';
+import sharp from 'sharp';
 
 dotenv.config();
 
@@ -18,14 +19,33 @@ const s3Client = new S3Client({
 export const uploadFileToR2 = async (fileBuffer, originalFilename, mimeType) => {
   // Generate random string agar nama file unik
   const randomStr = crypto.randomBytes(8).toString('hex');
-  const ext = path.extname(originalFilename);
-  const fileKey = `${Date.now()}-${randomStr}${ext}`;
+  const ext = path.extname(originalFilename).toLowerCase();
+  
+  // Compress if image
+  let processedBuffer = fileBuffer;
+  let finalMimeType = mimeType;
+  let finalExt = ext;
+  
+  if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext) || mimeType.startsWith('image/')) {
+    try {
+      processedBuffer = await sharp(fileBuffer)
+        .resize({ width: 1920, withoutEnlargement: true }) // Max width 1920px
+        .webp({ quality: 80 }) // Compress and convert to webp
+        .toBuffer();
+      finalExt = '.webp';
+      finalMimeType = 'image/webp';
+    } catch (err) {
+      console.error('Image compression failed, proceeding with original buffer:', err);
+    }
+  }
+
+  const fileKey = `${Date.now()}-${randomStr}${finalExt}`;
 
   const command = new PutObjectCommand({
     Bucket: process.env.R2_BUCKET_NAME,
     Key: fileKey,
-    Body: fileBuffer,
-    ContentType: mimeType,
+    Body: processedBuffer,
+    ContentType: finalMimeType,
   });
 
   await s3Client.send(command);

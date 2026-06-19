@@ -1,9 +1,21 @@
 // src/modules/whatsapp/whatsapp.service.js
 import { db } from '../../config/database.js';
 import { whatsappLogs } from '../../shared/schemas/schema.js';
-
+import { notificationQueue } from '../../shared/utils/queue.js';
 
 export const sendWhatsAppMessage = async (phone, messageText, userContext) => {
+  // Push the job to the queue
+  await notificationQueue.add('sendWhatsApp', { phone, messageText, userContext }, {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 1000
+    }
+  });
+  return true;
+};
+
+export const processWhatsAppMessage = async (phone, messageText, userContext) => {
   try {
     let cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.startsWith('0')) {

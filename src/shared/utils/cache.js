@@ -94,3 +94,23 @@ export const clearCachePattern = async (pattern) => {
     console.error(`❌ [Cache] Error clearing cache pattern ${pattern}:`, error.message);
   }
 };
+
+/**
+ * Helper function to wrap fetch logic with Redis caching.
+ * @param {string} key Cache key
+ * @param {Function} fetcher Async function returning data from DB
+ * @param {number} ttl TTL in seconds
+ * @returns {Promise<{data: any, source: string}>} Data and source ('cache' or 'database')
+ */
+export const withCache = async (key, fetcher, ttl = 3600) => {
+  const cached = await getCache(key);
+  if (cached) {
+    return { data: cached, source: 'cache' };
+  }
+
+  const data = await fetcher();
+  if (data !== undefined && data !== null) {
+    await setCache(key, data, ttl);
+  }
+  return { data, source: 'database' };
+};

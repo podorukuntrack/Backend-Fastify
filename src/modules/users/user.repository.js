@@ -1,6 +1,7 @@
 // src/modules/users/user.repository.js
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import fs from 'fs';
 
 export const findUsers = async (page, limit, userContext, filters = {}) => {
   const offset = (page - 1) * limit;
@@ -64,6 +65,13 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
     LIMIT ${limit}
     OFFSET ${offset}
   `);
+
+  fs.appendFileSync('d:\\Podorukuntrack\\backend\\debug.log', JSON.stringify({
+    timestamp: new Date(),
+    role: userContext.role,
+    search, roleFilter, allCustomers,
+    resultCount: data.length
+  }) + '\n');
 
   const totalRes = await db.execute(sql`
     SELECT COUNT(*)::int AS count
