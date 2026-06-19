@@ -32,8 +32,8 @@ export const uploadHandler = async (request, reply) => {
       return reply.code(400).send({ success: false, message: 'No file uploaded', errors: [] });
     }
 
-    if (!data.mimetype.startsWith('image/')) {
-      return reply.code(400).send({ success: false, message: 'Hanya file gambar (image/*) yang diperbolehkan!', errors: [] });
+    if (!data.mimetype.startsWith('image/') && !data.mimetype.startsWith('application/')) {
+      return reply.code(400).send({ success: false, message: 'Hanya file gambar (image/*) atau dokumen (application/*) yang diperbolehkan!', errors: [] });
     }
 
     console.log("[UPLOAD DEBUG] File received:", data.filename);
