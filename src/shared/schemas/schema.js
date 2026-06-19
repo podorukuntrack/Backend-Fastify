@@ -297,6 +297,21 @@ export const retentions = pgTable("retentions", {
   unitIdx: index("retentions_unit_idx").on(table.unitId),
 }));
 
+export const retentionComplaints = pgTable("retention_complaints", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  retentionId: uuid("retention_id")
+    .references(() => retentions.id, { onDelete: 'cascade' })
+    .notNull(),
+  description: text("description"),
+  photoBeforeUrl: text("photo_before_url"),
+  photoAfterUrl: text("photo_after_url"),
+  status: varchar("status", { length: 50 }).default("pending"), // pending, resolved
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  retentionIdx: index("retention_complaints_retention_idx").on(table.retentionId),
+}));
+
 export const handovers = pgTable("handovers", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id")

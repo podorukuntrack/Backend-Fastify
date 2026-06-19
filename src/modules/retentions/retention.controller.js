@@ -56,3 +56,44 @@ export const deleteHandler = async (request, reply) => {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };
+
+// --- Complaints ---
+
+export const getComplaintsHandler = async (request, reply) => {
+  try {
+    const data = await service.getComplaints(request.params.id, request.user);
+    return reply.code(200).send({ success: true, message: 'Complaints retrieved', data });
+  } catch (error) {
+    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+  }
+};
+
+export const createComplaintHandler = async (request, reply) => {
+  try {
+    const data = await service.addComplaint(request.params.id, request.body, request.user);
+    await clearCachePattern(`retentions:*`);
+    return reply.code(201).send({ success: true, message: 'Complaint recorded', data });
+  } catch (error) {
+    return reply.code(403).send({ success: false, message: error.message, errors: [] });
+  }
+};
+
+export const updateComplaintHandler = async (request, reply) => {
+  try {
+    const data = await service.editComplaint(request.params.id, request.params.complaintId, request.body, request.user);
+    await clearCachePattern(`retentions:*`);
+    return reply.code(200).send({ success: true, message: 'Complaint updated', data });
+  } catch (error) {
+    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+  }
+};
+
+export const deleteComplaintHandler = async (request, reply) => {
+  try {
+    await service.removeComplaint(request.params.id, request.params.complaintId, request.user);
+    await clearCachePattern(`retentions:*`);
+    return reply.code(200).send({ success: true, message: 'Complaint deleted', data: {} });
+  } catch (error) {
+    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+  }
+};

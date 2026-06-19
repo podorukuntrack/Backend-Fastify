@@ -28,3 +28,33 @@ export const updateRetentionSchema = {
 export const retentionIdParamSchema = {
   params: z.object({ id: z.string().uuid("Format ID tidak valid") })
 };
+
+export const createComplaintSchema = {
+  params: z.object({ id: z.string().uuid("Format Retention ID tidak valid") }),
+  body: z.object({
+    description: z.string().optional(),
+    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
+    photoAfterUrl: z.string().optional().nullable().or(z.literal('')),
+    status: z.enum(['pending', 'resolved']).default('pending'),
+  })
+};
+
+export const updateComplaintSchema = {
+  params: z.object({ 
+    id: z.string().uuid("Format Retention ID tidak valid"),
+    complaintId: z.string().uuid("Format Complaint ID tidak valid")
+  }),
+  body: z.object({
+    description: z.string().optional(),
+    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
+    photoAfterUrl: z.string().optional().nullable().or(z.literal('')),
+    status: z.enum(['pending', 'resolved']).optional(),
+  })
+};
+
+export const complaintIdParamSchema = {
+  params: z.object({ 
+    id: z.string().uuid("Format Retention ID tidak valid"),
+    complaintId: z.string().uuid("Format Complaint ID tidak valid")
+  })
+};

@@ -236,4 +236,54 @@ export default async function retentionRoutes(fastify, options) {
     },
     preHandler: [writeRoles, validate(schema.retentionIdParamSchema)]
   }, controller.deleteHandler);
+
+  // --- Complaints ---
+
+  // GET - Daftar keluhan retensi
+  fastify.get('/:id/complaints', {
+    schema: {
+      tags: ['Retentions'],
+      params: schema.retentionIdParamSchema.params,
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'array' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [readRoles, validate(schema.retentionIdParamSchema)]
+  }, controller.getComplaintsHandler);
+
+  // POST - Tambah keluhan retensi
+  fastify.post('/:id/complaints', {
+    schema: {
+      tags: ['Retentions'],
+      params: schema.retentionIdParamSchema.params,
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.createComplaintSchema)]
+  }, controller.createComplaintHandler);
+
+  // PATCH - Update keluhan retensi
+  fastify.patch('/:id/complaints/:complaintId', {
+    schema: {
+      tags: ['Retentions'],
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.updateComplaintSchema)]
+  }, controller.updateComplaintHandler);
+
+  // DELETE - Hapus keluhan retensi
+  fastify.delete('/:id/complaints/:complaintId', {
+    schema: {
+      tags: ['Retentions'],
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.complaintIdParamSchema)]
+  }, controller.deleteComplaintHandler);
 }

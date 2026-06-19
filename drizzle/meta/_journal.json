@@ -8,6 +8,13 @@
       "when": 1781867715316,
       "tag": "0000_chemical_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781874462241,
+      "tag": "0001_curved_bug",
+      "breakpoints": true
     }
   ]
 }

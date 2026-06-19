@@ -105,3 +105,27 @@ export const removeRetention = async (id, userContext) => {
   if (!result) throw new Error('Retention not found or access denied');
   return result;
 };
+
+// --- Complaints ---
+
+export const getComplaints = async (retentionId, userContext) => {
+  // Verifikasi akses ke retensi terlebih dahulu
+  await getRetentionDetail(retentionId, userContext);
+  return await repo.findComplaintsByRetentionId(retentionId);
+};
+
+export const addComplaint = async (retentionId, input, userContext) => {
+  await getRetentionDetail(retentionId, userContext);
+  const data = { ...input, retentionId };
+  return await repo.insertComplaint(data);
+};
+
+export const editComplaint = async (retentionId, complaintId, input, userContext) => {
+  await getRetentionDetail(retentionId, userContext);
+  return await repo.updateComplaint(complaintId, input);
+};
+
+export const removeComplaint = async (retentionId, complaintId, userContext) => {
+  await getRetentionDetail(retentionId, userContext);
+  return await repo.deleteComplaint(complaintId);
+};
