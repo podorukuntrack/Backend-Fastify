@@ -7,8 +7,8 @@ export default async function retentionRoutes(fastify, options) {
   // Semua request wajib lolos JWT
   fastify.addHook('preValidation', fastify.authenticate);
   
-  const readRoles = authorize('super_admin', 'admin', 'customer');
-  const writeRoles = authorize('super_admin', 'admin');
+  const readRoles = authorize('super_admin', 'admin', 'customer', 'customer_service');
+  const writeRoles = authorize('super_admin', 'admin', 'customer_service');
 
   // GET - Dapatkan semua retensi
   fastify.get('/', {

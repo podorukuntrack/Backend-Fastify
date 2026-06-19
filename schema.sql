@@ -752,3 +752,22 @@ FROM (((public.units u
     JOIN public.clusters c ON ((c.id = u.cluster_id)))
     JOIN public.projects p ON ((p.id = c.project_id)))
     JOIN public.companies comp ON ((comp.id = p.company_id)));
+CREATE TABLE public.retention_complaints (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    retention_id uuid NOT NULL,
+    description text,
+    photo_before_url text,
+    photo_after_url text,
+    status character varying(50) DEFAULT 'pending',
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE ONLY public.retention_complaints
+    ADD CONSTRAINT retention_complaints_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.retention_complaints
+    ADD CONSTRAINT retention_complaints_retention_id_fkey FOREIGN KEY (retention_id) REFERENCES public.retentions(id) ON DELETE CASCADE;
+
+CREATE INDEX retention_complaints_retention_idx ON public.retention_complaints USING btree (retention_id);
+
