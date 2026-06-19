@@ -266,7 +266,7 @@ export default async function retentionRoutes(fastify, options) {
       params: schema.retentionIdParamSchema.params,
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [writeRoles, validate(schema.createComplaintSchema)]
+    preHandler: [readRoles, validate(schema.createComplaintSchema)]
   }, controller.createComplaintHandler);
 
   // PATCH - Update keluhan retensi
@@ -275,7 +275,7 @@ export default async function retentionRoutes(fastify, options) {
       tags: ['Retentions'],
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [writeRoles, validate(schema.updateComplaintSchema)]
+    preHandler: [readRoles, validate(schema.updateComplaintSchema)]
   }, controller.updateComplaintHandler);
 
   // DELETE - Hapus keluhan retensi
