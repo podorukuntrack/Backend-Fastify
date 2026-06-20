@@ -81,7 +81,7 @@ export const sendPushNotification = async (userIds, title, body, data = {}) => {
         },
         payload: {
           aps: {
-            sound: 'notif_podorukun.caf',
+            sound: 'notif_podorukun.wav',
           }
         }
       }
