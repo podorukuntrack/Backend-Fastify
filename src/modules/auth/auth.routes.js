@@ -197,8 +197,15 @@ export default async function authRoutes(fastify, options) {
       await service.logoutUser(refreshToken);
     }
 
-    reply.clearCookie('accessToken', { path: '/' });
-    reply.clearCookie('refreshToken', { path: '/' });
+    const cookieOpts = {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    };
+
+    reply.clearCookie('accessToken', cookieOpts);
+    reply.clearCookie('refreshToken', cookieOpts);
 
     return reply.code(200).send({
       success: true,
