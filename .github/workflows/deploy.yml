@@ -26,4 +26,4 @@ jobs:
             git pull origin main
             
             npm install
-            pm2 restart backend-fastify
+            pm2 restart ecosystem.config.cjs
