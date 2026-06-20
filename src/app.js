@@ -33,6 +33,7 @@ import { getRedisClient } from "./shared/utils/cache.js";
 export async function buildApp() {
   const app = Fastify({
     bodyLimit: 1000 * 1024 * 1024, // 1GB
+    trustProxy: true, // Percaya pada header X-Forwarded-For dari Nginx / Cloudflare
     logger: process.env.LOG_PRETTY === "true"
       ? {
           transport: {
