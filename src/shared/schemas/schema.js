@@ -9,7 +9,8 @@ import {
   timestamp,
   pgEnum,
   decimal,
-  index
+  index,
+  jsonb
 } from "drizzle-orm/pg-core";
 
 // Definisi Role
@@ -303,8 +304,8 @@ export const retentionComplaints = pgTable("retention_complaints", {
     .references(() => retentions.id, { onDelete: 'cascade' })
     .notNull(),
   description: text("description"),
-  photoBeforeUrl: text("photo_before_url"),
-  photoAfterUrl: text("photo_after_url"),
+  photoBeforeUrls: jsonb("photo_before_urls").default([]),
+  photoAfterUrls: jsonb("photo_after_urls").default([]),
   status: varchar("status", { length: 50 }).default("pending"), // pending, resolved
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

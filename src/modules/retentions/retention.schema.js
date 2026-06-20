@@ -33,8 +33,8 @@ export const createComplaintSchema = {
   params: z.object({ id: z.string().uuid("Format Retention ID tidak valid") }),
   body: z.object({
     description: z.string().optional().nullable(),
-    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
-    photoAfterUrl: z.string().optional().nullable().or(z.literal('')),
+    photoBeforeUrls: z.array(z.string()).optional(),
+    photoAfterUrls: z.array(z.string()).optional(),
     status: z.enum(['pending', 'resolved']).default('pending'),
   })
 };
@@ -46,8 +46,8 @@ export const updateComplaintSchema = {
   }),
   body: z.object({
     description: z.string().optional().nullable(),
-    photoBeforeUrl: z.string().optional().nullable().or(z.literal('')),
-    photoAfterUrl: z.string().optional().nullable().or(z.literal('')),
+    photoBeforeUrls: z.array(z.string()).optional(),
+    photoAfterUrls: z.array(z.string()).optional(),
     status: z.enum(['pending', 'resolved']).optional(),
   })
 };
