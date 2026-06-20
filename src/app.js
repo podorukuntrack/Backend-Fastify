@@ -58,7 +58,9 @@ export async function buildApp() {
       if (allowedOrigins.includes(origin)) {
         return cb(null, true);
       }
-      return cb(new Error("Not allowed by CORS"), false);
+      const err = new Error("Not allowed by CORS");
+      err.statusCode = 403;
+      return cb(err, false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
