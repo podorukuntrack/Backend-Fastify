@@ -23,7 +23,8 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
       'verified' AS status,
       'transfer' AS method,
       ph.tanggal_bayar AS "paymentDate",
-      ph.bukti_pembayaran AS "receiptUrl"
+      ph.bukti_pembayaran AS "receiptUrl",
+      ph.catatan AS notes
     FROM payment_history ph
     JOIN property_assignments pa ON pa.id = ph.assignment_id
     JOIN units u ON u.id = pa.unit_id
@@ -40,7 +41,8 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
     status: row.status ?? 'pending',
     method: row.method ?? 'transfer',
     paymentDate: row.paymentDate ? new Date(row.paymentDate) : new Date(),
-    receiptUrl: row.receiptUrl || null
+    receiptUrl: row.receiptUrl || null,
+    notes: row.notes || null
   }));
 };
 

@@ -140,7 +140,8 @@ export default async function paymentRoutes(fastify, options) {
                     status: { type: "string" },
                     method: { type: "string" },
                     paymentDate: { type: "string", format: "date-time" },
-                    receiptUrl: { type: "string", format: "uri" }
+                    receiptUrl: { type: "string", format: "uri" },
+                    notes: { type: "string" }
                   }
                 }
               }
