@@ -1,6 +1,6 @@
 import { db } from '../../config/database.js';
 import { payments } from '../../shared/schemas/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 
 export const findAllPayments = async (userContext) => {
@@ -9,9 +9,39 @@ export const findAllPayments = async (userContext) => {
 };
 
 export const findPaymentsByUnitId = async (unitId, userContext) => {
-  const scope = getTenantScope(payments, userContext);
-  const condition = scope ? and(eq(payments.unitId, unitId), scope) : eq(payments.unitId, unitId);
-  return await db.select().from(payments).where(condition).orderBy(payments.createdAt);
+  let scopeCondition = sql`true`;
+  if (userContext.role === 'customer') {
+    scopeCondition = sql`pa.user_id = ${userContext.sub}::uuid`;
+  } else if (userContext.role !== 'super_admin') {
+    scopeCondition = sql`proj.company_id = ${userContext.companyId}::uuid`;
+  }
+
+  const rows = await db.execute(sql`
+    SELECT 
+      ph.id,
+      ph.jumlah_bayar AS amount,
+      ph.status_verifikasi AS status,
+      'transfer' AS method,
+      ph.tanggal_bayar AS "paymentDate",
+      ph.bukti_pembayaran_url AS "receiptUrl"
+    FROM payment_history ph
+    JOIN property_assignments pa ON pa.id = ph.assignment_id
+    JOIN units u ON u.id = pa.unit_id
+    JOIN clusters c ON c.id = u.cluster_id
+    JOIN projects proj ON proj.id = c.project_id
+    WHERE pa.unit_id = ${unitId}::uuid
+      AND ${scopeCondition}
+    ORDER BY ph.tanggal_bayar DESC
+  `);
+
+  return rows.map(row => ({
+    id: row.id,
+    amount: Number(row.amount ?? 0),
+    status: row.status ?? 'pending',
+    method: row.method ?? 'transfer',
+    paymentDate: row.paymentDate ? new Date(row.paymentDate) : new Date(),
+    receiptUrl: row.receiptUrl || null
+  }));
 };
 
 export const insertPayment = async (data) => {
