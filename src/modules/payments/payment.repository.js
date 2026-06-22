@@ -20,10 +20,10 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
     SELECT 
       ph.id,
       ph.jumlah_bayar AS amount,
-      ph.status_verifikasi AS status,
+      'verified' AS status,
       'transfer' AS method,
       ph.tanggal_bayar AS "paymentDate",
-      ph.bukti_pembayaran_url AS "receiptUrl"
+      ph.bukti_pembayaran AS "receiptUrl"
     FROM payment_history ph
     JOIN property_assignments pa ON pa.id = ph.assignment_id
     JOIN units u ON u.id = pa.unit_id
