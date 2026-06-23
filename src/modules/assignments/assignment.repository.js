@@ -209,6 +209,15 @@ export const updateAssignment = async (id, data, userContext) => {
     RETURNING id
   `);
 
+  if (data.tipe_pembayaran === 'cash_lunas' && existing.pembayaran?.tipe !== 'cash_lunas' && data.harga_total > 0) {
+    await insertPayment(id, {
+      jumlah_bayar: data.harga_total,
+      tanggal_bayar: data.tanggal_pembelian || new Date().toISOString(),
+      catatan: "Pelunasan Cash Lunas otomatis (Perubahan Metode)",
+      bukti_pembayaran: data.bukti_pembayaran || null
+    }, userContext);
+  }
+
   return await findAssignmentById(rows[0].id, userContext);
 };
 

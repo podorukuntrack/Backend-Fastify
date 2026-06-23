@@ -55,7 +55,8 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('projects:*');
     return reply.code(200).send({ success: true, message: 'Assignment updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    const status = error.message.toLowerCase().includes('not found') ? 404 : 400;
+    return reply.code(status).send({ success: false, message: error.message, errors: [] });
   }
 };
 
