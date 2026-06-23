@@ -12,6 +12,7 @@ export const createAssignmentSchema = {
     harga_total: z.coerce.number().nonnegative().default(0),
     tenor_bulan: z.coerce.number().int().nonnegative().default(0),
     keterangan_kpr: z.string().optional(),
+    bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
 };
 
@@ -40,5 +41,15 @@ export const createPaymentSchema = {
     bukti_pembayaran: z.string({
       required_error: "Bukti pembayaran wajib dilampirkan",
     }).url("Bukti pembayaran harus berupa URL valid yang diunggah"),
+  }),
+};
+
+export const updatePaymentSchema = {
+  params: z.object({ id: z.string().uuid(), paymentId: z.string().uuid() }),
+  body: z.object({
+    jumlah_bayar: z.coerce.number().positive().optional(),
+    tanggal_bayar: z.string().optional(),
+    catatan: z.string().optional(),
+    bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   }),
 };

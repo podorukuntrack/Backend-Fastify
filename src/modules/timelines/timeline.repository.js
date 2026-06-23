@@ -117,15 +117,15 @@ export const deleteTimeline = async (id, userContext) => {
   if (!existing || existing.length === 0) return null;
   const timeline = existing[0];
 
-  // Delete the timeline
-  const result = await db.delete(timelines).where(condition).returning();
-
   // Delete associated progress
-  await db.execute(sql`
-    DELETE FROM progress 
-    WHERE unit_id = ${timeline.unitId} 
-      AND tahap = ${timeline.taskName}
-  `);
+  const [result] = await Promise.all([
+    db.delete(timelines).where(condition).returning(),
+    db.execute(sql`
+      DELETE FROM progress 
+      WHERE unit_id = ${timeline.unitId} 
+        AND tahap = ${timeline.taskName}
+    `)
+  ]);
 
   // Recalculate unit progress
   const totalRes = await db.execute(sql`

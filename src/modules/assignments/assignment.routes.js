@@ -33,6 +33,12 @@ export default async function assignmentRoutes(fastify, options) {
               description: "Filter berdasarkan Project ID",
               example: "550e8400-e29b-41d4-a716-446655440000",
             },
+            unitId: {
+              type: "string",
+              format: "uuid",
+              description: "Filter berdasarkan Unit ID",
+              example: "550e8400-e29b-41d4-a716-446655440000",
+            },
             status: {
               type: "string",
               enum: ["pending", "on_progress", "completed"],
@@ -357,6 +363,22 @@ export default async function assignmentRoutes(fastify, options) {
       ],
     },
     controller.createPaymentHandler,
+  );
+
+  fastify.patch(
+    "/:id/payments/:paymentId",
+    {
+      schema: {
+        description: "Mengupdate pembayaran assignment",
+        tags: ["Assignments"],
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: [
+        authorize("super_admin", "admin"),
+        validate(schema.updatePaymentSchema),
+      ],
+    },
+    controller.updatePaymentHandler,
   );
 
   fastify.delete(

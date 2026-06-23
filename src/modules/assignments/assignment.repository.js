@@ -81,6 +81,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
     JOIN projects p ON p.id = c.project_id
     WHERE (${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid)
       AND (${userId}::uuid IS NULL OR pa.user_id = ${userId}::uuid)
+      AND (${filters.unitId ?? null}::uuid IS NULL OR pa.unit_id = ${filters.unitId ?? null}::uuid)
     ORDER BY pa.created_at DESC
     LIMIT ${limit}
     OFFSET ${offset}
@@ -89,7 +90,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
   return rows.map(mapAssignmentRow);
 };
 
-export const countAssignments = async (userContext) => {
+export const countAssignments = async (filters, userContext) => {
   const companyId = userContext.role === "super_admin" ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
 
@@ -101,6 +102,7 @@ export const countAssignments = async (userContext) => {
     JOIN projects p ON p.id = c.project_id
     WHERE (${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid)
       AND (${userId}::uuid IS NULL OR pa.user_id = ${userId}::uuid)
+      AND (${filters.unitId ?? null}::uuid IS NULL OR pa.unit_id = ${filters.unitId ?? null}::uuid)
   `);
 
   return Number(rows[0].count);
@@ -168,7 +170,7 @@ export const insertAssignment = async (data, userContext) => {
       ${normalizeOwnershipStatus(data.status_kepemilikan) ?? 'active'},
       ${data.tipe_pembayaran ?? 'cash_lunas'},
       ${data.harga_total ?? 0},
-      ${data.tipe_pembayaran === 'cash_lunas' ? data.harga_total ?? 0 : 0},
+      0,
       ${data.tenor_bulan ?? 0},
       ${data.keterangan_kpr ?? null},
       ${userContext.sub}
@@ -176,7 +178,18 @@ export const insertAssignment = async (data, userContext) => {
     RETURNING id
   `);
 
-  return await findAssignmentById(rows[0].id, userContext);
+  const assignmentId = rows[0].id;
+
+  if (data.tipe_pembayaran === 'cash_lunas' && data.harga_total > 0) {
+    await insertPayment(assignmentId, {
+      jumlah_bayar: data.harga_total,
+      tanggal_bayar: data.tanggal_pembelian || new Date().toISOString(),
+      catatan: "Pembayaran Cash Lunas otomatis",
+      bukti_pembayaran: data.bukti_pembayaran || null
+    }, userContext);
+  }
+
+  return await findAssignmentById(assignmentId, userContext);
 };
 
 export const updateAssignment = async (id, data, userContext) => {
@@ -235,6 +248,45 @@ export const insertPayment = async (assignmentId, data, userContext) => {
            updated_at = NOW()
      WHERE id = ${assignmentId}
   `);
+
+  return rows[0];
+};
+
+export const updatePayment = async (assignmentId, paymentId, data, userContext) => {
+  const assignment = await findAssignmentById(assignmentId, userContext);
+  if (!assignment) return null;
+
+  // Dapatkan nominal pembayaran sebelumnya
+  const oldPaymentRows = await db.execute(sql`
+    SELECT jumlah_bayar FROM payment_history WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
+  `);
+  if (oldPaymentRows.length === 0) return null;
+  const oldAmount = oldPaymentRows[0].jumlah_bayar;
+
+  // Update record pembayaran
+  const rows = await db.execute(sql`
+    UPDATE payment_history
+       SET jumlah_bayar = COALESCE(${data.jumlah_bayar ?? null}, jumlah_bayar),
+           tanggal_bayar = COALESCE(${data.tanggal_bayar ?? null}, tanggal_bayar),
+           catatan = COALESCE(${data.catatan ?? null}, catatan),
+           bukti_pembayaran = COALESCE(${data.bukti_pembayaran ?? null}, bukti_pembayaran)
+     WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
+    RETURNING id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_at
+  `);
+
+  if (rows.length === 0) return null;
+  const newAmount = rows[0].jumlah_bayar;
+  const diff = Number(newAmount) - Number(oldAmount);
+
+  // Update total_dibayar di assignment
+  if (diff !== 0) {
+    await db.execute(sql`
+      UPDATE property_assignments
+         SET total_dibayar = GREATEST(0, LEAST(harga_total, total_dibayar + ${diff})),
+             updated_at = NOW()
+       WHERE id = ${assignmentId}
+    `);
+  }
 
   return rows[0];
 };

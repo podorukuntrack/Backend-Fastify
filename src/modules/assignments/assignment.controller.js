@@ -5,7 +5,7 @@ export const getAllHandler = async (request, reply) => {
   const cacheKey = `assignments:list:${request.user.id}:${JSON.stringify(request.query)}`;
   const { data: cachedRes, source } = await withCache(cacheKey, async () => {
     const data = await service.getAssignments(request.user, request.query);
-    const total = await service.getAssignmentsMeta(request.user);
+    const total = await service.getAssignmentsMeta(request.query, request.user);
     return { data, total };
   }, 3600);
 
@@ -78,6 +78,18 @@ export const createPaymentHandler = async (request, reply) => {
     await clearCachePattern('payments:*');
     await clearCachePattern('projects:*');
     return reply.code(201).send({ success: true, message: 'Payment created', data });
+  } catch (error) {
+    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+  }
+};
+
+export const updatePaymentHandler = async (request, reply) => {
+  try {
+    const data = await service.modifyAssignmentPayment(request.params.id, request.params.paymentId, request.body, request.user);
+    await clearCachePattern('assignments:*');
+    await clearCachePattern('payments:*');
+    await clearCachePattern('projects:*');
+    return reply.code(200).send({ success: true, message: 'Payment updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }

@@ -4,8 +4,8 @@ export const getAssignments = async (userContext, filters = {}) => {
   return await repo.findAllAssignments(userContext, filters);
 };
 
-export const getAssignmentsMeta = async (userContext) => {
-  return await repo.countAssignments(userContext);
+export const getAssignmentsMeta = async (filters, userContext) => {
+  return await repo.countAssignments(filters, userContext);
 };
 
 export const getAssignment = async (id, userContext) => {
@@ -33,6 +33,12 @@ export const getAssignmentPayments = async (id, userContext) => {
 export const createAssignmentPayment = async (id, data, userContext) => {
   const result = await repo.insertPayment(id, data, userContext);
   if (!result) throw new Error('Assignment not found or access denied');
+  return result;
+};
+
+export const modifyAssignmentPayment = async (assignmentId, paymentId, data, userContext) => {
+  const result = await repo.updatePayment(assignmentId, paymentId, data, userContext);
+  if (!result) throw new Error('Payment or Assignment not found, or access denied');
   return result;
 };
 

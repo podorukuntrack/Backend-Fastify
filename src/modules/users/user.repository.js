@@ -244,8 +244,10 @@ export const deleteUser = async (id, userContext) => {
     await tryDelete(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
   } else {
     // Jika admin/staff, bersihkan saja token dan devices (jika ada)
-    await db.execute(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
-    await db.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
+    await Promise.all([
+      db.execute(sql`DELETE FROM user_devices WHERE user_id = ${id}`),
+      db.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`)
+    ]);
   }
 
   // 5. Terakhir hapus usernya

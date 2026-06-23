@@ -6,9 +6,6 @@ export const getPayments = async (userContext) => {
 };
 
 export const getPaymentsByUnit = async (unitId, userContext) => {
-  // Pastikan user berhak melihat unit ini sebelum melihat riwayat bayarnya
-  const unit = await findUnitById(unitId, userContext);
-  if (!unit) throw new Error('Unit not found or access denied');
   return await repo.findPaymentsByUnitId(unitId, userContext);
 };
 
