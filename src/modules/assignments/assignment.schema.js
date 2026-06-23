@@ -25,6 +25,7 @@ export const updateAssignmentSchema = {
     harga_total: z.coerce.number().nonnegative().optional(),
     tenor_bulan: z.coerce.number().int().nonnegative().optional(),
     keterangan_kpr: z.string().optional(),
+    bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
 };
 

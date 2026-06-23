@@ -210,6 +210,9 @@ export const updateAssignment = async (id, data, userContext) => {
   `);
 
   if (data.tipe_pembayaran === 'cash_lunas' && existing.pembayaran?.tipe !== 'cash_lunas' && data.harga_total > 0) {
+    // Bersihkan cicilan sebelumnya agar tidak tumpang tindih
+    await db.execute(sql`DELETE FROM payment_history WHERE assignment_id = ${id}`);
+
     await insertPayment(id, {
       jumlah_bayar: data.harga_total,
       tanggal_bayar: data.tanggal_pembelian || new Date().toISOString(),
@@ -251,13 +254,6 @@ export const insertPayment = async (assignmentId, data, userContext) => {
     RETURNING id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_at
   `);
 
-  await db.execute(sql`
-    UPDATE property_assignments
-       SET total_dibayar = LEAST(harga_total, total_dibayar + ${data.jumlah_bayar}),
-           updated_at = NOW()
-     WHERE id = ${assignmentId}
-  `);
-
   return rows[0];
 };
 
@@ -287,16 +283,6 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
   const newAmount = rows[0].jumlah_bayar;
   const diff = Number(newAmount) - Number(oldAmount);
 
-  // Update total_dibayar di assignment
-  if (diff !== 0) {
-    await db.execute(sql`
-      UPDATE property_assignments
-         SET total_dibayar = GREATEST(0, LEAST(harga_total, total_dibayar + ${diff})),
-             updated_at = NOW()
-       WHERE id = ${assignmentId}
-    `);
-  }
-
   return rows[0];
 };
 
@@ -313,14 +299,6 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
 
   if (rows.length === 0) return null;
   const deletedAmount = rows[0].jumlah_bayar;
-
-  // Kurangi total_dibayar di assignment
-  await db.execute(sql`
-    UPDATE property_assignments
-       SET total_dibayar = GREATEST(0, total_dibayar - ${deletedAmount}),
-           updated_at = NOW()
-     WHERE id = ${assignmentId}
-  `);
 
   return true;
 };
