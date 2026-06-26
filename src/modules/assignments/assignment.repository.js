@@ -32,7 +32,7 @@ const mapAssignmentRow = (row) => ({
     harga_total: Number(row.harga_total ?? 0),
     dp: Number(row.dp ?? 0),
     total_dibayar: Number(row.total_dibayar ?? 0),
-    tenor_bulan: row.tenor_bulan,
+    jatuh_tempo_kpr: row.jatuh_tempo_kpr,
     keterangan_kpr: row.keterangan_kpr,
     persentase_dibayar: row.tipe_pembayaran === 'kredit_kpr'
       ? (Number(row.dp ?? 0) > 0 ? Math.min((Number(row.total_dibayar ?? 0) / Number(row.dp)) * 100, 100) : 0)
@@ -72,7 +72,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
       pa.harga_total,
       pa.dp,
       pa.total_dibayar,
-      pa.tenor_bulan,
+      pa.jatuh_tempo_kpr,
       pa.keterangan_kpr,
       pa.created_at,
       pa.updated_at
@@ -134,7 +134,7 @@ export const findAssignmentById = async (id, userContext) => {
       pa.harga_total,
       pa.dp,
       pa.total_dibayar,
-      pa.tenor_bulan,
+      pa.jatuh_tempo_kpr,
       pa.keterangan_kpr,
       pa.created_at,
       pa.updated_at
@@ -163,7 +163,7 @@ export const insertAssignment = async (data, userContext) => {
         harga_total,
         dp,
         total_dibayar,
-        tenor_bulan,
+        jatuh_tempo_kpr,
         keterangan_kpr,
         created_by
       )
@@ -176,7 +176,7 @@ export const insertAssignment = async (data, userContext) => {
         ${data.harga_total ?? 0},
         ${data.dp ?? 0},
         0,
-        ${data.tenor_bulan ?? 0},
+        ${data.jatuh_tempo_kpr ?? null},
         ${data.keterangan_kpr ?? null},
         ${userContext.sub}
     )
@@ -199,7 +199,7 @@ export const updateAssignment = async (id, data, userContext) => {
            tipe_pembayaran = COALESCE(${data.tipe_pembayaran ?? null}, tipe_pembayaran),
            harga_total = COALESCE(${data.harga_total ?? null}, harga_total),
            dp = COALESCE(${data.dp ?? null}, dp),
-           tenor_bulan = COALESCE(${data.tenor_bulan ?? null}, tenor_bulan),
+           jatuh_tempo_kpr = COALESCE(${data.jatuh_tempo_kpr ?? null}, jatuh_tempo_kpr),
            keterangan_kpr = COALESCE(${data.keterangan_kpr ?? null}, keterangan_kpr),
            updated_at = NOW()
      WHERE id = ${id}

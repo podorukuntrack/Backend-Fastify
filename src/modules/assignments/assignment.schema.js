@@ -11,7 +11,7 @@ export const createAssignmentSchema = {
     tipe_pembayaran: z.enum(['cash_lunas', 'cash_cicil', 'kredit_kpr']).default('cash_lunas'),
     harga_total: z.coerce.number().nonnegative().default(0),
     dp: z.coerce.number().nonnegative().optional(),
-    tenor_bulan: z.coerce.number().int().nonnegative().default(0),
+    jatuh_tempo_kpr: z.string().optional(),
     keterangan_kpr: z.string().optional(),
     bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
@@ -25,7 +25,7 @@ export const updateAssignmentSchema = {
     tipe_pembayaran: z.enum(['cash_lunas', 'cash_cicil', 'kredit_kpr']).optional(),
     harga_total: z.coerce.number().nonnegative().optional(),
     dp: z.coerce.number().nonnegative().optional(),
-    tenor_bulan: z.coerce.number().int().nonnegative().optional(),
+    jatuh_tempo_kpr: z.string().optional(),
     keterangan_kpr: z.string().optional(),
     bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
