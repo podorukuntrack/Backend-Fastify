@@ -241,6 +241,11 @@ export const deleteUnit = async (id, userContext) => {
   const existing = await findUnitById(id, userContext);
   if (!existing) return null;
 
+  const assignmentRes = await db.execute(sql`SELECT COUNT(*) as count FROM property_assignments WHERE unit_id = ${id}`);
+  if (Number(assignmentRes[0].count) > 0) {
+    throw new Error("Gagal menghapus Unit. Masih terdapat data Penugasan Pemilik (Assignment). Harap hapus Penugasan terlebih dahulu.");
+  }
+
   const rows = await db.execute(sql`
     DELETE FROM units
      WHERE id = ${id}

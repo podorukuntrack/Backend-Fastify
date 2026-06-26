@@ -117,15 +117,12 @@ export const deleteTimeline = async (id, userContext) => {
   if (!existing || existing.length === 0) return null;
   const timeline = existing[0];
 
-  // Delete associated progress
-  const [result] = await Promise.all([
-    db.delete(timelines).where(condition).returning(),
-    db.execute(sql`
-      DELETE FROM progress 
-      WHERE unit_id = ${timeline.unitId} 
-        AND tahap = ${timeline.taskName}
-    `)
-  ]);
+  const progressRes = await db.execute(sql`SELECT COUNT(*) as count FROM progress WHERE unit_id = ${timeline.unitId} AND tahap = ${timeline.taskName}`);
+  if (Number(progressRes[0].count) > 0) {
+    throw new Error("Gagal menghapus Timeline. Masih terdapat data Progress Pembangunan. Harap hapus data Progress Pembangunan terlebih dahulu.");
+  }
+
+  const [result] = await db.delete(timelines).where(condition).returning();
 
   // Recalculate unit progress
   const totalRes = await db.execute(sql`

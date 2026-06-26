@@ -67,6 +67,14 @@ export const updateHandover = async (id, data, userContext) => {
 };
 
 export const deleteHandover = async (id, userContext) => {
+  const existing = await findHandoverById(id, userContext);
+  if (!existing) return null;
+
+  const retentionRes = await db.execute(sql`SELECT COUNT(*) as count FROM retentions WHERE unit_id = ${existing.unit.id}`);
+  if (Number(retentionRes[0].count) > 0) {
+    throw new Error("Gagal menghapus Serah Terima. Masih terdapat data Retensi / Garansi. Harap hapus data Retensi terlebih dahulu.");
+  }
+
   // Delete handover defects first to avoid foreign key constraints
   await db.delete(handoverDefects).where(eq(handoverDefects.handoverId, id));
   

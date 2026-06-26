@@ -197,6 +197,21 @@ export const updateAssignment = async (id, data, userContext) => {
   const existing = await findAssignmentById(id, userContext);
   if (!existing) return null;
 
+  // Clean up irrelevant fields based on the effective tipe_pembayaran
+  const newTipe = data.tipe_pembayaran || existing.pembayaran.tipe;
+  if (newTipe === 'cash_lunas') {
+    data.dp = null;
+    data.jatuh_tempo_kpr = null;
+    data.tenor_bulan = null;
+    data.keterangan_kpr = null;
+  } else if (newTipe === 'cash_cicil') {
+    data.dp = null;
+    data.jatuh_tempo_kpr = null;
+    data.keterangan_kpr = null;
+  } else if (newTipe === 'kredit_kpr') {
+    data.tenor_bulan = null;
+  }
+
   const rows = await db.execute(sql`
     UPDATE property_assignments
        SET tanggal_pembelian = COALESCE(${data.tanggal_pembelian ?? null}, tanggal_pembelian),
@@ -281,6 +296,11 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
   const assignment = await findAssignmentById(assignmentId, userContext);
   if (!assignment) return null;
 
+  const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${assignment.unit.id}`);
+  if (Number(handoverRes[0].count) > 0) {
+    throw new Error("Gagal menghapus Pembayaran. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.");
+  }
+
   // Hapus dari payment_history dan kembalikan jumlah yang dihapus
   const rows = await db.execute(sql`
     DELETE FROM payment_history
@@ -296,20 +316,8 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
 export const checkDependencies = async (assignmentId, unitId) => {
   const errors = [];
   
-  const paymentRes = await db.execute(sql`SELECT COUNT(*) as count FROM payment_history WHERE assignment_id = ${assignmentId}`);
-  if (Number(paymentRes[0].count) > 0) errors.push('Riwayat Pembayaran');
-
   const timelineRes = await db.execute(sql`SELECT COUNT(*) as count FROM timelines WHERE unit_id = ${unitId}`);
-  if (Number(timelineRes[0].count) > 0) errors.push('Timelines');
-
-  const progressRes = await db.execute(sql`SELECT COUNT(*) as count FROM progress WHERE unit_id = ${unitId}`);
-  if (Number(progressRes[0].count) > 0) errors.push('Progress Pembangunan');
-
-  const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${unitId}`);
-  if (Number(handoverRes[0].count) > 0) errors.push('Serah Terima');
-
-  const retentionRes = await db.execute(sql`SELECT COUNT(*) as count FROM retentions WHERE unit_id = ${unitId}`);
-  if (Number(retentionRes[0].count) > 0) errors.push('Retensi / Garansi');
+  if (Number(timelineRes[0].count) > 0) errors.push('Timeline Pembangunan');
 
   return errors;
 };
@@ -320,7 +328,7 @@ export const deleteAssignment = async (id, userContext) => {
 
   const dependencies = await checkDependencies(id, existing.unit.id);
   if (dependencies.length > 0) {
-    throw new Error(`Tidak dapat membatalkan penugasan. Harap hapus data berikut terlebih dahulu: ${dependencies.join(', ')}`);
+    throw new Error(`Gagal menghapus Penugasan. Masih terdapat data ${dependencies.join(', ')}. Harap hapus data tersebut terlebih dahulu.`);
   }
 
   const rows = await db.execute(sql`

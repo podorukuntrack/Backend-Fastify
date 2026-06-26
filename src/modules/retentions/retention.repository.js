@@ -57,6 +57,11 @@ export const updateRetention = async (id, data, userContext) => {
 export const deleteRetention = async (id, userContext) => {
   const scope = getTenantScope(retentions, userContext);
   const condition = scope ? and(eq(retentions.id, id), scope) : eq(retentions.id, id);
+
+  const complaintRes = await db.execute(sql`SELECT COUNT(*) as count FROM retention_complaints WHERE retention_id = ${id}`);
+  if (Number(complaintRes[0].count) > 0) {
+    throw new Error("Gagal menghapus Retensi. Masih terdapat data Keluhan. Harap hapus semua data Keluhan terlebih dahulu.");
+  }
   
   const result = await db.delete(retentions).where(condition).returning();
   return mapRetentionRow(result[0]);

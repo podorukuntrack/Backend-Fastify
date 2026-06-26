@@ -245,6 +245,11 @@ export const deleteProgress = async (id, userContext) => {
 
   const unitId = existing.unit_id;
 
+  const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${unitId}`);
+  if (Number(handoverRes[0].count) > 0) {
+    throw new Error("Gagal menghapus Progress Pembangunan. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.");
+  }
+
   const rows = await db.execute(sql`
     DELETE FROM progress
      WHERE id = ${id}
