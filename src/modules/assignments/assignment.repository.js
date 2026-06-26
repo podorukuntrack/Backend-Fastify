@@ -30,12 +30,13 @@ const mapAssignmentRow = (row) => ({
   pembayaran: {
     tipe: row.tipe_pembayaran,
     harga_total: Number(row.harga_total ?? 0),
+    dp: Number(row.dp ?? 0),
     total_dibayar: Number(row.total_dibayar ?? 0),
     tenor_bulan: row.tenor_bulan,
     keterangan_kpr: row.keterangan_kpr,
-    persentase_dibayar: Number(row.harga_total ?? 0) > 0
-      ? Math.min((Number(row.total_dibayar ?? 0) / Number(row.harga_total)) * 100, 100)
-      : 0,
+    persentase_dibayar: row.tipe_pembayaran === 'kredit_kpr'
+      ? (Number(row.dp ?? 0) > 0 ? Math.min((Number(row.total_dibayar ?? 0) / Number(row.dp)) * 100, 100) : 0)
+      : (Number(row.harga_total ?? 0) > 0 ? Math.min((Number(row.total_dibayar ?? 0) / Number(row.harga_total)) * 100, 100) : 0),
   },
 });
 
@@ -69,6 +70,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
       pa.status_kepemilikan,
       pa.tipe_pembayaran,
       pa.harga_total,
+      pa.dp,
       pa.total_dibayar,
       pa.tenor_bulan,
       pa.keterangan_kpr,
@@ -130,6 +132,7 @@ export const findAssignmentById = async (id, userContext) => {
       pa.status_kepemilikan,
       pa.tipe_pembayaran,
       pa.harga_total,
+      pa.dp,
       pa.total_dibayar,
       pa.tenor_bulan,
       pa.keterangan_kpr,
@@ -151,29 +154,31 @@ export const findAssignmentById = async (id, userContext) => {
 
 export const insertAssignment = async (data, userContext) => {
   const rows = await db.execute(sql`
-    INSERT INTO property_assignments (
-      user_id,
-      unit_id,
-      tanggal_pembelian,
-      status_kepemilikan,
-      tipe_pembayaran,
-      harga_total,
-      total_dibayar,
-      tenor_bulan,
-      keterangan_kpr,
-      created_by
-    )
+      INSERT INTO property_assignments (
+        user_id,
+        unit_id,
+        tanggal_pembelian,
+        status_kepemilikan,
+        tipe_pembayaran,
+        harga_total,
+        dp,
+        total_dibayar,
+        tenor_bulan,
+        keterangan_kpr,
+        created_by
+      )
     VALUES (
       ${data.user_id},
       ${data.unit_id},
-      ${data.tanggal_pembelian ?? null},
-      ${normalizeOwnershipStatus(data.status_kepemilikan) ?? 'active'},
-      ${data.tipe_pembayaran ?? 'cash_lunas'},
-      ${data.harga_total ?? 0},
-      0,
-      ${data.tenor_bulan ?? 0},
-      ${data.keterangan_kpr ?? null},
-      ${userContext.sub}
+        ${data.tanggal_pembelian ?? null},
+        ${normalizeOwnershipStatus(data.status_kepemilikan) ?? 'active'},
+        ${data.tipe_pembayaran ?? 'cash_lunas'},
+        ${data.harga_total ?? 0},
+        ${data.dp ?? 0},
+        0,
+        ${data.tenor_bulan ?? 0},
+        ${data.keterangan_kpr ?? null},
+        ${userContext.sub}
     )
     RETURNING id
   `);
@@ -193,6 +198,7 @@ export const updateAssignment = async (id, data, userContext) => {
            status_kepemilikan = COALESCE(${normalizeOwnershipStatus(data.status_kepemilikan) ?? null}, status_kepemilikan),
            tipe_pembayaran = COALESCE(${data.tipe_pembayaran ?? null}, tipe_pembayaran),
            harga_total = COALESCE(${data.harga_total ?? null}, harga_total),
+           dp = COALESCE(${data.dp ?? null}, dp),
            tenor_bulan = COALESCE(${data.tenor_bulan ?? null}, tenor_bulan),
            keterangan_kpr = COALESCE(${data.keterangan_kpr ?? null}, keterangan_kpr),
            updated_at = NOW()
