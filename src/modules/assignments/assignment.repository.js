@@ -180,15 +180,6 @@ export const insertAssignment = async (data, userContext) => {
 
   const assignmentId = rows[0].id;
 
-  if (data.tipe_pembayaran === 'cash_lunas' && data.harga_total > 0) {
-    await insertPayment(assignmentId, {
-      jumlah_bayar: data.harga_total,
-      tanggal_bayar: data.tanggal_pembelian || new Date().toISOString(),
-      catatan: "Pembayaran Cash Lunas otomatis",
-      bukti_pembayaran: data.bukti_pembayaran || null
-    }, userContext);
-  }
-
   return await findAssignmentById(assignmentId, userContext);
 };
 
@@ -208,18 +199,6 @@ export const updateAssignment = async (id, data, userContext) => {
      WHERE id = ${id}
     RETURNING id
   `);
-
-  if (data.tipe_pembayaran === 'cash_lunas' && existing.pembayaran?.tipe !== 'cash_lunas' && data.harga_total > 0) {
-    // Bersihkan cicilan sebelumnya agar tidak tumpang tindih
-    await db.execute(sql`DELETE FROM payment_history WHERE assignment_id = ${id}`);
-
-    await insertPayment(id, {
-      jumlah_bayar: data.harga_total,
-      tanggal_bayar: data.tanggal_pembelian || new Date().toISOString(),
-      catatan: "Pelunasan Cash Lunas otomatis (Perubahan Metode)",
-      bukti_pembayaran: data.bukti_pembayaran || null
-    }, userContext);
-  }
 
   return await findAssignmentById(rows[0].id, userContext);
 };
