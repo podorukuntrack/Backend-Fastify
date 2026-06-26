@@ -203,10 +203,10 @@ export const updateAssignment = async (id, data, userContext) => {
            status_kepemilikan = COALESCE(${normalizeOwnershipStatus(data.status_kepemilikan) ?? null}, status_kepemilikan),
            tipe_pembayaran = COALESCE(${data.tipe_pembayaran ?? null}, tipe_pembayaran),
            harga_total = COALESCE(${data.harga_total ?? null}, harga_total),
-           dp = COALESCE(${data.dp ?? null}, dp),
-           jatuh_tempo_kpr = COALESCE(${data.jatuh_tempo_kpr ?? null}, jatuh_tempo_kpr),
-           tenor_bulan = COALESCE(${data.tenor_bulan ?? null}, tenor_bulan),
-           keterangan_kpr = COALESCE(${data.keterangan_kpr ?? null}, keterangan_kpr),
+           dp = ${data.dp !== undefined ? data.dp : sql`dp`},
+           jatuh_tempo_kpr = ${data.jatuh_tempo_kpr !== undefined ? data.jatuh_tempo_kpr : sql`jatuh_tempo_kpr`},
+           tenor_bulan = ${data.tenor_bulan !== undefined ? data.tenor_bulan : sql`tenor_bulan`},
+           keterangan_kpr = ${data.keterangan_kpr !== undefined ? data.keterangan_kpr : sql`keterangan_kpr`},
            updated_at = NOW()
      WHERE id = ${id}
     RETURNING id

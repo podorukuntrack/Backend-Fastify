@@ -10,10 +10,10 @@ export const createAssignmentSchema = {
     status_kepemilikan: z.enum(['active', 'inactive', 'cancelled', 'completed']).default('active'),
     tipe_pembayaran: z.enum(['cash_lunas', 'cash_cicil', 'kredit_kpr']).default('cash_lunas'),
     harga_total: z.coerce.number().nonnegative().default(0),
-    dp: z.coerce.number().nonnegative().optional(),
-    jatuh_tempo_kpr: z.string().optional(),
-    tenor_bulan: z.coerce.number().int().nonnegative().default(0),
-    keterangan_kpr: z.string().optional(),
+    dp: z.coerce.number().nonnegative().nullable().optional(),
+    jatuh_tempo_kpr: z.string().nullable().optional(),
+    tenor_bulan: z.coerce.number().int().nonnegative().nullable().optional(),
+    keterangan_kpr: z.string().nullable().optional(),
     bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
 };
@@ -25,10 +25,10 @@ export const updateAssignmentSchema = {
     status_kepemilikan: z.enum(['active', 'inactive', 'cancelled', 'completed']).optional(),
     tipe_pembayaran: z.enum(['cash_lunas', 'cash_cicil', 'kredit_kpr']).optional(),
     harga_total: z.coerce.number().nonnegative().optional(),
-    dp: z.coerce.number().nonnegative().optional(),
-    jatuh_tempo_kpr: z.string().optional(),
-    tenor_bulan: z.coerce.number().int().nonnegative().optional(),
-    keterangan_kpr: z.string().optional(),
+    dp: z.coerce.number().nonnegative().nullable().optional(),
+    jatuh_tempo_kpr: z.string().nullable().optional(),
+    tenor_bulan: z.coerce.number().int().nonnegative().nullable().optional(),
+    keterangan_kpr: z.string().nullable().optional(),
     bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
 };
