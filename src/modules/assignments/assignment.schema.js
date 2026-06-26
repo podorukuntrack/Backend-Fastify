@@ -12,6 +12,7 @@ export const createAssignmentSchema = {
     harga_total: z.coerce.number().nonnegative().default(0),
     dp: z.coerce.number().nonnegative().optional(),
     jatuh_tempo_kpr: z.string().optional(),
+    tenor_bulan: z.coerce.number().int().nonnegative().default(0),
     keterangan_kpr: z.string().optional(),
     bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
@@ -26,6 +27,7 @@ export const updateAssignmentSchema = {
     harga_total: z.coerce.number().nonnegative().optional(),
     dp: z.coerce.number().nonnegative().optional(),
     jatuh_tempo_kpr: z.string().optional(),
+    tenor_bulan: z.coerce.number().int().nonnegative().optional(),
     keterangan_kpr: z.string().optional(),
     bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
   })
