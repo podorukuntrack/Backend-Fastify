@@ -130,3 +130,16 @@ export const anonymizeUserAccount = async (userId) => {
   });
   return result;
 };
+
+export const hasActiveAssignments = async (userId) => {
+  const rows = await db.execute(sql`
+    SELECT pa.id 
+    FROM property_assignments pa
+    LEFT JOIN retentions r ON r.unit_id = pa.unit_id
+    WHERE pa.user_id = ${userId}::uuid
+      AND pa.status_kepemilikan != 'cancelled'
+      AND (r.id IS NULL OR r.due_date >= NOW())
+    LIMIT 1
+  `);
+  return rows.length > 0;
+};

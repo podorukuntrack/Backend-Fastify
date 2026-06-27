@@ -10,7 +10,8 @@ import {
   updateUserPassword,
   findUserByPhone,
   updateUserProfile,
-  anonymizeUserAccount
+  anonymizeUserAccount,
+  hasActiveAssignments
 } from './auth.repository.js';
 import { verifyAppleToken } from './apple-auth.service.js';
 import { insertUser } from '../users/user.repository.js';
@@ -566,6 +567,11 @@ export const appleLoginUser = async (idToken, userFullName, fastify) => {
 };
 
 export const deleteUserAccount = async (userId) => {
+  const hasActive = await hasActiveAssignments(userId);
+  if (hasActive) {
+    throw new Error('Tidak dapat menghapus akun karena Anda masih memiliki unit properti yang aktif atau masa retensinya belum selesai.');
+  }
+
   const result = await anonymizeUserAccount(userId);
   if (!result) {
     throw new Error('Gagal menghapus akun pengguna');
