@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   nomor_telepon: varchar("nomor_telepon", { length: 20 }),
   password_hash: text("password_hash").notNull(),
   role: varchar("role", { length: 50 }).notNull(),
+  apple_refresh_token: text("apple_refresh_token"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 }, (table) => ({

@@ -251,8 +251,8 @@ export const updateProfileHandler = async (request, reply) => {
 
 export const appleLoginHandler = async (request, reply) => {
   try {
-    const { idToken, fullName } = request.body;
-    const tokens = await service.appleLoginUser(idToken, fullName, request.server);
+    const { idToken, fullName, authorizationCode } = request.body;
+    const tokens = await service.appleLoginUser(idToken, fullName, authorizationCode, request.server);
     
     setAuthCookies(reply, tokens);
     

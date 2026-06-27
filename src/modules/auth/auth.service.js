@@ -11,9 +11,10 @@ import {
   findUserByPhone,
   updateUserProfile,
   anonymizeUserAccount,
-  hasActiveAssignments
+  hasActiveAssignments,
+  updateUserAppleToken
 } from './auth.repository.js';
-import { verifyAppleToken } from './apple-auth.service.js';
+import { verifyAppleToken, exchangeAppleToken, revokeAppleToken } from './apple-auth.service.js';
 import { insertUser } from '../users/user.repository.js';
 import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
 import { findCompanyById } from '../companies/company.repository.js';
@@ -488,7 +489,7 @@ export const updateProfile = async (userId, data) => {
   };
 };
 
-export const appleLoginUser = async (idToken, userFullName, fastify) => {
+export const appleLoginUser = async (idToken, userFullName, authorizationCode, fastify) => {
   if (!idToken) {
     throw new Error('ID Token Apple diperlukan');
   }
@@ -522,6 +523,14 @@ export const appleLoginUser = async (idToken, userFullName, fastify) => {
   // 4. RESTRICTION: Hanya allow customer
   if (user.role !== 'customer') {
     throw new Error('Akses Ditolak: Akun Apple ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.');
+  }
+
+  // 4.5. Tukarkan authorizationCode dengan Apple refresh token jika ada
+  if (authorizationCode) {
+    const appleRefreshToken = await exchangeAppleToken(authorizationCode);
+    if (appleRefreshToken) {
+      await updateUserAppleToken(user.id, appleRefreshToken);
+    }
   }
 
   // 5. Generate JWT tokens
@@ -570,6 +579,12 @@ export const deleteUserAccount = async (userId) => {
   const hasActive = await hasActiveAssignments(userId);
   if (hasActive) {
     throw new Error('Tidak dapat menghapus akun karena Anda masih memiliki unit properti yang aktif atau masa retensinya belum selesai.');
+  }
+
+  // Apple App Store Requirement: Revoke token if exists
+  const user = await findUserById(userId);
+  if (user && user.apple_refresh_token) {
+    await revokeAppleToken(user.apple_refresh_token);
   }
 
   const result = await anonymizeUserAccount(userId);

@@ -143,3 +143,9 @@ export const hasActiveAssignments = async (userId) => {
   `);
   return rows.length > 0;
 };
+
+export const updateUserAppleToken = async (userId, token) => {
+  await db.update(users)
+    .set({ apple_refresh_token: token })
+    .where(eq(users.id, userId));
+};
