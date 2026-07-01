@@ -213,7 +213,7 @@ export const documentations = pgTable("documentations", {
   progressIdx: index("docs_progress_idx").on(table.progressId),
 }));
 
-export const assignments = pgTable("assignments", {
+export const assignments = pgTable("property_assignments", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id")
     .references(() => companies.id)
