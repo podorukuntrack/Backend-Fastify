@@ -213,7 +213,7 @@ export const deleteUser = async (id, userContext) => {
         await tryDelete(sql.raw(`DELETE FROM payment_history WHERE assignment_id IN (${assignmentIdsSql})`));
 
         // Hapus data yang terhubung dengan unit_id
-        await tryDelete(sql.raw(`DELETE FROM documentations WHERE unit_id IN (${unitIdsSql})`));
+        await tryDelete(sql.raw(`DELETE FROM documentation WHERE unit_id IN (${unitIdsSql})`));
         await tryDelete(sql.raw(`DELETE FROM retentions WHERE unit_id IN (${unitIdsSql})`));
         
         await tryDelete(sql.raw(`
