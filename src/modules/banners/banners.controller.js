@@ -18,9 +18,36 @@ export const getByIdHandler = async (request, reply) => {
   }
 };
 
+const parseMultipart = async (request) => {
+  const fields = {};
+  let fileData = null;
+
+  if (request.isMultipart()) {
+    const parts = request.parts();
+    for await (const part of parts) {
+      if (part.type === 'file') {
+        fileData = {
+          buffer: await part.toBuffer(),
+          filename: part.filename,
+          mimetype: part.mimetype,
+        };
+      } else {
+        fields[part.fieldname] = part.value;
+      }
+    }
+    return { fields, fileData };
+  } else {
+    return { fields: request.body || {}, fileData: null };
+  }
+};
+
 export const createHandler = async (request, reply) => {
   try {
-    const data = await service.createBanner(request.body);
+    const { fields, fileData } = await parseMultipart(request);
+    if (!fileData) {
+      return reply.code(400).send({ success: false, message: 'Image file is required', errors: [] });
+    }
+    const data = await service.createBanner(fields, fileData);
     return reply.code(201).send({ success: true, message: 'Banner created', data });
   } catch (error) {
     return reply.code(500).send({ success: false, message: error.message, errors: [] });
@@ -29,7 +56,8 @@ export const createHandler = async (request, reply) => {
 
 export const updateHandler = async (request, reply) => {
   try {
-    const data = await service.updateBanner(request.params.id, request.body);
+    const { fields, fileData } = await parseMultipart(request);
+    const data = await service.updateBanner(request.params.id, fields, fileData);
     return reply.code(200).send({ success: true, message: 'Banner updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

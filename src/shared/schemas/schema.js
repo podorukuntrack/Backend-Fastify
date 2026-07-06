@@ -415,13 +415,12 @@ export const userDevices = pgTable("user_devices", {
 
 export const banners = pgTable("banners", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").references(() => companies.id), // Opsional: jika banner spesifik per company
+  targetCompanies: jsonb("target_companies").default([]), // [] berarti semua perusahaan
   name: varchar("name", { length: 255 }).notNull(),
   imageUrl: text("image_url").notNull(),
+  r2Key: text("r2_key"),
   linkUrl: text("link_url"),
   isActive: varchar("is_active", { length: 20 }).default("true"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  companyIdx: index("banners_company_idx").on(table.companyId),
-}));
+});
