@@ -25,6 +25,7 @@ import handoverRoutes from "./modules/handovers/handover.routes.js";
 import ticketRoutes from "./modules/tickets/ticket.routes.js";
 import whatsappRoutes from "./modules/whatsapp/whatsapp.routes.js";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes.js";
+import bannersRoutes from "./modules/banners/banners.routes.js";
 import { globalErrorHandler } from "./shared/utils/errorHandler.js";
 import { db } from "./config/database.js";
 import { sql } from "drizzle-orm";
@@ -132,6 +133,7 @@ export async function buildApp() {
   await app.register(ticketRoutes, { prefix: "/api/v1/tickets" });
   await app.register(whatsappRoutes, { prefix: "/api/v1/whatsapp" });
   await app.register(dashboardRoutes, { prefix: "/api/v1/dashboard" });
+  await app.register(bannersRoutes, { prefix: "/api/v1/banners" });
 
   app.get("/", async () => ({
     success: true,

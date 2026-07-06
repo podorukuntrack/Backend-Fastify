@@ -412,3 +412,16 @@ export const userDevices = pgTable("user_devices", {
 }, (table) => ({
   userIdx: index("devices_user_idx").on(table.userId),
 }));
+
+export const banners = pgTable("banners", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").references(() => companies.id), // Opsional: jika banner spesifik per company
+  name: varchar("name", { length: 255 }).notNull(),
+  imageUrl: text("image_url").notNull(),
+  linkUrl: text("link_url"),
+  isActive: varchar("is_active", { length: 20 }).default("true"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyIdx: index("banners_company_idx").on(table.companyId),
+}));
