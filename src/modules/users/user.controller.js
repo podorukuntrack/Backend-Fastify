@@ -61,6 +61,7 @@ export const deleteHandler = async (request, reply) => {
     return reply.code(200).send({ success: true, message: 'User deleted', data: {} });
   } catch (error) {
     console.error('Delete User Error:', error);
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    const statusCode = error.message.includes('Tidak dapat menghapus') ? 400 : 404;
+    return reply.code(statusCode).send({ success: false, message: error.message, errors: [] });
   }
 };

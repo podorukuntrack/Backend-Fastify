@@ -59,6 +59,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
     FROM users u
     WHERE ${conditionSql}
       AND u.id != ${userContext.sub}::uuid
+      AND u.nama != 'Pengguna Terhapus'
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
       AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
     ORDER BY u.created_at DESC
@@ -78,6 +79,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
     FROM users u
     WHERE ${conditionSql}
       AND u.id != ${userContext.sub}::uuid
+      AND u.nama != 'Pengguna Terhapus'
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
       AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
   `);
@@ -180,77 +182,64 @@ export const deleteUser = async (id, userContext) => {
 
   // Cek apakah user yang mau dihapus ada dan bisa diakses
   const existing = await findUserById(id, userContext);
-  if (!existing) return null;
+  if (!existing) throw new Error('User tidak ditemukan atau tidak ada akses');
 
   if (existing.role === 'customer') {
-    const tryDelete = async (query) => {
-      try {
-        await db.execute(query);
-      } catch (err) {
-        const pgErrorCode = err.code || (err.cause && err.cause.code);
-        // 42P01 = undefined_table (relation does not exist)
-        // 22P02 = invalid_text_representation (invalid enum value, etc)
-        if (pgErrorCode !== '42P01' && pgErrorCode !== '22P02') throw err; 
-      }
-    };
+    // 1. Cek Data Protes / Tiket
+    const [{ hasTickets }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM tickets WHERE user_id = ${id}) AS "hasTickets"`);
+    if (hasTickets) throw new Error('Tidak dapat menghapus akun: Harap hapus data Protes/Tiket untuk pengguna ini terlebih dahulu.');
 
-    // 1. Ambil ID unit dan assignment
-    const assignmentsRes = await db.execute(sql`
-      SELECT id AS assignment_id, unit_id
-      FROM property_assignments
-      WHERE user_id = ${id}
-    `);
+    // 2. Ambil ID Unit untuk pengecekan selanjutnya
+    const assignmentsRes = await db.execute(sql`SELECT id AS assignment_id, unit_id FROM property_assignments WHERE user_id = ${id}`);
+    const unitIds = assignmentsRes.map(a => a.unit_id).filter(Boolean);
+    const assignmentIds = assignmentsRes.map(a => a.assignment_id).filter(Boolean);
 
-    if (assignmentsRes.length > 0) {
-      const unitIds = assignmentsRes.map(a => a.unit_id).filter(Boolean);
-      const assignmentIds = assignmentsRes.map(a => a.assignment_id).filter(Boolean);
+    if (unitIds.length > 0) {
+      const unitIdsSql = unitIds.map(u => `'${u}'`).join(', ');
 
-      if (unitIds.length > 0 || assignmentIds.length > 0) {
-        const unitIdsSql = unitIds.length > 0 ? unitIds.map(u => `'${u}'`).join(', ') : "'00000000-0000-0000-0000-000000000000'";
-        const assignmentIdsSql = assignmentIds.length > 0 ? assignmentIds.map(u => `'${u}'`).join(', ') : "'00000000-0000-0000-0000-000000000000'";
+      // 3. Cek Retensi
+      const [{ hasRetentions }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM retentions WHERE unit_id IN (${unitIdsSql})) AS "hasRetentions"`));
+      if (hasRetentions) throw new Error('Tidak dapat menghapus akun: Harap hapus data Retensi untuk pengguna ini terlebih dahulu.');
 
-        // Hapus data yang terhubung dengan assignment_id
-        await tryDelete(sql.raw(`DELETE FROM payment_history WHERE assignment_id IN (${assignmentIdsSql})`));
+      // 4. Cek Serah Terima (Handovers)
+      const [{ hasHandovers }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM handovers WHERE unit_id IN (${unitIdsSql})) AS "hasHandovers"`));
+      if (hasHandovers) throw new Error('Tidak dapat menghapus akun: Harap hapus data Serah Terima untuk pengguna ini terlebih dahulu.');
 
-        // Hapus data yang terhubung dengan unit_id
-        await tryDelete(sql.raw(`DELETE FROM documentation WHERE unit_id IN (${unitIdsSql})`));
-        await tryDelete(sql.raw(`DELETE FROM retentions WHERE unit_id IN (${unitIdsSql})`));
-        
-        await tryDelete(sql.raw(`
-          DELETE FROM handover_defects 
-          WHERE handover_id IN (SELECT id FROM handovers WHERE unit_id IN (${unitIdsSql}))
-        `));
-        
-        await tryDelete(sql.raw(`DELETE FROM handovers WHERE unit_id IN (${unitIdsSql})`));
-        await tryDelete(sql.raw(`DELETE FROM progress WHERE unit_id IN (${unitIdsSql})`));
-        await tryDelete(sql.raw(`DELETE FROM timelines WHERE unit_id IN (${unitIdsSql})`));
+      // 5. Cek Pembayaran
+      const assignmentIdsSql = assignmentIds.length > 0 ? assignmentIds.map(u => `'${u}'`).join(', ') : "'00000000-0000-0000-0000-000000000000'";
+      const [{ hasPayments }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM payment_history WHERE assignment_id IN (${assignmentIdsSql})) AS "hasPayments"`));
+      if (hasPayments) throw new Error('Tidak dapat menghapus akun: Harap hapus data Pembayaran untuk pengguna ini terlebih dahulu.');
+      
+      const [{ hasPaymentsMain }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM payments WHERE unit_id IN (${unitIdsSql})) AS "hasPaymentsMain"`));
+      if (hasPaymentsMain) throw new Error('Tidak dapat menghapus akun: Harap hapus data Pembayaran (Tagihan) untuk pengguna ini terlebih dahulu.');
 
-        // Hapus assignments SEBELUM hapus units
-        await tryDelete(sql.raw(`DELETE FROM property_assignments WHERE id IN (${assignmentIdsSql})`));
+      // 6. Cek Progress Pembangunan
+      const [{ hasProgress }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM progress WHERE unit_id IN (${unitIdsSql})) AS "hasProgress"`));
+      if (hasProgress) throw new Error('Tidak dapat menghapus akun: Harap hapus data Progress Pembangunan untuk pengguna ini terlebih dahulu.');
 
-        // Terakhir hapus unitnya
-        await tryDelete(sql.raw(`DELETE FROM units WHERE id IN (${unitIdsSql})`));
-      }
+      // 7. Cek Timeline
+      const [{ hasTimeline }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM timelines WHERE unit_id IN (${unitIdsSql})) AS "hasTimeline"`));
+      if (hasTimeline) throw new Error('Tidak dapat menghapus akun: Harap hapus data Timeline untuk pengguna ini terlebih dahulu.');
     }
 
-    // 4. Hapus data personal customer
-    await tryDelete(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
-    await tryDelete(sql`
-      DELETE FROM ticket_messages 
-      WHERE ticket_id IN (SELECT id FROM tickets WHERE user_id = ${id})
-    `);
-    await tryDelete(sql`DELETE FROM tickets WHERE user_id = ${id}`);
-    await tryDelete(sql`DELETE FROM whatsapp_logs WHERE user_id = ${id}`);
-    await tryDelete(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
+    if (assignmentIds.length > 0) {
+      // 8. Cek Assignment
+      throw new Error('Tidak dapat menghapus akun: Harap hapus atau batalkan Assignment (Penugasan Unit) untuk pengguna ini terlebih dahulu.');
+    }
+
+    // Jika sampai di sini, semua bersih. Hapus data personal yang tidak perlu validasi UI.
+    await db.execute(sql`DELETE FROM user_devices WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM whatsapp_logs WHERE user_id = ${id}`);
+    await db.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`);
   } else {
-    // Jika admin/staff, bersihkan saja token dan devices (jika ada)
+    // Jika admin/staff, bersihkan token dan devices (jika ada)
     await Promise.all([
       db.execute(sql`DELETE FROM user_devices WHERE user_id = ${id}`),
       db.execute(sql`DELETE FROM refresh_tokens WHERE user_id = ${id}`)
     ]);
   }
 
-  // 5. Terakhir hapus usernya
+  // 9. Terakhir hapus usernya
   const result = await db.execute(sql`
     DELETE FROM users
      WHERE id = ${id}

@@ -277,23 +277,9 @@ export const appleLoginHandler = async (request, reply) => {
 };
 
 export const deleteAccountHandler = async (request, reply) => {
-  try {
-    const userId = request.user.sub;
-    const result = await service.deleteUserAccount(userId);
-    await clearCachePattern('users:*');
-    
-    reply.clearCookie('accessToken');
-    reply.clearCookie('refreshToken');
-
-    return reply.code(200).send({
-      success: true,
-      message: 'Akun Anda telah berhasil dihapus secara permanen',
-      data: result
-    });
-  } catch (error) {
-    return reply.code(500).send({
-      success: false,
-      message: error.message
-    });
-  }
+  return reply.code(403).send({
+    success: false,
+    message: 'Penghapusan akun dari aplikasi tidak diizinkan. Silakan hubungi Admin untuk menghapus akun Anda.',
+    errors: []
+  });
 };
