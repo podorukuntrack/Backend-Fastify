@@ -1,6 +1,6 @@
 import { db } from '../../config/database.js';
 import { retentions, retentionComplaints } from '../../shared/schemas/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
