@@ -122,7 +122,7 @@ export const deleteTimeline = async (id, userContext) => {
     throw new Error("Gagal menghapus Timeline. Masih terdapat data Progress Pembangunan. Harap hapus data Progress Pembangunan terlebih dahulu.");
   }
 
-  const [result] = await db.delete(timelines).where(condition).returning();
+  const result = await db.delete(timelines).where(condition).returning();
 
   // Recalculate unit progress
   const totalRes = await db.execute(sql`
