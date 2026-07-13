@@ -1,7 +1,7 @@
 // src/modules/handovers/handover.repository.js
 import { db } from '../../config/database.js';
 import { handovers, handoverDefects } from '../../shared/schemas/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -70,7 +70,7 @@ export const deleteHandover = async (id, userContext) => {
   const existing = await findHandoverById(id, userContext);
   if (!existing) return null;
 
-  const retentionRes = await db.execute(sql`SELECT COUNT(*) as count FROM retentions WHERE unit_id = ${existing.unit.id}`);
+  const retentionRes = await db.execute(sql`SELECT COUNT(*) as count FROM retentions WHERE unit_id = ${existing.unit_id}`);
   if (Number(retentionRes[0].count) > 0) {
     throw new Error("Gagal menghapus Serah Terima. Masih terdapat data Retensi / Garansi. Harap hapus data Retensi terlebih dahulu.");
   }
