@@ -95,14 +95,14 @@ export const sendHandoverNotification = (adminEmails, handoverDetails) => {
       if (!email) return Promise.resolve();
       
       const mailOptions = {
-        from: \`"Podorukun Track" <\${getSenderEmail()}>\`,
+        from: `"Podorukun Track" <${getSenderEmail()}>`,
         to: email,
-        subject: \`Pembaruan Serah Terima Unit \${unitNumber || ''}\`,
+        subject: `Pembaruan Serah Terima Unit ${unitNumber || ''}`,
         html: htmlContent
       };
       
       return sendMailAsync(mailOptions).catch(err => {
-        console.error(\`Background Email Notification Error for \${email}:\`, err.message);
+        console.error(`Background Email Notification Error for ${email}:`, err.message);
       });
     });
 
