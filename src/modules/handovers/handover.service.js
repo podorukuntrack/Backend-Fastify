@@ -1,6 +1,7 @@
 import * as repo from './handover.repository.js';
 import { findUnitById } from '../units/unit.repository.js';
 import { sendPushNotification } from '../../shared/utils/notification.js';
+import { sendHandoverNotification } from '../../shared/utils/mailer.js';
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
 import { users } from '../../shared/schemas/schema.js';
@@ -102,7 +103,7 @@ export const modifyHandover = async (id, data, userContext) => {
       
       if (userContext.role === 'customer') {
         const adminUsers = await db
-          .select({ id: users.id })
+          .select({ id: users.id, email: users.email })
           .from(users)
           .where(
             and(
@@ -111,6 +112,8 @@ export const modifyHandover = async (id, data, userContext) => {
             )
           );
         const adminIds = adminUsers.map(u => u.id);
+        const adminEmails = adminUsers.map(u => u.email).filter(Boolean);
+
         if (adminIds.length > 0) {
           await sendPushNotification(
             adminIds,
@@ -118,6 +121,25 @@ export const modifyHandover = async (id, data, userContext) => {
             `Customer telah menanggapi jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} (Status: ${result.status}).`,
             { type: 'handover_updated', handoverId: id }
           );
+        }
+
+        if (adminEmails.length > 0) {
+          let proposedDateText = '';
+          if (normalizedData.proposedDate) {
+            try {
+              const d = new Date(normalizedData.proposedDate);
+              proposedDateText = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+            } catch (e) {
+              proposedDateText = normalizedData.proposedDate;
+            }
+          }
+          
+          sendHandoverNotification(adminEmails, {
+            handoverId: id,
+            unitNumber: unit.nomor_unit ?? unit.nomorUnit,
+            status: result.status,
+            proposedDateText
+          });
         }
       } else {
         await sendPushNotification(
