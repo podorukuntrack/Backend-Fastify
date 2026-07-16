@@ -115,9 +115,31 @@ export const getComplaints = async (retentionId, userContext) => {
 };
 
 export const addComplaint = async (retentionId, input, userContext) => {
-  await getRetentionDetail(retentionId, userContext);
+  const retention = await getRetentionDetail(retentionId, userContext);
   const data = { ...input, retentionId };
-  return await repo.insertComplaint(data);
+  const result = await repo.insertComplaint(data);
+
+  // Trigger push notification to customers assigned to this unit
+  try {
+    const unitId = retention.unitId ?? retention.unit_id;
+    const assignments = await db.execute(sql`
+      SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid
+    `);
+    const userIds = assignments.map(a => a.user_id ?? a.userId);
+    
+    if (userIds.length > 0) {
+      await sendPushNotification(
+        userIds,
+        'Komplain Baru (Masa Retensi)',
+        `Terdapat catatan komplain baru terkait unit Anda: "${input.description ?? 'Tanpa deskripsi'}". Cek detailnya di aplikasi.`,
+        { type: 'complaint_created', retentionId, complaintId: result.id }
+      );
+    }
+  } catch (e) {
+    console.error('Failed to trigger complaint create push notification:', e.message);
+  }
+
+  return result;
 };
 
 export const editComplaint = async (retentionId, complaintId, input, userContext) => {
