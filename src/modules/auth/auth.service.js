@@ -206,6 +206,14 @@ export const registerCustomer = async (data, fastify) => {
     throw new Error('Email sudah terdaftar');
   }
 
+  const submittedPhone = data.nomorTelepon || data.nomor_telepon;
+  if (submittedPhone) {
+    const existingPhoneUser = await findUserByPhone(submittedPhone);
+    if (existingPhoneUser) {
+      throw new Error('Nomor telepon sudah terdaftar');
+    }
+  }
+
   const password_hash = await bcrypt.hash(data.password, 10);
 
   // Simpan user baru dengan role customer
@@ -229,6 +237,11 @@ export const requestOtp = async (method, contact) => {
     user = await findUserByEmail(contact);
   } else if (method === 'wa') {
     user = await findUserByPhone(contact);
+    if (!user && contact.startsWith('0')) {
+      user = await findUserByPhone('62' + contact.substring(1));
+    } else if (!user && contact.startsWith('62')) {
+      user = await findUserByPhone('0' + contact.substring(2));
+    }
   }
 
   if (!user) {
@@ -326,6 +339,11 @@ export const resetPassword = async (contact, resetToken, newPassword) => {
   let user = await findUserByEmail(contact);
   if (!user) {
     user = await findUserByPhone(contact);
+    if (!user && contact.startsWith('0')) {
+      user = await findUserByPhone('62' + contact.substring(1));
+    } else if (!user && contact.startsWith('62')) {
+      user = await findUserByPhone('0' + contact.substring(2));
+    }
   }
 
   if (!user) {

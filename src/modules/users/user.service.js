@@ -1,7 +1,7 @@
   // src/modules/users/user.service.js
   import bcrypt from 'bcrypt';
   import * as repo from './user.repository.js';
-  import { findUserByEmail } from '../auth/auth.repository.js';
+  import { findUserByEmail, findUserByPhone } from '../auth/auth.repository.js';
 
   export const getUsers = async (page, limit, userContext, filters = {}) => {
     const { data, total } = await repo.findUsers(page, limit, userContext, filters);
@@ -35,6 +35,13 @@
       throw new Error('Email sudah terdaftar. Silakan gunakan email lain.');
     }
 
+    if (data.nomor_telepon) {
+      const existingPhone = await findUserByPhone(data.nomor_telepon);
+      if (existingPhone) {
+        throw new Error('Nomor telepon sudah terdaftar. Silakan gunakan nomor lain.');
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(data.password, salt);
 
@@ -66,6 +73,13 @@
       const existingEmail = await findUserByEmail(data.email);
       if (existingEmail && existingEmail.id !== id) {
         throw new Error('Email sudah terdaftar pada akun lain. Silakan gunakan email lain.');
+      }
+    }
+
+    if (data.nomor_telepon) {
+      const existingPhone = await findUserByPhone(data.nomor_telepon);
+      if (existingPhone && existingPhone.id !== id) {
+        throw new Error('Nomor telepon sudah terdaftar pada akun lain. Silakan gunakan nomor lain.');
       }
     }
 
