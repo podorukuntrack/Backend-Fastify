@@ -42,6 +42,14 @@ export default async function clusterRoutes(fastify, options) {
                   updated_at: { type: 'string', format: 'date-time' }
                 }
               }
+            },
+            meta: {
+              type: 'object',
+              properties: {
+                total: { type: 'number' },
+                page: { type: 'number' },
+                limit: { type: 'number' }
+              }
             }
           }
         }
@@ -125,6 +133,14 @@ export default async function clusterRoutes(fastify, options) {
                   created_at: { type: 'string', format: 'date-time' },
                   updated_at: { type: 'string', format: 'date-time' }
                 }
+              }
+            },
+            meta: {
+              type: 'object',
+              properties: {
+                total: { type: 'number' },
+                page: { type: 'number' },
+                limit: { type: 'number' }
               }
             }
           }
