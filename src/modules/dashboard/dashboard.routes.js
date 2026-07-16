@@ -439,7 +439,9 @@ export default async function dashboardRoutes(fastify, options) {
         querystring: {
           type: "object",
           properties: {
-            companyId: { type: "string", format: "uuid" }
+            companyId: { type: "string", format: "uuid" },
+            startDate: { type: "string" },
+            endDate: { type: "string" }
           }
         },
         security: [{ bearerAuth: [] }],
@@ -452,12 +454,17 @@ export default async function dashboardRoutes(fastify, options) {
         cid = request.query.companyId;
       }
       
-      const cacheKey = `dashboard:executive:${cid || "global"}`;
+      const { startDate, endDate } = request.query;
+      const cacheKey = `dashboard:executive:v3:${cid || "global"}:${startDate || "all"}:${endDate || "all"}`;
 
       const cachedData = await getCache(cacheKey);
       if (cachedData) {
         return reply.send({ success: true, source: "cache", data: cachedData });
       }
+
+      const dateFilter = startDate && endDate 
+        ? sql` AND pa.tanggal_pembelian >= ${startDate}::date AND pa.tanggal_pembelian <= ${endDate}::date ` 
+        : sql``;
 
       // Financials
       const financeResult = await db.execute(sql`
@@ -480,6 +487,27 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN clusters c ON u.cluster_id = c.id
         JOIN projects p ON p.id = c.project_id
         WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+          AND pa.status_kepemilikan = 'active'
+        ${dateFilter}
+      `);
+
+      const paymentDateFilter = startDate && endDate 
+        ? sql` AND ph.tanggal_bayar >= ${startDate}::date AND ph.tanggal_bayar <= ${endDate}::date ` 
+        : sql``;
+
+      const salesTrendResult = await db.execute(sql`
+        SELECT 
+          DATE(ph.tanggal_bayar) as date,
+          COALESCE(SUM(ph.jumlah_bayar), 0) as revenue
+        FROM payment_history ph
+        JOIN property_assignments pa ON ph.assignment_id = pa.id
+        JOIN units u ON pa.unit_id = u.id
+        JOIN clusters c ON u.cluster_id = c.id
+        JOIN projects p ON p.id = c.project_id
+        WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+        ${paymentDateFilter}
+        GROUP BY DATE(ph.tanggal_bayar)
+        ORDER BY date ASC
       `);
 
       // Sales
@@ -493,12 +521,14 @@ export default async function dashboardRoutes(fastify, options) {
            JOIN units u ON pa.unit_id = u.id
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON p.id = c.project_id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid) AND pa.status_kepemilikan = 'active') as units_sold,
+           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid) AND pa.status_kepemilikan = 'active'
+           ${dateFilter}) as units_sold,
           (SELECT COUNT(DISTINCT pa.user_id) FROM property_assignments pa
            JOIN units u ON pa.unit_id = u.id
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON c.project_id = p.id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid) AND pa.status_kepemilikan = 'active') as total_customers
+           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid) AND pa.status_kepemilikan = 'active'
+           ${dateFilter}) as total_customers
       `);
 
       // Payment methods distribution
@@ -525,7 +555,7 @@ export default async function dashboardRoutes(fastify, options) {
           LEFT JOIN projects p ON p.company_id = comp.id
           LEFT JOIN clusters c ON c.project_id = p.id
           LEFT JOIN units u ON u.cluster_id = c.id
-          LEFT JOIN property_assignments pa ON pa.unit_id = u.id AND pa.status_kepemilikan = 'active'
+          LEFT JOIN property_assignments pa ON pa.unit_id = u.id AND pa.status_kepemilikan = 'active' ${dateFilter}
           GROUP BY comp.id, comp.nama_pt
           ORDER BY total_revenue DESC
         `);
@@ -535,6 +565,7 @@ export default async function dashboardRoutes(fastify, options) {
       const responseData = {
         finance: financeResult[0],
         sales: salesResult[0],
+        sales_trend: salesTrendResult,
         payment_methods: paymentMethodsResult,
         leaderboard: leaderboard
       };
@@ -559,7 +590,9 @@ export default async function dashboardRoutes(fastify, options) {
         querystring: {
           type: "object",
           properties: {
-            companyId: { type: "string", format: "uuid" }
+            companyId: { type: "string", format: "uuid" },
+            startDate: { type: "string", format: "date" },
+            endDate: { type: "string", format: "date" }
           }
         },
         response: {
@@ -586,7 +619,10 @@ export default async function dashboardRoutes(fastify, options) {
         filterCid = user.companyId;
       }
 
-      const cacheKey = `dashboard:drilldown:${filterCid || "global"}`;
+      const sDate = request.query.startDate || null;
+      const eDate = request.query.endDate || null;
+
+      const cacheKey = `dashboard:drilldown:v2:${filterCid || "global"}:${sDate || "all"}:${eDate || "all"}`;
       const cached = await getCache(cacheKey);
       if (cached) {
         return { success: true, source: "cache", data: cached };
@@ -630,6 +666,8 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN users buyer ON pa.user_id = buyer.id
         WHERE pa.status_kepemilikan = 'active'
           AND (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
+          AND (${sDate}::date IS NULL OR pa.tanggal_pembelian >= ${sDate}::date)
+          AND (${eDate}::date IS NULL OR pa.tanggal_pembelian <= ${eDate}::date)
         ORDER BY pa.tanggal_pembelian DESC
       `);
 
@@ -650,6 +688,10 @@ export default async function dashboardRoutes(fastify, options) {
         LEFT JOIN property_assignments pa ON pa.unit_id = u.id AND pa.status_kepemilikan = 'active'
         LEFT JOIN users buyer ON pa.user_id = buyer.id
         WHERE (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
+          AND (
+            (${sDate}::date IS NULL AND ${eDate}::date IS NULL)
+            OR (pa.tanggal_pembelian >= ${sDate}::date AND pa.tanggal_pembelian <= ${eDate}::date)
+          )
         ORDER BY p.nama_proyek ASC, c.nama_cluster ASC, u.nomor_unit ASC
       `);
 
@@ -674,6 +716,8 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN companies comp ON p.company_id = comp.id
         WHERE (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
           AND pa.status_kepemilikan = 'active'
+          AND (${sDate}::date IS NULL OR pa.tanggal_pembelian >= ${sDate}::date)
+          AND (${eDate}::date IS NULL OR pa.tanggal_pembelian <= ${eDate}::date)
         GROUP BY COALESCE(buyer.id, pa.id), COALESCE(buyer.nama, 'Customer (Belum Terdaftar)')
         ORDER BY total_transaction_value DESC
       `);

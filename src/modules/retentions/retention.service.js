@@ -50,7 +50,7 @@ export const createRetention = async (input, userContext) => {
         userIds,
         'Masa Garansi Rumah (Retensi) Dimulai',
         `Masa garansi / retensi untuk unit ${unitNo} telah diaktifkan sampai tanggal ${formattedDate}.`,
-        { type: 'retention_created', retentionId: result.id }
+        { type: 'retention_created', retentionId: result.id, unitId: data.unitId }
       );
     }
   } catch (e) {
@@ -90,7 +90,7 @@ export const modifyRetention = async (id, input, userContext) => {
         userIds,
         title,
         body,
-        { type: 'retention_updated', retentionId: id }
+        { type: 'retention_updated', retentionId: id, unitId: targetUnitId }
       );
     }
   } catch (e) {
@@ -143,8 +143,30 @@ export const addComplaint = async (retentionId, input, userContext) => {
 };
 
 export const editComplaint = async (retentionId, complaintId, input, userContext) => {
-  await getRetentionDetail(retentionId, userContext);
-  return await repo.updateComplaint(complaintId, input);
+  const retention = await getRetentionDetail(retentionId, userContext);
+  const result = await repo.updateComplaint(complaintId, input);
+
+  try {
+    const unitId = retention.unitId ?? retention.unit_id;
+    const assignments = await db.execute(sql`
+      SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid
+    `);
+    const userIds = assignments.map(a => a.user_id ?? a.userId);
+    
+    if (userIds.length > 0 && input.status !== undefined) {
+      const statusText = result.status === 'resolved' ? 'Selesai Diperbaiki' : 'Menunggu Perbaikan';
+      await sendPushNotification(
+        userIds,
+        'Update Status Komplain (Retensi)',
+        `Status komplain "${result.description ?? 'Tanpa deskripsi'}" kini menjadi: ${statusText}.`,
+        { type: 'complaint_updated', retentionId, complaintId: result.id, unitId }
+      );
+    }
+  } catch (e) {
+    console.error('Failed to trigger complaint update push notification:', e.message);
+  }
+
+  return result;
 };
 
 export const removeComplaint = async (retentionId, complaintId, userContext) => {

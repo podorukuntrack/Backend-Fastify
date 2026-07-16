@@ -49,7 +49,7 @@ export const createHandover = async (data, userContext) => {
         userIds,
         'Jadwal Serah Terima Unit (Handover)',
         `Jadwal serah terima kunci untuk unit ${unit.nomor_unit ?? unit.nomorUnit} telah dibuat. Silakan cek detailnya di menu Serah Terima.`,
-        { type: 'handover_created', handoverId: result.id }
+        { type: 'handover_created', handoverId: result.id, unitId: normalizedData.unitId }
       );
     }
   } catch (e) {
@@ -155,7 +155,7 @@ export const modifyHandover = async (id, data, userContext) => {
             adminIds,
             `Respon Serah Terima dari Customer`,
             `Customer telah menanggapi jadwal serah terima unit ${unitNo} (Status: ${result.status}).`,
-            { type: 'handover_updated', handoverId: id }
+            { type: 'handover_updated', handoverId: id, unitId: targetUnitId }
           );
         }
 
@@ -175,7 +175,7 @@ export const modifyHandover = async (id, data, userContext) => {
           userIds,
           title,
           body,
-          { type: 'handover_updated', handoverId: id }
+          { type: 'handover_updated', handoverId: id, unitId: targetUnitId }
         );
       }
     }
@@ -218,7 +218,7 @@ export const reportDefect = async (handoverId, data, userContext) => {
         adminIds,
         `Laporan Defect Baru (Komplain Unit)`,
         `Laporan komplain unit/defect baru diajukan untuk unit ${unit.nomor_unit ?? unit.nomorUnit}: ${data.description}.`,
-        { type: 'defect_reported', handoverId }
+        { type: 'defect_reported', handoverId, unitId: handover.unit_id ?? handover.unitId }
       );
     }
   } catch (e) {
