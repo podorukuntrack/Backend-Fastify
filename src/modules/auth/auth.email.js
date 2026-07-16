@@ -38,6 +38,13 @@ export const sendOTPByEmail = async (to, otp) => {
         </div>
         <p style="color: #64748b; font-size: 14px;">Kode ini hanya berlaku selama <strong>5 menit</strong>. Jika Anda tidak meminta kode ini, abaikan email ini.</p>
         <p style="color: #334155; font-size: 16px; margin-top: 30px;">Terima kasih,<br/>Tim Podorukun Track</p>
+        
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;" />
+        <div style="color: #94a3b8; font-size: 12px; line-height: 1.5; text-align: justify;">
+          <p style="margin: 0 0 10px 0;"><strong>Podorukun Group</strong> adalah perusahaan yang bergerak di bidang developer properti, berlokasi di Jl. Akordion Perumahan Permata Tunggulwulung Kav. 08, Lowokwaru, Kota Malang, Jawa Timur.</p>
+          <p style="margin: 0 0 10px 0;">Didirikan pada tanggal 29 Januari 2015 dengan bentuk badan hukum Perseroan Terbatas di Kota Malang, berdasarkan Akte Pendirian No. 80 yang dibuat di hadapan Notaris Atik Rusmiati.</p>
+          <p style="margin: 0;"><strong>Bantuan & Layanan:</strong> WA 6281255510111</p>
+        </div>
       </div>
     `,
   };
