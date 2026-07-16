@@ -10,7 +10,8 @@ import {
   pgEnum,
   decimal,
   index,
-  jsonb
+  jsonb,
+  boolean
 } from "drizzle-orm/pg-core";
 
 // Definisi Role
@@ -330,6 +331,8 @@ export const handovers = pgTable("handovers", {
   notes: text("notes"),
   imageUrl: text("image_url"),
   documentUrl: text("document_url"),
+  reminder24hSent: boolean("reminder_24h_sent").default(false),
+  reminder2hSent: boolean("reminder_2h_sent").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({

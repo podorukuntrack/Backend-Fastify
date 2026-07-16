@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
 
 export default {
   schema: './src/shared/schemas/schema.js',

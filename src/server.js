@@ -3,9 +3,12 @@ import { sql } from 'drizzle-orm';
 import { buildApp } from './app.js';
 import { db } from './config/database.js';
 import './shared/utils/queue.js';
+import { startHandoverCron } from './jobs/handover.cron.js';
 
 // Load .env utama
 dotenv.config({ path: '.env', override: true });
+
+startHandoverCron();
 
 const start = async () => {
   try {
