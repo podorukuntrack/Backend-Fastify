@@ -1,10 +1,11 @@
 import nodemailer from 'nodemailer';
 
 const createTransporter = () => {
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '465', 10),
-    secure: parseInt(process.env.SMTP_PORT || '465', 10) === 465,
+    host: process.env.SMTP_HOST || 'smtp.sumopod.com',
+    port: port,
+    secure: port === 465, // SSL: True jika port 465
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -45,6 +46,6 @@ export const sendOTPByEmail = async (to, otp) => {
     return true;
   } catch (error) {
     console.error('Error sending OTP Email:', error);
-    throw new Error('Gagal mengirim email OTP. Pastikan konfigurasi SMTP benar.');
+    throw new Error(`Gagal mengirim email OTP: ${error.message || 'Pastikan konfigurasi SMTP benar.'}`);
   }
 };
