@@ -7,8 +7,8 @@ import * as controller from './timeline.controller.js';
 export default async function timelineRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
 
-  const readRoles = authorize('super_admin', 'admin', 'customer');
-  const writeRoles = authorize('super_admin', 'admin');
+  const readRoles = authorize('super_admin', 'owner', 'admin', 'direksi', 'customer');
+  const writeRoles = authorize('admin');
 
   // GET - Dapatkan semua timeline/milestone project
   fastify.get('/', {

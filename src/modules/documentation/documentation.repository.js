@@ -34,7 +34,7 @@ export const findAllDocs = async (userContext, filters = {}) => {
   const unitId = filters.unitId ?? filters.unit_id ?? null;
 
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`d.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
@@ -72,7 +72,7 @@ export const findAllDocs = async (userContext, filters = {}) => {
 
 export const findDocsByUnitId = async (unitId, userContext) => {
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`d.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
@@ -109,7 +109,7 @@ export const findDocsByUnitId = async (unitId, userContext) => {
 
 export const findDocById = async (id, userContext) => {
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`d.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;

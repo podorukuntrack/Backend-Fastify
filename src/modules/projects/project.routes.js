@@ -8,7 +8,7 @@ export default async function projectRoutes(fastify, options) {
   fastify.addHook("preValidation", fastify.authenticate);
 
   // Sesuai Permission Matrix: Hanya super_admin dan admin yang bisa mengakses module ini
-  fastify.addHook("preHandler", authorize("super_admin", "admin"));
+  fastify.addHook("preHandler", authorize("super_admin", "owner", "admin", "direksi"));
 
   // GET - Dapatkan semua projects dengan pagination
   fastify.get(
@@ -100,7 +100,7 @@ export default async function projectRoutes(fastify, options) {
         },
         security: [{ bearerAuth: [] }],
       },
-      preHandler: [validate(schema.createProjectSchema)],
+      preHandler: [authorize('admin'), validate(schema.createProjectSchema)],
     },
     controller.createHandler,
   );
@@ -226,7 +226,7 @@ export default async function projectRoutes(fastify, options) {
         },
         security: [{ bearerAuth: [] }],
       },
-      preHandler: [validate(schema.updateProjectSchema)],
+      preHandler: [authorize('admin'), validate(schema.updateProjectSchema)],
     },
     controller.updateHandler,
   );
@@ -268,7 +268,7 @@ export default async function projectRoutes(fastify, options) {
         },
         security: [{ bearerAuth: [] }],
       },
-      preHandler: [validate(schema.projectIdParamSchema)],
+      preHandler: [authorize('admin'), validate(schema.projectIdParamSchema)],
     },
     controller.deleteHandler,
   );

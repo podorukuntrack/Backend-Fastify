@@ -6,6 +6,7 @@ import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
 import { users } from '../../shared/schemas/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
+import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
 
 const normalizeInput = (data) => {
   const normalized = { ...data };
@@ -103,42 +104,70 @@ export const modifyHandover = async (id, data, userContext) => {
       
       if (userContext.role === 'customer') {
         const adminUsers = await db
-          .select({ id: users.id, email: users.email })
+          .select({ id: users.id, email: users.email, nomor_telepon: users.nomor_telepon })
           .from(users)
           .where(
             and(
               eq(users.companyId, result.company_id ?? result.companyId),
-              inArray(users.role, ['admin', 'customer_service'])
+              inArray(users.role, ['admin'])
             )
           );
+        
+        let proposedDateText = '';
+        if (normalizedData.proposedDate) {
+          try {
+            const d = new Date(normalizedData.proposedDate);
+            proposedDateText = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+          } catch (e) {
+            proposedDateText = normalizedData.proposedDate;
+          }
+        }
+
         const adminIds = adminUsers.map(u => u.id);
         const adminEmails = adminUsers.map(u => u.email).filter(Boolean);
+        const adminPhones = adminUsers.map(u => u.nomor_telepon).filter(Boolean);
+        
+        const frontendUrl = (process.env.FRONTEND_URL || 'https://podorukuntrack.com').split(',')[0].trim();
+        const projectId = unit?.cluster?.project?.id || '';
+        const clusterId = unit?.cluster_id || unit?.clusterId || '';
+        const unitNo = unit?.nomor_unit || unit?.nomorUnit || '';
+        const actionUrl = `${frontendUrl}/projects/${projectId}/clusters/${clusterId}/units/${unit.id}?tab=handover`;
+
+        // WA Message Logic
+        let waMessage = '';
+        const isAccepted = result.status === 'dijadwalkan' || result.status === 'scheduled';
+        const statusText = isAccepted ? 'Menerima Jadwal' : result.status;
+        
+        if (proposedDateText) {
+          waMessage = `*Notifikasi Serah Terima*\n\nHalo Admin,\nCustomer unit *${unitNo}* telah mengajukan perubahan jadwal serah terima menjadi tanggal *${proposedDateText}*.\n\nSilakan klik tautan di bawah ini untuk melihat detailnya:\n${actionUrl}`;
+        } else {
+          waMessage = `*Notifikasi Serah Terima*\n\nHalo Admin,\nCustomer unit *${unitNo}* telah merespons jadwal serah terima dengan status: *${statusText.toUpperCase()}*.\n\nSilakan klik tautan di bawah ini untuk melihat detailnya:\n${actionUrl}`;
+        }
+
+        if (adminPhones.length > 0) {
+          adminPhones.forEach(phone => {
+             sendWhatsAppMessage(phone, waMessage, userContext).catch(console.error);
+          });
+        }
 
         if (adminIds.length > 0) {
           await sendPushNotification(
             adminIds,
             `Respon Serah Terima dari Customer`,
-            `Customer telah menanggapi jadwal serah terima unit ${unit.nomor_unit ?? unit.nomorUnit} (Status: ${result.status}).`,
+            `Customer telah menanggapi jadwal serah terima unit ${unitNo} (Status: ${result.status}).`,
             { type: 'handover_updated', handoverId: id }
           );
         }
 
         if (adminEmails.length > 0) {
-          let proposedDateText = '';
-          if (normalizedData.proposedDate) {
-            try {
-              const d = new Date(normalizedData.proposedDate);
-              proposedDateText = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
-            } catch (e) {
-              proposedDateText = normalizedData.proposedDate;
-            }
-          }
-          
           sendHandoverNotification(adminEmails, {
             handoverId: id,
-            unitNumber: unit.nomor_unit ?? unit.nomorUnit,
+            unitNumber: unitNo,
             status: result.status,
-            proposedDateText
+            proposedDateText,
+            projectId,
+            clusterId,
+            unitId: unit.id
           });
         }
       } else {
@@ -180,7 +209,7 @@ export const reportDefect = async (handoverId, data, userContext) => {
       .where(
         and(
           eq(users.companyId, handover.company_id ?? handover.companyId),
-          inArray(users.role, ['admin', 'customer_service'])
+          inArray(users.role, ['admin'])
         )
       );
     const adminIds = adminUsers.map(u => u.id);

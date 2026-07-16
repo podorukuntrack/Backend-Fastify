@@ -39,7 +39,6 @@ export const setCache = async (key, value, ttl = 3600) => {
  * @returns {Promise<any | null>} Mengembalikan data yang di-parse, atau null jika tidak ada/error
  */
 export const getCache = async (key) => {
-  return null; // Force bypass cache
   if (!redisClient) {
     console.warn('⚠️ [Cache] Redis client is not initialized. Skipping getCache.');
     return null;
@@ -94,6 +93,14 @@ export const clearCachePattern = async (pattern) => {
   } catch (error) {
     console.error(`❌ [Cache] Error clearing cache pattern ${pattern}:`, error.message);
   }
+};
+
+/**
+ * Utility to clear all dashboard-related caches
+ */
+export const clearDashboardCache = async () => {
+  await clearCachePattern('stats:*');
+  await clearCachePattern('dashboard:*');
 };
 
 /**

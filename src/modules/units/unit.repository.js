@@ -1,6 +1,7 @@
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
 import { units } from '../../shared/schemas/schema.js';
+import { clearDashboardCache } from '../../shared/utils/cache.js';
 
 const mapUnitRow = (row) => ({
   id: row.id,
@@ -15,6 +16,7 @@ const mapUnitRow = (row) => ({
   created_at: row.created_at,
   updated_at: row.updated_at,
   nama_perusahaan: row.nama_perusahaan,
+  company_id: row.company_id,
   cluster: row.cluster_id
     ? {
         id: row.cluster_id,
@@ -50,7 +52,7 @@ export const findAllUnits = async (userContext, filters = {}) => {
   const offset = (page - 1) * limit;
 
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`u.id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
@@ -95,7 +97,7 @@ export const findAllUnits = async (userContext, filters = {}) => {
 export const findUnitById = async (id, userContext) => {
   if (!id) return null;
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`u.id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
@@ -121,6 +123,7 @@ export const findUnitById = async (id, userContext) => {
       p.id AS project_id,
       p.nama_proyek,
       cp.nama_pt AS nama_perusahaan,
+      p.company_id AS company_id,
       cp.kode_pt
     FROM units u
     JOIN clusters c ON c.id = u.cluster_id
@@ -199,6 +202,7 @@ export const insertUnits = async (unitsData) => {
   const rows = await db.insert(units).values(values).returning();
   
   // map unit rows back to expected shape
+  await clearDashboardCache();
   return rows.map(r => mapUnitRow({
     id: r.id,
     cluster_id: r.clusterId,

@@ -60,15 +60,23 @@ export const sendHandoverNotification = (adminEmails, handoverDetails) => {
   Promise.resolve().then(async () => {
     if (!adminEmails || adminEmails.length === 0) return;
 
-    const { handoverId, unitNumber, status, proposedDateText } = handoverDetails;
+    const { handoverId, unitNumber, status, proposedDateText, projectId, clusterId, unitId } = handoverDetails;
     const frontendUrl = getBaseFrontendUrl();
-    const actionUrl = `${frontendUrl}/admin/handovers/${handoverId}`; // Asumsi routing frontend admin
+    const actionUrl = `${frontendUrl}/projects/${projectId}/clusters/${clusterId}/units/${unitId}?tab=handover`;
     
     let actionText = '';
+    let subject = '';
+    
+    // Formatting status if accepted
+    const isAccepted = status === 'dijadwalkan' || status === 'scheduled';
+    const statusText = isAccepted ? 'Menerima Jadwal' : status;
+
     if (proposedDateText) {
-       actionText = `<p style="color: #334155; font-size: 16px;">Customer telah menyesuaikan jadwal serah terima menjadi tanggal <strong>${proposedDateText}</strong>.</p>`;
+       actionText = `<p style="color: #334155; font-size: 16px;">Customer telah <strong>mengajukan perubahan jadwal</strong> serah terima menjadi tanggal <strong>${proposedDateText}</strong>.</p>`;
+       subject = `Customer Mengajukan Perubahan Jadwal Serah Terima - Unit ${unitNumber || ''}`;
     } else {
-       actionText = `<p style="color: #334155; font-size: 16px;">Status serah terima unit saat ini telah diubah menjadi: <strong style="text-transform: uppercase; color: #b51318;">${status}</strong>.</p>`;
+       actionText = `<p style="color: #334155; font-size: 16px;">Customer telah <strong>merespons</strong> jadwal serah terima dengan status: <strong style="text-transform: uppercase; color: #b51318;">${statusText}</strong>.</p>`;
+       subject = `Customer Merespons Jadwal Serah Terima - Unit ${unitNumber || ''}`;
     }
 
     const htmlContent = `
@@ -97,7 +105,7 @@ export const sendHandoverNotification = (adminEmails, handoverDetails) => {
       const mailOptions = {
         from: `"Podorukun Track" <${getSenderEmail()}>`,
         to: email,
-        subject: `Pembaruan Serah Terima Unit ${unitNumber || ''}`,
+        subject: subject,
         html: htmlContent
       };
       

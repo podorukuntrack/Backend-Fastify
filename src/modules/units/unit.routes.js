@@ -64,8 +64,8 @@ const unitSchemaObject = {
 export default async function unitRoutes(fastify) {
   fastify.addHook('preValidation', fastify.authenticate);
 
-  const readRoles = authorize('super_admin', 'admin', 'customer');
-  const writeRoles = authorize('super_admin', 'admin');
+  const readRoles = authorize('super_admin', 'owner', 'admin', 'direksi', 'customer');
+  const writeRoles = authorize('admin');
 
   // =============================
   // GET ALL

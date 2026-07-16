@@ -11,20 +11,19 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
 
   let conditionSql;
 
-  if (userContext.role === 'super_admin') {
-    // Super admin cukup melihat akun admin/non-customer
+  if (['super_admin', 'owner'].includes(userContext.role)) {
+    // Super admin melihat semua akun kecuali customer
     conditionSql = sql`u.role != 'customer'`;
 
-  } else if (userContext.role === 'admin') {
+  } else if (['admin', 'direksi'].includes(userContext.role)) {
     if (allCustomers) {
       // Admin request all customers for assignment: return ALL users with role = 'customer'
       conditionSql = sql`u.role = 'customer'`;
     } else {
-      // Normal admin view: non-customer dari company yg sama, atau customer dari company yg sama, atau customer yg diassign ke company admin
-      conditionSql = sql`(
+      // Normal admin view: hanya customer dari company yg sama, atau customer yg diassign ke company admin
+      conditionSql = sql`u.role = 'customer' AND (
         u.company_id = ${userContext.companyId}::uuid
-        OR
-        (u.role = 'customer' AND EXISTS (
+        OR EXISTS (
           SELECT 1 
           FROM property_assignments pa
           JOIN units un ON un.id = pa.unit_id
@@ -32,7 +31,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
           JOIN projects pr ON pr.id = cl.project_id
           WHERE pa.user_id = u.id 
             AND pr.company_id = ${userContext.companyId}::uuid
-        ))
+        )
       )`;
     }
 
@@ -58,7 +57,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
       u.updated_at
     FROM users u
     WHERE ${conditionSql}
-      AND u.id != ${userContext.sub}::uuid
+      AND (${userContext.role} = 'super_admin' OR u.id != ${userContext.sub}::uuid)
       AND u.nama != 'Pengguna Terhapus'
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
       AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
@@ -78,7 +77,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
     SELECT COUNT(*)::int AS count
     FROM users u
     WHERE ${conditionSql}
-      AND u.id != ${userContext.sub}::uuid
+      AND (${userContext.role} = 'super_admin' OR u.id != ${userContext.sub}::uuid)
       AND u.nama != 'Pengguna Terhapus'
       AND (${search} = '' OR u.nama ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})
       AND (${roleFilter}::user_role IS NULL OR u.role = ${roleFilter}::user_role)
@@ -92,24 +91,26 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
 export const findUserById = async (id, userContext) => {
   let conditionSql;
 
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     // Super admin bisa lihat semua
     conditionSql = sql`id = ${id}`;
 
-  } else if (userContext.role === 'admin') {
-    // Admin bisa lihat semua akun yg ada di company-nya,
-    // atau customer yang memiliki unit di perusahaannya
+  } else if (['admin', 'direksi'].includes(userContext.role)) {
+    // Admin/direksi hanya bisa lihat customer di company-nya atau dirinya sendiri
     conditionSql = sql`id = ${id} AND (
-      company_id = ${userContext.companyId}::uuid
+      id = ${userContext.sub}::uuid
       OR
-      (role = 'customer' AND EXISTS (
-        SELECT 1 
-        FROM property_assignments pa
-        JOIN units un ON un.id = pa.unit_id
-        JOIN clusters cl ON cl.id = un.cluster_id
-        JOIN projects pr ON pr.id = cl.project_id
-        WHERE pa.user_id = users.id 
-          AND pr.company_id = ${userContext.companyId}::uuid
+      (role = 'customer' AND (
+        company_id = ${userContext.companyId}::uuid
+        OR EXISTS (
+          SELECT 1 
+          FROM property_assignments pa
+          JOIN units un ON un.id = pa.unit_id
+          JOIN clusters cl ON cl.id = un.cluster_id
+          JOIN projects pr ON pr.id = cl.project_id
+          WHERE pa.user_id = users.id 
+            AND pr.company_id = ${userContext.companyId}::uuid
+        )
       ))
     )`;
 
@@ -134,7 +135,7 @@ export const findUserById = async (id, userContext) => {
 
 
 export const insertUser = async (data) => {
-  const companyId = data.role === 'customer' ? null : (data.company_id ?? null);
+  const companyId = ['customer', 'super_admin', 'owner'].includes(data.role) ? null : (data.company_id ?? null);
   const result = await db.execute(sql`
     INSERT INTO users (company_id, nama, email, password_hash, nomor_telepon, role, status)
     VALUES (${companyId}, ${data.nama}, ${data.email}, ${data.password_hash}, ${data.nomor_telepon ?? null}, ${data.role}, ${data.status ?? 'active'})
@@ -144,11 +145,11 @@ export const insertUser = async (data) => {
 };
 
 export const updateUser = async (id, data, userContext) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const companyId = ['super_admin', 'owner'].includes(userContext.role) ? null : userContext.companyId;
   const result = await db.execute(sql`
     UPDATE users
        SET company_id = CASE 
-             WHEN COALESCE(${data.role ?? null}, role) = 'customer' THEN NULL 
+             WHEN COALESCE(${data.role ?? null}, role) IN ('customer', 'super_admin', 'owner') THEN NULL 
              ELSE COALESCE(${data.company_id ?? null}, company_id)
            END,
            nama = COALESCE(${data.nama ?? null}, nama),
@@ -161,15 +162,18 @@ export const updateUser = async (id, data, userContext) => {
      WHERE id = ${id}
        AND (
          ${companyId}::uuid IS NULL 
-         OR (role != 'customer' AND company_id = ${companyId}::uuid)
-         OR (role = 'customer' AND EXISTS (
-           SELECT 1 
-           FROM property_assignments pa
-           JOIN units un ON un.id = pa.unit_id
-           JOIN clusters cl ON cl.id = un.cluster_id
-           JOIN projects pr ON pr.id = cl.project_id
-           WHERE pa.user_id = users.id 
-             AND pr.company_id = ${companyId}::uuid
+         OR id = ${userContext.sub}::uuid
+         OR (role = 'customer' AND (
+           company_id = ${companyId}::uuid
+           OR EXISTS (
+             SELECT 1 
+             FROM property_assignments pa
+             JOIN units un ON un.id = pa.unit_id
+             JOIN clusters cl ON cl.id = un.cluster_id
+             JOIN projects pr ON pr.id = cl.project_id
+             WHERE pa.user_id = users.id 
+               AND pr.company_id = ${companyId}::uuid
+           )
          ))
        )
     RETURNING id, company_id, nama, email, nomor_telepon, role, status, created_at, updated_at
@@ -178,7 +182,7 @@ export const updateUser = async (id, data, userContext) => {
 };
 
 export const deleteUser = async (id, userContext) => {
-  const companyId = userContext.role === 'super_admin' ? null : userContext.companyId;
+  const companyId = ['super_admin', 'owner'].includes(userContext.role) ? null : userContext.companyId;
 
   // Cek apakah user yang mau dihapus ada dan bisa diakses
   const existing = await findUserById(id, userContext);

@@ -7,8 +7,8 @@ import * as controller from './handover.controller.js';
 export default async function handoverRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
 
-  const readRoles = authorize('super_admin', 'admin', 'customer');
-  const writeRoles = authorize('super_admin', 'admin');
+  const readRoles = authorize('super_admin', 'owner', 'admin', 'direksi', 'customer');
+  const writeRoles = authorize('admin');
 
   // GET - Dapatkan semua handover/serah terima
   fastify.get('/', {

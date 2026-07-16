@@ -7,7 +7,7 @@ export default async function clusterRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
   
   // Hanya super_admin dan admin yang memiliki akses ke modul Clusters
-  fastify.addHook('preHandler', authorize('super_admin', 'admin'));
+  fastify.addHook('preHandler', authorize('super_admin', 'owner', 'admin', 'direksi'));
 
   // GET - Dapatkan semua clusters
   fastify.get('/', {
@@ -100,7 +100,7 @@ export default async function clusterRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [validate(schema.createClusterSchema)]
+    preHandler: [authorize('admin'), validate(schema.createClusterSchema)]
   }, controller.createHandler);
   
   // GET - Clusters by Project ID
@@ -226,7 +226,7 @@ export default async function clusterRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [validate(schema.updateClusterSchema)]
+    preHandler: [authorize('admin'), validate(schema.updateClusterSchema)]
   }, controller.updateHandler);
   
   // DELETE - Hapus cluster
@@ -252,6 +252,6 @@ export default async function clusterRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [validate(schema.clusterIdParamSchema)]
+    preHandler: [authorize('admin'), validate(schema.clusterIdParamSchema)]
   }, controller.deleteHandler);
 }

@@ -6,8 +6,8 @@ import * as controller from './progress.controller.js';
 export default async function progressRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
 
-  const readRoles = authorize('super_admin', 'admin', 'customer');
-  const writeRoles = authorize('super_admin', 'admin');
+  const readRoles = authorize('super_admin', 'owner', 'admin', 'direksi', 'customer');
+  const writeRoles = authorize('admin');
 
   // GET - Dapatkan semua progress records
   fastify.get('/', {

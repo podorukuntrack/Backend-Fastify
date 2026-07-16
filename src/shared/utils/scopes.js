@@ -18,9 +18,9 @@ export const getTenantScope = (
     return sql`false`;
   }
 
-  // SUPER ADMIN
+  // SUPER ADMIN & OWNER
   if (
-    user.role === 'super_admin'
+    user.role === 'super_admin' || user.role === 'owner'
   ) {
     return undefined;
   }
@@ -86,7 +86,7 @@ export const getTenantScope = (
     );
   }
 
-  // ADMIN & CS
+  // ADMIN & DIREKSI
   if (!user.companyId || !table.companyId) {
     return undefined;
   }

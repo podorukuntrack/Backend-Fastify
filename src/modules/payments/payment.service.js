@@ -10,7 +10,7 @@ export const getPaymentsByUnit = async (unitId, userContext) => {
 };
 
 export const createPayment = async (data, userContext) => {
-  if (userContext.role === 'admin') data.companyId = userContext.companyId;
+  if (userContext.companyId) data.companyId = userContext.companyId;
   const unit = await findUnitById(data.unitId, userContext);
   if (!unit) throw new Error('Unit not found or access denied');
   

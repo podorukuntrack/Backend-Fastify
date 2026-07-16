@@ -26,7 +26,7 @@
   };
 
   export const createUser = async (data, userContext) => {
-    if (userContext.role === 'admin' && data.role !== 'customer') {
+    if (userContext.companyId && data.role !== 'customer') {
       data.company_id = userContext.companyId;
     }
 

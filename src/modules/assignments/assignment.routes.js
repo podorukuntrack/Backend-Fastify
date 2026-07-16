@@ -86,7 +86,7 @@ export default async function assignmentRoutes(fastify, options) {
         },
         security: [{ bearerAuth: [] }],
       },
-      preHandler: [authorize("super_admin", "admin", "customer")], // <--- Tambah customer
+      preHandler: [authorize('super_admin', 'owner', 'admin', 'direksi', 'customer')], // <--- Tambah customer
     },
     controller.getAllHandler,
   );
@@ -198,7 +198,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin"), // <--- Customer tidak boleh buat
+        authorize('admin'), // <--- Customer tidak boleh buat
         validate(schema.createAssignmentSchema),
       ],
     },
@@ -240,7 +240,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin", "customer"), // <--- Tambah customer
+        authorize('super_admin', 'owner', 'admin', 'direksi', 'customer'), // <--- Tambah customer
         validate(schema.assignmentIdParamSchema),
       ],
     },
@@ -326,7 +326,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin"), // <--- Tambah customer
+        authorize('admin'), // <--- Tambah customer
         validate(schema.updateAssignmentSchema),
       ],
     },
@@ -342,7 +342,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin", "customer"),
+        authorize('super_admin', 'owner', 'admin', 'direksi', 'customer'),
         validate(schema.assignmentIdParamSchema),
       ],
     },
@@ -358,7 +358,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin"),
+        authorize('admin'),
         validate(schema.createPaymentSchema),
       ],
     },
@@ -374,7 +374,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin"),
+        authorize('admin'),
         validate(schema.updatePaymentSchema),
       ],
     },
@@ -398,7 +398,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin"),
+        authorize('admin'),
         // validate(schema.assignmentIdParamSchema), // Can't easily use if it only validates 'id'
       ],
     },
@@ -431,7 +431,7 @@ export default async function assignmentRoutes(fastify, options) {
         security: [{ bearerAuth: [] }],
       },
       preHandler: [
-        authorize("super_admin", "admin"),
+        authorize('admin'),
         validate(schema.assignmentIdParamSchema),
       ],
     },

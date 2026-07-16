@@ -3,7 +3,8 @@ import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
   const { page, limit, search, role, all_customers } = request.query;
-  const cacheKey = `users:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const userId = request.user.sub || request.user.id;
+  const cacheKey = `users:list_v2:${userId}:${JSON.stringify(request.query)}`;
   
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getUsers(page, limit, request.user, { search, role, all_customers });

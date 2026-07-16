@@ -32,6 +32,7 @@ export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyCompany(request.params.id, request.body);
     await clearCachePattern('companies:*');
+    await clearCachePattern('users:*');
     return reply.code(200).send({ success: true, message: 'Company updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

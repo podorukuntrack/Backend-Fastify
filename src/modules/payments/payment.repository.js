@@ -12,7 +12,7 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
   let scopeCondition = sql`true`;
   if (userContext.role === 'customer') {
     scopeCondition = sql`pa.user_id = ${userContext.sub}::uuid`;
-  } else if (userContext.role !== 'super_admin') {
+  } else if (!['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`proj.company_id = ${userContext.companyId}::uuid`;
   }
 

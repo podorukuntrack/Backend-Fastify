@@ -1,5 +1,6 @@
 import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
+import { clearDashboardCache } from "../../shared/utils/cache.js";
 
 const mapAssignmentRow = (row) => ({
   id: row.id,
@@ -47,7 +48,7 @@ const normalizeOwnershipStatus = (status) => {
 };
 
 export const findAllAssignments = async (userContext, filters = {}) => {
-  const companyId = userContext.role === "super_admin" ? null : userContext.companyId;
+  const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
   const limit = Number(filters.limit ?? 20);
   const page = Number(filters.page ?? 1);
@@ -95,7 +96,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
 };
 
 export const countAssignments = async (filters, userContext) => {
-  const companyId = userContext.role === "super_admin" ? null : userContext.companyId;
+  const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
 
   const rows = await db.execute(sql`
@@ -113,7 +114,7 @@ export const countAssignments = async (filters, userContext) => {
 };
 
 export const findAssignmentById = async (id, userContext) => {
-  const companyId = userContext.role === "super_admin" ? null : userContext.companyId;
+  const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
 
   const rows = await db.execute(sql`
@@ -189,6 +190,7 @@ export const insertAssignment = async (data, userContext) => {
   `);
 
   const assignmentId = rows[0].id;
+  await clearDashboardCache();
 
   return await findAssignmentById(assignmentId, userContext);
 };
@@ -227,6 +229,7 @@ export const updateAssignment = async (id, data, userContext) => {
     RETURNING id
   `);
 
+  await clearDashboardCache();
   return await findAssignmentById(rows[0].id, userContext);
 };
 
@@ -260,6 +263,7 @@ export const insertPayment = async (assignmentId, data, userContext) => {
     RETURNING id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_at
   `);
 
+  await clearDashboardCache();
   return rows[0];
 };
 
@@ -289,6 +293,7 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
   const newAmount = rows[0].jumlah_bayar;
   const diff = Number(newAmount) - Number(oldAmount);
 
+  await clearDashboardCache();
   return rows[0];
 };
 
@@ -311,6 +316,7 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
   if (rows.length === 0) return null;
   const deletedAmount = rows[0].jumlah_bayar;
 
+  await clearDashboardCache();
   return true;
 };
 export const checkDependencies = async (assignmentId, unitId) => {
@@ -337,5 +343,6 @@ export const deleteAssignment = async (id, userContext) => {
     RETURNING id
   `);
 
+  await clearDashboardCache();
   return rows[0];
 };

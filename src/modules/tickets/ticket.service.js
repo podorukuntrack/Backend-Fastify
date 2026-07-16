@@ -58,7 +58,7 @@ export const addMessage = async (ticketId, message, userContext) => {
         .where(
           and(
             eq(users.companyId, ticket.companyId),
-            inArray(users.role, ['admin', 'customer_service'])
+            inArray(users.role, ['admin'])
           )
         );
       

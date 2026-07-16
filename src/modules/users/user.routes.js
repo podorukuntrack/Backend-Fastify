@@ -8,7 +8,7 @@ export default async function userRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
   
   // Sesuai Permission Matrix: Hanya super_admin dan admin yang bisa CRUD users
-  fastify.addHook('preHandler', authorize('super_admin', 'admin'));
+  fastify.addHook('preHandler', authorize('super_admin', 'owner', 'admin', 'direksi'));
 
   // GET - Dapatkan semua users dengan pagination
   fastify.get('/', {
@@ -35,7 +35,7 @@ export default async function userRoutes(fastify, options) {
           },
           role: {
             type: 'string',
-            enum: ['super_admin', 'admin', 'manager', 'supervisor', 'staff', 'customer'],
+            enum: ['super_admin', 'admin', 'direksi', 'owner', 'customer'],
             description: 'Filter berdasarkan role',
             example: 'admin'
           },
@@ -125,9 +125,9 @@ export default async function userRoutes(fastify, options) {
           },
           role: {
             type: 'string',
-            enum: ['super_admin', 'admin', 'manager', 'supervisor', 'staff', 'customer'],
+            enum: ['super_admin', 'admin', 'direksi', 'owner', 'customer'],
             description: 'Role user (default: customer)',
-            example: 'manager'
+            example: 'admin'
           },
           companyId: {
             type: 'string',
@@ -175,7 +175,7 @@ export default async function userRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [validate(schema.createUserSchema)]
+    preHandler: [authorize('super_admin', 'admin'), validate(schema.createUserSchema)]
   }, controller.createHandler);
 
   // GET - Dapatkan detail user by ID
@@ -260,7 +260,7 @@ export default async function userRoutes(fastify, options) {
           },
           role: {
             type: 'string',
-            enum: ['super_admin', 'admin', 'manager', 'supervisor', 'staff', 'customer'],
+            enum: ['super_admin', 'admin', 'direksi', 'owner', 'customer'],
             description: 'Role user baru',
             example: 'admin'
           },
@@ -310,7 +310,7 @@ export default async function userRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [validate(schema.updateUserSchema)]
+    preHandler: [authorize('super_admin', 'admin'), validate(schema.updateUserSchema)]
   }, controller.updateHandler);
 
   // DELETE - Hapus user
@@ -348,6 +348,6 @@ export default async function userRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [validate(schema.userIdParamSchema)]
+    preHandler: [authorize('super_admin', 'admin'), validate(schema.userIdParamSchema)]
   }, controller.deleteHandler);
 }

@@ -20,7 +20,7 @@ export default async function companyRoutes(fastify, options) {
     '/',
     {
       preHandler: [
-        authorize('super_admin', 'admin')
+        authorize('super_admin', 'owner', 'admin', 'direksi')
       ],
 
       schema: {
@@ -243,7 +243,7 @@ export default async function companyRoutes(fastify, options) {
     '/:id',
     {
       preHandler: [
-        authorize('super_admin', 'admin'),
+        authorize('super_admin', 'owner', 'admin', 'direksi'),
         validate(schema.companyIdParamSchema)
       ],
 

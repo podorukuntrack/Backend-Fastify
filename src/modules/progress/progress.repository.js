@@ -44,7 +44,7 @@ export const findAllProgress = async (userContext, filters = {}) => {
   const offset = (page - 1) * limit;
 
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`pr.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
@@ -83,7 +83,7 @@ export const findProgressByUnitId = async (unitId, userContext) => {
 
 export const findProgressById = async (id, userContext) => {
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`pr.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;

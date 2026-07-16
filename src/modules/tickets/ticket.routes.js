@@ -8,7 +8,7 @@ export default async function ticketRoutes(fastify, options) {
   fastify.addHook('preValidation', fastify.authenticate);
 
   // Semua role bisa akses tiket (terfilter otomatis lewat getTenantScope)
-  const allRoles = authorize('super_admin', 'admin', 'customer_service', 'customer');
+  const allRoles = authorize('super_admin', 'owner', 'admin', 'direksi', 'customer');
 
   // GET - Dapatkan semua tiket
   fastify.get('/', {
@@ -205,7 +205,7 @@ export default async function ticketRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [authorize('super_admin', 'admin', 'customer_service'), validate(schema.updateTicketSchema)]
+    preHandler: [authorize('admin'), validate(schema.updateTicketSchema)]
   }, controller.updateHandler);
 
   // GET - Dapatkan pesan dalam tiket

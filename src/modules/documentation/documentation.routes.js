@@ -13,7 +13,7 @@ export default async function documentationRoutes(fastify, options) {
       tags: ['Documentation'],
       security: [{ bearerAuth: [] }]
     },
-    preHandler: authorize('super_admin', 'admin', 'customer')
+    preHandler: authorize('super_admin', 'owner', 'admin', 'direksi', 'customer')
   }, controller.getAllHandler);
 
   // GET - Dapatkan dokumentasi unit
@@ -68,7 +68,7 @@ export default async function documentationRoutes(fastify, options) {
       security: [{ bearerAuth: [] }]
     },
     preHandler: [
-      authorize('super_admin', 'admin', 'customer'), 
+      authorize('super_admin', 'owner', 'admin', 'direksi', 'customer'), 
       validate(schema.unitIdParamSchema)
     ]
   }, controller.getByUnitHandler);
@@ -81,7 +81,7 @@ export default async function documentationRoutes(fastify, options) {
       consumes: ['multipart/form-data'],
       security: [{ bearerAuth: [] }]
     },
-    preHandler: authorize('super_admin', 'admin')
+    preHandler: authorize('admin')
   }, controller.uploadHandler);
 
   fastify.post('/documentation/upload', {
@@ -130,7 +130,7 @@ export default async function documentationRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: authorize('super_admin', 'admin')
+    preHandler: authorize('admin')
   }, controller.uploadHandler);
 
   // PATCH - Update dokumen
@@ -165,7 +165,7 @@ export default async function documentationRoutes(fastify, options) {
       security: [{ bearerAuth: [] }]
     },
     preHandler: [
-      authorize('super_admin', 'admin'),
+      authorize('admin'),
       validate(schema.updateDocSchema)
     ]
   }, controller.updateHandler);
@@ -201,7 +201,7 @@ export default async function documentationRoutes(fastify, options) {
       security: [{ bearerAuth: [] }]
     },
     preHandler: [
-      authorize('super_admin', 'admin'),
+      authorize('admin'),
       validate(schema.updateDocSchema)
     ]
   }, controller.updateHandler);
@@ -214,7 +214,7 @@ export default async function documentationRoutes(fastify, options) {
       security: [{ bearerAuth: [] }]
     },
     preHandler: [
-      authorize('super_admin', 'admin'),
+      authorize('admin'),
       validate(schema.docIdParamSchema)
     ]
   }, controller.deleteHandler);
@@ -247,7 +247,7 @@ export default async function documentationRoutes(fastify, options) {
       security: [{ bearerAuth: [] }]
     },
     preHandler: [
-      authorize('super_admin', 'admin'), 
+      authorize('admin'), 
       validate(schema.docIdParamSchema)
     ]
   }, controller.deleteHandler);

@@ -6,13 +6,8 @@ import * as controller from "./payment.controller.js";
 export default async function paymentRoutes(fastify, options) {
   fastify.addHook("preValidation", fastify.authenticate);
 
-  const readRoles = authorize(
-    "super_admin",
-    "admin",
-    "customer_service",
-    "customer",
-  );
-  const writeRoles = authorize("super_admin", "admin");
+  const readRoles = authorize('super_admin', 'owner', 'admin', 'direksi');
+  const writeRoles = authorize('admin');
 
   // GET - Dapatkan semua pembayaran
   fastify.get(

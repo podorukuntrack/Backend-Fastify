@@ -56,7 +56,7 @@ export async function buildApp() {
     origin: (origin, cb) => {
       // allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin) || origin.startsWith("http://localhost:") || origin.endsWith(".ngrok-free.app") || origin.endsWith(".ngrok.io")) {
         return cb(null, true);
       }
       const err = new Error("Not allowed by CORS");
@@ -74,10 +74,7 @@ export async function buildApp() {
     ],
   });
 
-  await app.register(fastifyRateLimit, {
-    max: 100,
-    timeWindow: '1 minute'
-  });
+
 
   await app.register(fastifyCookie, {
     secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || "my-secret",
@@ -109,6 +106,26 @@ export async function buildApp() {
   await app.register(authPlugin);
   await app.register(swaggerPlugin);
   await app.register(redisPlugin);
+
+  await app.register(fastifyRateLimit, {
+    max: async (request, key) => {
+      let role = 'guest';
+      const token = request.cookies?.accessToken || (request.headers.authorization ? request.headers.authorization.replace('Bearer ', '') : null);
+      if (token && request.server.jwt) {
+        try {
+          const decoded = request.server.jwt.decode(token);
+          if (decoded && decoded.role) role = decoded.role;
+        } catch (e) {}
+      }
+      
+      if (['super_admin', 'owner', 'direksi', 'admin'].includes(role)) {
+        return 10000; // practically unlimited for executives and admins
+      }
+      return 500; // 500 req/minute for normal users/customers
+    },
+    timeWindow: '1 minute',
+    redis: getRedisClient(),
+  });
 
   app.setErrorHandler(globalErrorHandler);
 

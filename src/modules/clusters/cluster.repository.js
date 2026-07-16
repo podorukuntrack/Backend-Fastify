@@ -24,7 +24,7 @@ export const findAllClusters = async (userContext, filters = {}) => {
   const offset = (page - 1) * limit;
 
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`c.id IN (
@@ -71,7 +71,7 @@ export const findAllClusters = async (userContext, filters = {}) => {
 
 export const findClusterById = async (id, userContext) => {
   let scopeCondition;
-  if (userContext.role === 'super_admin') {
+  if (['super_admin', 'owner'].includes(userContext.role)) {
     scopeCondition = sql`true`;
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`c.id IN (
