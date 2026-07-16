@@ -15,7 +15,8 @@ export const globalErrorHandler = (error, request, reply) => {
     statusCode = 400;
     message = "Data yang Anda masukkan tidak valid.";
     errors = error.validation.map((err) => {
-      const field = err.dataPath ? err.dataPath.replace(".", "") : (err.params?.missingProperty || "Input");
+      const rawPath = err.instancePath || err.dataPath || (err.path ? '/' + err.path.join('/') : '');
+      const field = rawPath ? rawPath.replace(/^\//, '').replace(".", "") : (err.params?.missingProperty || "Input");
       
       if (err.keyword === "required") {
         return `Kolom '${field}' wajib diisi.`;
