@@ -108,7 +108,7 @@ export const modifyHandover = async (id, data, userContext) => {
           .from(users)
           .where(
             and(
-              eq(users.companyId, result.company_id ?? result.companyId),
+              eq(users.company_id, result.company_id ?? result.companyId),
               inArray(users.role, ['admin'])
             )
           );
