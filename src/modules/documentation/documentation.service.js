@@ -96,3 +96,9 @@ export const removeDocument = async (id, userContext) => {
   const deletedDoc = await repo.deleteDoc(id, userContext);
   return deletedDoc;
 };
+
+export const modifyDocument = async (id, data, userContext) => {
+  const updatedDoc = await repo.updateDoc(id, data, userContext);
+  if (!updatedDoc) throw new Error('Document not found or access denied');
+  return updatedDoc;
+};

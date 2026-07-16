@@ -184,3 +184,26 @@ export const deleteDoc = async (id, userContext) => {
 
   return rows[0];
 };
+
+export const updateDoc = async (id, data, userContext) => {
+  const doc = await findDocById(id, userContext);
+  if (!doc) return null;
+
+  const updates = [];
+  if (data.nama_file) updates.push(sql`nama_file = ${data.nama_file}`);
+  if (data.jenis) updates.push(sql`jenis = ${data.jenis}`);
+
+  if (updates.length === 0) return doc; // Nothing to update
+
+  // Join the sql statements with comma
+  const setSql = sql.join(updates, sql`, `);
+
+  const rows = await db.execute(sql`
+    UPDATE documentation
+    SET ${setSql}
+    WHERE id = ${id}
+    RETURNING *
+  `);
+
+  return rows[0] ? mapDocRow(rows[0]) : null;
+};

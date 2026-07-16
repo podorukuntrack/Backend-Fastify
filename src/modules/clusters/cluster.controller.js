@@ -10,6 +10,17 @@ export const getAllHandler = async (request, reply) => {
   return reply.code(200).send({ success: true, message: 'Clusters retrieved', data: result.data, meta: { total: result.total }, source });
 };
 
+export const getByProjectIdHandler = async (request, reply) => {
+  // Alias the route param to the query param expected by the service
+  request.query.project_id = request.params.projectId;
+  const cacheKey = `clusters:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const { data: result, source } = await withCache(cacheKey, async () => {
+    return await service.getClusters(request.user, request.query);
+  }, 3600);
+  
+  return reply.code(200).send({ success: true, message: 'Clusters retrieved', data: result.data, meta: { total: result.total }, source });
+};
+
 export const getByIdHandler = async (request, reply) => {
   try {
     const cacheKey = `clusters:detail:${request.user.id}:${request.params.id}`;

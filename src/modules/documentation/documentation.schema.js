@@ -12,3 +12,13 @@ export const docIdParamSchema = {
     id: z.string().uuid("Format Document ID tidak valid")
   })
 };
+
+export const updateDocSchema = {
+  params: z.object({
+    id: z.string().uuid("Format Document ID tidak valid")
+  }),
+  body: z.object({
+    nama_file: z.string().min(1).optional(),
+    jenis: z.string().min(1).optional()
+  })
+};

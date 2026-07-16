@@ -133,6 +133,79 @@ export default async function documentationRoutes(fastify, options) {
     preHandler: authorize('super_admin', 'admin')
   }, controller.uploadHandler);
 
+  // PATCH - Update dokumen
+  fastify.patch('/:id', {
+    schema: {
+      description: 'Mengubah nama/jenis dokumen',
+      tags: ['Documentation'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', format: 'uuid', description: 'ID dokumen yang ingin diubah' }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          nama_file: { type: 'string' },
+          jenis: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [
+      authorize('super_admin', 'admin'),
+      validate(schema.updateDocSchema)
+    ]
+  }, controller.updateHandler);
+
+  fastify.patch('/documentation/:id', {
+    schema: {
+      description: 'Mengubah nama/jenis dokumen',
+      tags: ['Documentation'],
+      params: {
+        type: 'object',
+        required: ['id'],
+        properties: {
+          id: { type: 'string', format: 'uuid', description: 'ID dokumen yang ingin diubah' }
+        }
+      },
+      body: {
+        type: 'object',
+        properties: {
+          nama_file: { type: 'string' },
+          jenis: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [
+      authorize('super_admin', 'admin'),
+      validate(schema.updateDocSchema)
+    ]
+  }, controller.updateHandler);
+
   // DELETE - Hapus dokumen
   fastify.delete('/:id', {
     schema: {

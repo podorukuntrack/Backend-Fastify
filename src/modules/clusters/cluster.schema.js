@@ -24,3 +24,9 @@ export const clusterIdParamSchema = {
     id: z.string().uuid('Format ID tidak valid'),
   }),
 };
+
+export const projectIdParamSchema = {
+  params: z.object({
+    projectId: z.string().uuid('Format Project ID tidak valid'),
+  }),
+};

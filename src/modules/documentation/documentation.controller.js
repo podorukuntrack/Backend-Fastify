@@ -73,3 +73,15 @@ export const deleteHandler = async (request, reply) => {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
   }
 };
+
+export const updateHandler = async (request, reply) => {
+  try {
+    const data = await service.modifyDocument(request.params.id, request.body, request.user);
+    await clearCachePattern('documentations:*');
+    await clearCachePattern('units:*');
+    await clearCachePattern('projects:*');
+    return reply.code(200).send({ success: true, message: 'Document updated successfully', data });
+  } catch (error) {
+    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+  }
+};

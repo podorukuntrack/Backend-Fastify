@@ -95,6 +95,46 @@ export default async function clusterRoutes(fastify, options) {
     preHandler: [validate(schema.createClusterSchema)]
   }, controller.createHandler);
   
+  // GET - Clusters by Project ID
+  fastify.get('/project/:projectId', {
+    schema: {
+      description: 'Mendapatkan daftar clusters berdasarkan Project ID',
+      tags: ['Clusters'],
+      params: {
+        type: 'object',
+        required: ['projectId'],
+        properties: {
+          projectId: { type: 'string', format: 'uuid', description: 'ID Project' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', format: 'uuid' },
+                  project_id: { type: 'string', format: 'uuid' },
+                  nama_cluster: { type: 'string' },
+                  jumlah_unit: { type: 'number' },
+                  created_at: { type: 'string', format: 'date-time' },
+                  updated_at: { type: 'string', format: 'date-time' }
+                }
+              }
+            }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [validate(schema.projectIdParamSchema)]
+  }, controller.getByProjectIdHandler);
+
   // GET - Detail cluster by ID
   fastify.get('/:id', {
     schema: {
