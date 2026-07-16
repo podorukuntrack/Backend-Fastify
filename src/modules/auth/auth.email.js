@@ -21,8 +21,10 @@ export const sendOTPByEmail = async (to, otp) => {
 
   const transporter = createTransporter();
   
+  const senderEmail = process.env.SMTP_FROM || 'noreply@podorukuntrack.com';
+  
   const mailOptions = {
-    from: `"Podorukun Track" <${process.env.SMTP_USER}>`,
+    from: `"Podorukun Track" <${senderEmail}>`,
     to,
     subject: 'Kode OTP Lupa Password',
     text: `Kode OTP Anda adalah: ${otp}. Kode ini berlaku selama 5 menit. Jangan berikan kode ini kepada siapapun.`,
