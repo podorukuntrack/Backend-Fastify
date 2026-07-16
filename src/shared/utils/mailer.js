@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
 
 let transporterInstance = null;
 
@@ -6,6 +8,22 @@ const getTransporter = () => {
   if (transporterInstance) return transporterInstance;
 
   const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  
+  let dkimConfig = null;
+  try {
+    const dkimKeyPath = path.resolve(process.cwd(), 'dkim_private.pem');
+    if (fs.existsSync(dkimKeyPath)) {
+      dkimConfig = {
+        domainName: 'podorukuntrack.com',
+        keySelector: 'node',
+        privateKey: fs.readFileSync(dkimKeyPath, 'utf8'),
+      };
+      console.log('DKIM config loaded successfully');
+    }
+  } catch (err) {
+    console.error('Error loading DKIM key:', err.message);
+  }
+
   transporterInstance = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.sumopod.com',
     port: port,
@@ -14,6 +32,7 @@ const getTransporter = () => {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    ...(dkimConfig && { dkim: dkimConfig }),
   });
 
   return transporterInstance;
