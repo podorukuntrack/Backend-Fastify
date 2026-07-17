@@ -5,7 +5,7 @@ export const getAllHandler = async (request, reply) => {
   const cacheKey = `progress:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getProgressList(request.user, request.query);
-  }, 3600);
+  }, 300);
   return reply.code(200).send({ success: true, message: 'Success', data, source });
 };
 
@@ -14,7 +14,7 @@ export const getByUnitHandler = async (request, reply) => {
     const cacheKey = `progress:unit:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getProgressByUnit(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -26,7 +26,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `progress:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getProgress(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -39,6 +39,8 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('progress:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Progress added', data });
   } catch (error) {
     return reply.code(403).send({ success: false, message: error.message, errors: [] });
@@ -51,6 +53,8 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('progress:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Progress updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -63,6 +67,8 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('progress:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Progress deleted', data: {} });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

@@ -8,7 +8,7 @@ export const getAllHandler = async (request, reply) => {
   
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getUsers(page, limit, request.user, { search, role, all_customers });
-  }, 3600);
+  }, 300);
   
   return reply.code(200).send({
     success: true,
@@ -24,7 +24,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `users:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getUser(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -35,6 +35,7 @@ export const createHandler = async (request, reply) => {
   try {
     const data = await service.createUser(request.body, request.user);
     await clearCachePattern('users:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'User created', data });
   } catch (error) {
     if (error.code === '23505' || error.message.includes('terdaftar')) {
@@ -48,6 +49,7 @@ export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyUser(request.params.id, request.body, request.user);
     await clearCachePattern('users:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'User updated', data });
   } catch (error) {
     const statusCode = error.message.includes('terdaftar') ? 400 : 404;
@@ -59,6 +61,7 @@ export const deleteHandler = async (request, reply) => {
   try {
     await service.removeUser(request.params.id, request.user);
     await clearCachePattern('users:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'User deleted', data: {} });
   } catch (error) {
     console.error('Delete User Error:', error);

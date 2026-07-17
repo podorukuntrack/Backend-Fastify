@@ -5,7 +5,7 @@ export const getAllHandler = async (request, reply) => {
   const cacheKey = `tickets:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getTickets(request.user);
-  }, 3600);
+  }, 300);
   return reply.code(200).send({ success: true, message: 'Tickets retrieved', data, source });
 };
 
@@ -14,7 +14,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `tickets:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getTicketDetail(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Ticket retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -26,6 +26,7 @@ export const createHandler = async (request, reply) => {
   await clearCachePattern('tickets:*');
   await clearCachePattern('units:*');
   await clearCachePattern('projects:*');
+  await clearCachePattern('dashboard:*');
   return reply.code(201).send({ success: true, message: 'Ticket created', data });
 };
 
@@ -35,6 +36,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('tickets:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Ticket updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -46,7 +48,7 @@ export const getMessagesHandler = async (request, reply) => {
     const cacheKey = `tickets:messages:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getMessages(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Messages retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

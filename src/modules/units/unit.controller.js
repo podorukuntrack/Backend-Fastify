@@ -5,7 +5,7 @@ export const getAllHandler = async (request, reply) => {
   const cacheKey = `units:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getUnits(request.user, request.query);
-  }, 3600);
+  }, 300);
   return reply.code(200).send({ success: true, message: 'Units retrieved', data, source });
 };
 
@@ -14,7 +14,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `units:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getUnit(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Unit retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -41,6 +41,7 @@ export const createHandler = async (request, reply) => {
   await clearCachePattern('units:*');
   await clearCachePattern('clusters:*');
   await clearCachePattern('projects:*');
+  await clearCachePattern('dashboard:*');
   return reply.code(201).send({ success: true, message: 'Unit created', data });
 };
 
@@ -49,10 +50,11 @@ export const updateHandler = async (request, reply) => {
     const data = await service.modifyUnit(request.params.id, request.body, request.user);
     
     await clearCachePattern('units:*');
-    await delCache(`unit:detail_stats:${request.user.sub}:${request.params.id}`);
+    await clearCachePattern('unit:*');
     await clearCachePattern('clusters:*');
     await clearCachePattern('projects:*');
 
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Unit updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -64,6 +66,7 @@ export const bulkCreateHandler = async (request, reply) => {
   await clearCachePattern('units:*');
   await clearCachePattern('clusters:*');
   await clearCachePattern('projects:*');
+  await clearCachePattern('dashboard:*');
   return reply.code(201).send({ success: true, message: 'Units created', data });
 };
 
@@ -75,10 +78,11 @@ export const deleteHandler = async (request, reply) => {
     }
     
     await clearCachePattern('units:*');
-    await delCache(`unit:detail_stats:${request.user.sub}:${request.params.id}`);
+    await clearCachePattern('unit:*');
     await clearCachePattern('clusters:*');
     await clearCachePattern('projects:*');
 
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Unit deleted', data: {} });
   } catch (error) {
     const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');

@@ -48,6 +48,7 @@ export const createHandler = async (request, reply) => {
       return reply.code(400).send({ success: false, message: 'Image file is required', errors: [] });
     }
     const data = await service.createBanner(fields, fileData);
+    await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Banner created', data });
   } catch (error) {
     return reply.code(500).send({ success: false, message: error.message, errors: [] });
@@ -58,6 +59,7 @@ export const updateHandler = async (request, reply) => {
   try {
     const { fields, fileData } = await parseMultipart(request);
     const data = await service.updateBanner(request.params.id, fields, fileData);
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Banner updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

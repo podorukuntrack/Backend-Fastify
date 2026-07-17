@@ -7,7 +7,7 @@ export const getAllHandler = async (request, reply) => {
     const data = await service.getAssignments(request.user, request.query);
     const total = await service.getAssignmentsMeta(request.query, request.user);
     return { data, total };
-  }, 3600);
+  }, 300);
 
   const page = Number(request.query.page ?? 1);
   const limit = Number((request.query.limit ?? cachedRes.data.length) || 20);
@@ -26,7 +26,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `assignments:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getAssignment(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Assignment retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -40,6 +40,7 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('units:*');
     await clearCachePattern('users:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Assignment created', data });
   } catch (error) {
     return reply.code(403).send({ success: false, message: error.message, errors: [] });
@@ -53,6 +54,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('units:*');
     await clearCachePattern('users:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Assignment updated', data });
   } catch (error) {
     const status = error.message.toLowerCase().includes('not found') ? 404 : 400;
@@ -65,7 +67,7 @@ export const getPaymentsHandler = async (request, reply) => {
     const cacheKey = `assignments:payments:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getAssignmentPayments(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Payments retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -78,6 +80,7 @@ export const createPaymentHandler = async (request, reply) => {
     await clearCachePattern('assignments:*');
     await clearCachePattern('payments:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Payment created', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -90,6 +93,7 @@ export const updatePaymentHandler = async (request, reply) => {
     await clearCachePattern('assignments:*');
     await clearCachePattern('payments:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Payment updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -102,6 +106,7 @@ export const deletePaymentHandler = async (request, reply) => {
     await clearCachePattern('assignments:*');
     await clearCachePattern('payments:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Payment deleted', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -115,6 +120,7 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('units:*');
     await clearCachePattern('users:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Assignment deleted', data: deleted });
   } catch (error) {
     const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');

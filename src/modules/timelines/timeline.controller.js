@@ -5,7 +5,7 @@ export const getAllHandler = async (request, reply) => {
   const cacheKey = `timelines:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getTimelines(request.user, request.query);
-  }, 3600);
+  }, 300);
   return reply.code(200).send({ success: true, message: 'Timelines retrieved', data, source });
 };
 
@@ -15,6 +15,8 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('timelines:*');
     await clearCachePattern('progress:*');
     await clearCachePattern('units:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Timeline created', data });
   } catch (error) {
     return reply.code(403).send({ success: false, message: error.message, errors: [] });
@@ -27,6 +29,8 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('timelines:*');
     await clearCachePattern('progress:*');
     await clearCachePattern('units:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Timeline updated', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -39,6 +43,8 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('timelines:*');
     await clearCachePattern('progress:*');
     await clearCachePattern('units:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Timeline deleted', data: {} });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

@@ -6,7 +6,7 @@ export const getAllHandler = async (request, reply) => {
   const cacheKey = `documentations:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getDocs(request.query, request.user);
-  }, 3600);
+  }, 300);
   return reply.code(200).send({ success: true, message: 'Documents retrieved', data, source });
 };
 
@@ -15,7 +15,7 @@ export const getByUnitHandler = async (request, reply) => {
     const cacheKey = `documentations:unit:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getUnitDocs(request.params.id, request.user);
-    }, 3600);
+    }, 300);
     return reply.code(200).send({ success: true, message: 'Documents retrieved', data, source });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -68,6 +68,8 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('documentations:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Document deleted successfully', data: {} });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });
@@ -80,6 +82,8 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('documentations:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
+    await clearCachePattern('unit:*');
+    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Document updated successfully', data });
   } catch (error) {
     return reply.code(404).send({ success: false, message: error.message, errors: [] });

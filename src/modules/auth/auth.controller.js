@@ -76,7 +76,7 @@ export const getMeHandler = async (request, reply) => {
           themeColor: company.theme_color || '#4f46e5'
         } : null
       };
-    }, 3600);
+    }, 300);
 
     return reply.code(200).send({
       success: true,
