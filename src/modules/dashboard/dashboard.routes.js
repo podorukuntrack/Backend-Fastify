@@ -485,7 +485,6 @@ export default async function dashboardRoutes(fastify, options) {
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON p.id = c.project_id
            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
-             AND ph.status = 'verified'
              ${startDate && endDate ? sql` AND ph.tanggal_bayar >= ${startDate}::date AND ph.tanggal_bayar <= ${endDate}::date ` : sql``}) as total_cash_in,
              
           (SELECT COALESCE(SUM(
@@ -517,7 +516,6 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN clusters c ON u.cluster_id = c.id
         JOIN projects p ON p.id = c.project_id
         WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
-          AND ph.status = 'verified'
         ${paymentDateFilter}
         GROUP BY DATE(ph.tanggal_bayar)
         ORDER BY date ASC
