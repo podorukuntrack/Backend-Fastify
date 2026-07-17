@@ -248,7 +248,9 @@ export const requestOtp = async (method, contact) => {
     return true; // Prevent enumeration
   }
 
-  // Detect test accounts for Google Play Console review
+  // Detect test accounts for Google Play Console and App Store review.
+  // Stores like Apple/Google require a fully functional test account with a static OTP
+  // to review the app. These specific names and numbers are whitelisted to bypass real SMS/Email OTPs.
   const cleanContact = contact.replace(/[^0-9]/g, '');
   const isTestAccount = 
     contact.toLowerCase().includes('tester') || 
@@ -295,6 +297,9 @@ export const verifyOtp = async (contact, otp) => {
   if (!redisClient) throw new Error('Redis is not available');
 
   const cleanContact = contact.replace(/[^0-9]/g, '');
+
+  // Whitelist criteria for App Store and Play Store review testers.
+  // These accounts bypass the dynamic Redis OTP check and are allowed to use a static OTP.
   const isTestAccount = 
     contact.toLowerCase().includes('tester') || 
     contact.toLowerCase().includes('reviewer') || 

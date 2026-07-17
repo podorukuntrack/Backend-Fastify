@@ -26,6 +26,9 @@ export const getUnitDocs = async (unitId, userContext) => {
 
 export const uploadDocument = async (fileBuffer, originalFilename, mimeType, fields, userContext) => {
   const unitId = fieldValue(fields, 'unit_id', 'unitId');
+  const unit = await findUnitById(unitId, userContext);
+  if (!unit) throw new Error('Unit not found or access denied');
+  
   const progressId = fieldValue(fields, 'progress_id', 'progressId');
   const jenis = fieldValue(fields, 'jenis', 'docType') ?? (mimeType.startsWith('video/') ? 'video' : mimeType.startsWith('image/') ? 'foto' : 'dokumen');
 

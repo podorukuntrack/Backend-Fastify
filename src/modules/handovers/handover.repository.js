@@ -41,8 +41,12 @@ export const findHandovers = async (userContext, filters = {}) => {
 };
 
 export const findHandoverById = async (id, userContext) => {
-  // Find by ID — scope check done separately if needed
-  const result = await db.select().from(handovers).where(eq(handovers.id, id)).limit(1);
+  const scope = getTenantScope(handovers, userContext);
+  const conditions = [eq(handovers.id, id)];
+  if (scope) conditions.push(scope);
+  
+  const result = await db.select().from(handovers).where(and(...conditions)).limit(1);
+  if (!result || result.length === 0) return null;
   return mapHandoverRow(result[0]);
 };
 
@@ -61,25 +65,35 @@ export const updateHandover = async (id, data, userContext) => {
   if (data.proposedDate) data.proposedDate = new Date(data.proposedDate);
   if (data.actualDate) data.actualDate = new Date(data.actualDate);
 
-  // Always update by ID only — write access is gated by authorize middleware
-  const result = await db.update(handovers).set(data).where(eq(handovers.id, id)).returning();
+  const scope = getTenantScope(handovers, userContext);
+  const conditions = [eq(handovers.id, id)];
+  if (scope) conditions.push(scope);
+
+  const result = await db.update(handovers).set(data).where(and(...conditions)).returning();
+  if (!result || result.length === 0) throw new Error("Data Serah Terima tidak ditemukan atau akses ditolak");
   return mapHandoverRow(result[0]);
 };
 
 export const deleteHandover = async (id, userContext) => {
   const existing = await findHandoverById(id, userContext);
-  if (!existing) return null;
+  if (!existing) throw new Error("Data Serah Terima tidak ditemukan atau akses ditolak");
 
   const retentionRes = await db.execute(sql`SELECT COUNT(*) as count FROM retentions WHERE unit_id = ${existing.unit_id}`);
   if (Number(retentionRes[0].count) > 0) {
     throw new Error("Gagal menghapus Serah Terima. Masih terdapat data Retensi / Garansi. Harap hapus data Retensi terlebih dahulu.");
   }
 
-  // Delete handover defects first to avoid foreign key constraints
-  await db.delete(handoverDefects).where(eq(handoverDefects.handoverId, id));
+  const scope = getTenantScope(handovers, userContext);
+  const conditions = [eq(handovers.id, id)];
+  if (scope) conditions.push(scope);
   
-  const result = await db.delete(handovers).where(eq(handovers.id, id)).returning();
-  return mapHandoverRow(result[0]);
+  return await db.transaction(async (tx) => {
+    // Delete handover defects first to avoid foreign key constraints
+    await tx.delete(handoverDefects).where(eq(handoverDefects.handoverId, id));
+    
+    const result = await tx.delete(handovers).where(and(...conditions)).returning();
+    return mapHandoverRow(result[0]);
+  });
 };
 
 // === DEFECTS / CACAT BANGUNAN ===

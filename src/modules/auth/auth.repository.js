@@ -38,7 +38,7 @@ export const saveRefreshToken = async (
 
   await db.insert(refreshTokens).values({
     userId,
-    token: tokenHash, // <--- Ubah key di sini menjadi "token"
+    token: tokenHash,
     expiresAt: new Date(expiresAt),
   });
 };

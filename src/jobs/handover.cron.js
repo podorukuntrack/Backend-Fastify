@@ -22,26 +22,42 @@ export const startHandoverCron = () => {
       `);
 
       const rows24h = handovers24h.rows || handovers24h;
-      for (const h of rows24h) {
-        const unitId = h.unit_id || h.unitId;
-        const nomorUnit = h.nomorUnit || h.nomor_unit;
+      if (rows24h.length > 0) {
+        const unitIds = rows24h.map(h => h.unit_id || h.unitId);
+        const handoverIds = rows24h.map(h => h.id);
         
-        const assignments = await db.execute(sql`
-          SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid
+        const unitIdList = sql.join(unitIds.map(id => sql`${id}::uuid`), sql`, `);
+        const assignmentsRes = await db.execute(sql`
+          SELECT user_id, unit_id FROM property_assignments 
+          WHERE unit_id IN (${unitIdList})
         `);
-        const rows = assignments.rows || assignments;
-        const userIds = rows.map(a => a.user_id || a.userId);
+        const assignments = assignmentsRes.rows || assignmentsRes;
         
-        if (userIds.length > 0) {
-          await sendPushNotification(
-            userIds,
-            'Pengingat Serah Terima (H-1)',
-            `Besok adalah jadwal serah terima kunci untuk unit ${nomorUnit}. Harap bersiap!`,
-            { type: 'handover_updated', handoverId: h.id, unitId: unitId }
-          );
+        const usersByUnit = {};
+        for (const a of assignments) {
+          const uId = a.unit_id || a.unitId;
+          const usrId = a.user_id || a.userId;
+          if (!usersByUnit[uId]) usersByUnit[uId] = [];
+          usersByUnit[uId].push(usrId);
         }
         
-        await db.execute(sql`UPDATE handovers SET reminder_24h_sent = true WHERE id = ${h.id}::uuid`);
+        for (const h of rows24h) {
+          const unitId = h.unit_id || h.unitId;
+          const nomorUnit = h.nomorUnit || h.nomor_unit;
+          const userIds = usersByUnit[unitId] || [];
+          
+          if (userIds.length > 0) {
+            await sendPushNotification(
+              userIds,
+              'Pengingat Serah Terima (H-1)',
+              `Besok adalah jadwal serah terima kunci untuk unit ${nomorUnit}. Harap bersiap!`,
+              { type: 'handover_updated', handoverId: h.id, unitId: unitId }
+            );
+          }
+        }
+        
+        const handoverIdList = sql.join(handoverIds.map(id => sql`${id}::uuid`), sql`, `);
+        await db.execute(sql`UPDATE handovers SET reminder_24h_sent = true WHERE id IN (${handoverIdList})`);
       }
 
       // Find handovers scheduled in the next 2 hours that haven't been reminded
@@ -55,26 +71,42 @@ export const startHandoverCron = () => {
       `);
 
       const rows2h = handovers2h.rows || handovers2h;
-      for (const h of rows2h) {
-        const unitId = h.unit_id || h.unitId;
-        const nomorUnit = h.nomorUnit || h.nomor_unit;
+      if (rows2h.length > 0) {
+        const unitIds = rows2h.map(h => h.unit_id || h.unitId);
+        const handoverIds = rows2h.map(h => h.id);
         
-        const assignments = await db.execute(sql`
-          SELECT user_id FROM property_assignments WHERE unit_id = ${unitId}::uuid
+        const unitIdList = sql.join(unitIds.map(id => sql`${id}::uuid`), sql`, `);
+        const assignmentsRes = await db.execute(sql`
+          SELECT user_id, unit_id FROM property_assignments 
+          WHERE unit_id IN (${unitIdList})
         `);
-        const rows = assignments.rows || assignments;
-        const userIds = rows.map(a => a.user_id || a.userId);
+        const assignments = assignmentsRes.rows || assignmentsRes;
         
-        if (userIds.length > 0) {
-          await sendPushNotification(
-            userIds,
-            'Pengingat Serah Terima (2 Jam Lagi)',
-            `Dalam 2 jam lagi, jadwal serah terima kunci unit ${nomorUnit} akan dimulai!`,
-            { type: 'handover_updated', handoverId: h.id, unitId: unitId }
-          );
+        const usersByUnit = {};
+        for (const a of assignments) {
+          const uId = a.unit_id || a.unitId;
+          const usrId = a.user_id || a.userId;
+          if (!usersByUnit[uId]) usersByUnit[uId] = [];
+          usersByUnit[uId].push(usrId);
         }
         
-        await db.execute(sql`UPDATE handovers SET reminder_2h_sent = true WHERE id = ${h.id}::uuid`);
+        for (const h of rows2h) {
+          const unitId = h.unit_id || h.unitId;
+          const nomorUnit = h.nomorUnit || h.nomor_unit;
+          const userIds = usersByUnit[unitId] || [];
+          
+          if (userIds.length > 0) {
+            await sendPushNotification(
+              userIds,
+              'Pengingat Serah Terima (2 Jam Lagi)',
+              `Dalam 2 jam lagi, jadwal serah terima kunci unit ${nomorUnit} akan dimulai!`,
+              { type: 'handover_updated', handoverId: h.id, unitId: unitId }
+            );
+          }
+        }
+        
+        const handoverIdList = sql.join(handoverIds.map(id => sql`${id}::uuid`), sql`, `);
+        await db.execute(sql`UPDATE handovers SET reminder_2h_sent = true WHERE id IN (${handoverIdList})`);
       }
       
     } catch (error) {

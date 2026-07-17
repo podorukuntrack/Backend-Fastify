@@ -1,7 +1,7 @@
 // src/modules/users/user.repository.js
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
-import fs from 'fs';
+
 
 export const findUsers = async (page, limit, userContext, filters = {}) => {
   const offset = (page - 1) * limit;
@@ -17,8 +17,8 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
 
   } else if (['admin', 'direksi'].includes(userContext.role)) {
     if (allCustomers) {
-      // Admin request all customers for assignment: return ALL users with role = 'customer'
-      conditionSql = sql`u.role = 'customer'`;
+      // Admin request all customers for assignment: return customers assigned to this company
+      conditionSql = sql`u.role = 'customer' AND u.company_id = ${userContext.companyId}::uuid`;
     } else {
       // Normal admin view: hanya customer dari company yg sama, atau customer yg diassign ke company admin
       conditionSql = sql`u.role = 'customer' AND (
@@ -66,12 +66,7 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
     OFFSET ${offset}
   `);
 
-  fs.appendFileSync('d:\\Podorukuntrack\\backend\\debug.log', JSON.stringify({
-    timestamp: new Date(),
-    role: userContext.role,
-    search, roleFilter, allCustomers,
-    resultCount: data.length
-  }) + '\n');
+
 
   const totalRes = await db.execute(sql`
     SELECT COUNT(*)::int AS count
@@ -181,6 +176,15 @@ export const updateUser = async (id, data, userContext) => {
   return result[0];
 };
 
+/**
+ * Deletes a user account with manual relational integrity checks.
+ * 
+ * WHY NOT CASCADE DELETE?
+ * We enforce manual checks (soft-blocks) rather than database-level CASCADE DELETE 
+ * to protect historical business data (like payments, handovers, and tickets) 
+ * from being accidentally wiped out if an admin hastily deletes a customer account.
+ * The system forces the admin to acknowledge and manually clear these records first.
+ */
 export const deleteUser = async (id, userContext) => {
   const companyId = ['super_admin', 'owner'].includes(userContext.role) ? null : userContext.companyId;
 
@@ -199,30 +203,30 @@ export const deleteUser = async (id, userContext) => {
     const assignmentIds = assignmentsRes.map(a => a.assignment_id).filter(Boolean);
 
     if (unitIds.length > 0) {
-      const unitIdsSql = unitIds.map(u => `'${u}'`).join(', ');
-
+      const unitIdsArray = `{${unitIds.join(',')}}`;
+      
       // 3. Cek Retensi
-      const [{ hasRetentions }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM retentions WHERE unit_id IN (${unitIdsSql})) AS "hasRetentions"`));
+      const [{ hasRetentions }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM retentions WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasRetentions"`);
       if (hasRetentions) throw new Error('Tidak dapat menghapus akun: Harap hapus data Retensi untuk pengguna ini terlebih dahulu.');
 
       // 4. Cek Serah Terima (Handovers)
-      const [{ hasHandovers }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM handovers WHERE unit_id IN (${unitIdsSql})) AS "hasHandovers"`));
+      const [{ hasHandovers }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM handovers WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasHandovers"`);
       if (hasHandovers) throw new Error('Tidak dapat menghapus akun: Harap hapus data Serah Terima untuk pengguna ini terlebih dahulu.');
 
       // 5. Cek Pembayaran
-      const assignmentIdsSql = assignmentIds.length > 0 ? assignmentIds.map(u => `'${u}'`).join(', ') : "'00000000-0000-0000-0000-000000000000'";
-      const [{ hasPayments }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM payment_history WHERE assignment_id IN (${assignmentIdsSql})) AS "hasPayments"`));
+      const assignmentIdsArray = assignmentIds.length > 0 ? `{${assignmentIds.join(',')}}` : '{}';
+      const [{ hasPayments }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM payment_history WHERE assignment_id = ANY(${assignmentIdsArray}::uuid[])) AS "hasPayments"`);
       if (hasPayments) throw new Error('Tidak dapat menghapus akun: Harap hapus data Pembayaran untuk pengguna ini terlebih dahulu.');
       
-      const [{ hasPaymentsMain }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM payments WHERE unit_id IN (${unitIdsSql})) AS "hasPaymentsMain"`));
+      const [{ hasPaymentsMain }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM payments WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasPaymentsMain"`);
       if (hasPaymentsMain) throw new Error('Tidak dapat menghapus akun: Harap hapus data Pembayaran (Tagihan) untuk pengguna ini terlebih dahulu.');
 
       // 6. Cek Progress Pembangunan
-      const [{ hasProgress }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM progress WHERE unit_id IN (${unitIdsSql})) AS "hasProgress"`));
+      const [{ hasProgress }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM progress WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasProgress"`);
       if (hasProgress) throw new Error('Tidak dapat menghapus akun: Harap hapus data Progress Pembangunan untuk pengguna ini terlebih dahulu.');
 
       // 7. Cek Timeline
-      const [{ hasTimeline }] = await db.execute(sql.raw(`SELECT EXISTS(SELECT 1 FROM timelines WHERE unit_id IN (${unitIdsSql})) AS "hasTimeline"`));
+      const [{ hasTimeline }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM timelines WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasTimeline"`);
       if (hasTimeline) throw new Error('Tidak dapat menghapus akun: Harap hapus data Timeline untuk pengguna ini terlebih dahulu.');
     }
 

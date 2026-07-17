@@ -49,8 +49,13 @@ export const insertRetention = async (data) => {
 export const updateRetention = async (id, data, userContext) => {
   if (data.dueDate) data.dueDate = new Date(data.dueDate);
   data.updatedAt = new Date();
-  // Update by ID only — auth already gated by authorize middleware
-  const result = await db.update(retentions).set(data).where(eq(retentions.id, id)).returning();
+  
+  const scope = getTenantScope(retentions, userContext);
+  const conditions = [eq(retentions.id, id)];
+  if (scope) conditions.push(scope);
+
+  const result = await db.update(retentions).set(data).where(and(...conditions)).returning();
+  if (!result || result.length === 0) return null;
   return mapRetentionRow(result[0]);
 };
 

@@ -201,7 +201,18 @@ export const updateAssignment = async (id, data, userContext) => {
   const existing = await findAssignmentById(id, userContext);
   if (!existing) return null;
 
-  // Clean up irrelevant fields based on the effective tipe_pembayaran
+  /**
+   * DATA NORMALIZATION FOR PAYMENT TYPE CHANGES
+   * 
+   * When an admin changes the payment type (e.g. from KPR to Cash Lunas), 
+   * we must proactively nullify fields that are no longer relevant to prevent 
+   * dirty data rendering on the frontend (like showing DP for Cash Lunas).
+   * 
+   * Rules:
+   * - cash_lunas: No DP, No KPR details, No Tenor.
+   * - cash_cicil: No DP, No KPR details. (Cicil relies on payment_history instead).
+   * - kredit_kpr: No Tenor (bulan) used for Cash Cicil, but keeps DP and KPR details.
+   */
   const newTipe = data.tipe_pembayaran || existing.pembayaran.tipe;
   if (newTipe === 'cash_lunas') {
     data.dp = null;

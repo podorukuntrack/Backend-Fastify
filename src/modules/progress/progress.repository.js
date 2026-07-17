@@ -129,54 +129,57 @@ export const insertProgress = async (data, userContext) => {
     throw new Error("Tahap tidak ditemukan pada timeline unit ini");
   }
 
-  const rows = await db.execute(sql`
-    INSERT INTO progress (unit_id, tahap, progress_percentage, tanggal_update, catatan, created_by)
-    VALUES (${value.unit_id}, ${value.tahap}, ${value.progress_percentage}, ${value.tanggal_update ?? null}, ${value.catatan}, ${userContext.sub})
-    RETURNING id
-  `);
+  const insertedId = await db.transaction(async (tx) => {
+    const rows = await tx.execute(sql`
+      INSERT INTO progress (unit_id, tahap, progress_percentage, tanggal_update, catatan, created_by)
+      VALUES (${value.unit_id}, ${value.tahap}, ${value.progress_percentage}, ${value.tanggal_update ?? null}, ${value.catatan}, ${userContext.sub})
+      RETURNING id
+    `);
 
-  // Hitung ulang total progress untuk unit berdasarkan rata-rata timeline
-  const totalRes = await db.execute(sql`
-    SELECT 
-      COALESCE(
-        SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
-        0
-      ) AS total
-    FROM timelines t
-    LEFT JOIN (
-      SELECT tahap, SUM(progress_percentage) AS total_tahap
-      FROM progress
+    const totalRes = await tx.execute(sql`
+      SELECT 
+        COALESCE(
+          SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
+          0
+        ) AS total
+      FROM timelines t
+      LEFT JOIN (
+        SELECT tahap, SUM(progress_percentage) AS total_tahap
+        FROM progress
+        WHERE unit_id = ${value.unit_id}
+        GROUP BY tahap
+      ) tp ON tp.tahap = t.task_name
+      WHERE t.unit_id = ${value.unit_id}
+    `);
+
+    const total = Math.round(Number(totalRes[0].total ?? 0));
+
+    await tx.execute(sql`
+      UPDATE units
+         SET progress_percentage = ${total},
+             status_pembangunan = CASE
+               WHEN ${total} >= 100 THEN 'selesai'
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'
+               ELSE 'belum_mulai'
+             END,
+             updated_at = NOW()
+       WHERE id = ${value.unit_id}
+    `);
+
+    await tx.execute(sql`
+      UPDATE timelines
+      SET status = CASE
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
+        ELSE 'planned'
+      END
       WHERE unit_id = ${value.unit_id}
-      GROUP BY tahap
-    ) tp ON tp.tahap = t.task_name
-    WHERE t.unit_id = ${value.unit_id}
-  `);
+    `);
+    
+    return rows[0].id;
+  });
 
-  const total = Math.round(Number(totalRes[0].total ?? 0));
-
-  await db.execute(sql`
-    UPDATE units
-       SET progress_percentage = ${total},
-           status_pembangunan = CASE
-             WHEN ${total} >= 100 THEN 'selesai'
-             WHEN ${total} > 0 THEN 'dalam_pembangunan'
-             ELSE 'belum_mulai'
-           END,
-           updated_at = NOW()
-     WHERE id = ${value.unit_id}
-  `);
-
-  await db.execute(sql`
-    UPDATE timelines
-    SET status = CASE
-      WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
-      WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
-      ELSE 'planned'
-    END
-    WHERE unit_id = ${value.unit_id}
-  `);
-
-  return await findProgressById(rows[0].id, userContext);
+  return await findProgressById(insertedId, userContext);
 };
 
 export const updateProgress = async (id, data, userContext) => {
@@ -184,57 +187,59 @@ export const updateProgress = async (id, data, userContext) => {
   if (!existing) return null;
 
   const value = normalizeProgressInput(data);
-  const rows = await db.execute(sql`
-    UPDATE progress
-       SET unit_id = COALESCE(${value.unit_id ?? null}, unit_id),
-           tahap = COALESCE(${value.tahap ?? null}, tahap),
-           progress_percentage = COALESCE(${value.progress_percentage ?? null}, progress_percentage),
-           tanggal_update = COALESCE(${value.tanggal_update ?? null}, tanggal_update),
-           catatan = COALESCE(${value.catatan ?? null}, catatan),
-           updated_at = NOW()
-     WHERE id = ${id}
-    RETURNING unit_id
-  `);
+  await db.transaction(async (tx) => {
+    const rows = await tx.execute(sql`
+      UPDATE progress
+         SET unit_id = COALESCE(${value.unit_id ?? null}, unit_id),
+             tahap = COALESCE(${value.tahap ?? null}, tahap),
+             progress_percentage = COALESCE(${value.progress_percentage ?? null}, progress_percentage),
+             tanggal_update = COALESCE(${value.tanggal_update ?? null}, tanggal_update),
+             catatan = COALESCE(${value.catatan ?? null}, catatan),
+             updated_at = NOW()
+       WHERE id = ${id}
+      RETURNING unit_id
+    `);
 
-  const unitId = rows[0].unit_id;
-  const totalRes = await db.execute(sql`
-    SELECT 
-      COALESCE(
-        SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
-        0
-      ) AS total
-    FROM timelines t
-    LEFT JOIN (
-      SELECT tahap, SUM(progress_percentage) AS total_tahap
-      FROM progress
+    const unitId = rows[0].unit_id;
+    const totalRes = await tx.execute(sql`
+      SELECT 
+        COALESCE(
+          SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
+          0
+        ) AS total
+      FROM timelines t
+      LEFT JOIN (
+        SELECT tahap, SUM(progress_percentage) AS total_tahap
+        FROM progress
+        WHERE unit_id = ${unitId}
+        GROUP BY tahap
+      ) tp ON tp.tahap = t.task_name
+      WHERE t.unit_id = ${unitId}
+    `);
+    const total = Math.round(Number(totalRes[0].total ?? 0));
+
+    await tx.execute(sql`
+      UPDATE units
+         SET progress_percentage = ${total},
+             status_pembangunan = CASE
+               WHEN ${total} >= 100 THEN 'selesai'
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'
+               ELSE 'belum_mulai'
+             END,
+             updated_at = NOW()
+       WHERE id = ${unitId}
+    `);
+
+    await tx.execute(sql`
+      UPDATE timelines
+      SET status = CASE
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
+        ELSE 'planned'
+      END
       WHERE unit_id = ${unitId}
-      GROUP BY tahap
-    ) tp ON tp.tahap = t.task_name
-    WHERE t.unit_id = ${unitId}
-  `);
-  const total = Math.round(Number(totalRes[0].total ?? 0));
-
-  await db.execute(sql`
-    UPDATE units
-       SET progress_percentage = ${total},
-           status_pembangunan = CASE
-             WHEN ${total} >= 100 THEN 'selesai'
-             WHEN ${total} > 0 THEN 'dalam_pembangunan'
-             ELSE 'belum_mulai'
-           END,
-           updated_at = NOW()
-     WHERE id = ${unitId}
-  `);
-
-  await db.execute(sql`
-    UPDATE timelines
-    SET status = CASE
-      WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
-      WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
-      ELSE 'planned'
-    END
-    WHERE unit_id = ${unitId}
-  `);
+    `);
+  });
 
   return await findProgressById(id, userContext);
 };
@@ -250,51 +255,53 @@ export const deleteProgress = async (id, userContext) => {
     throw new Error("Gagal menghapus Progress Pembangunan. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.");
   }
 
-  const rows = await db.execute(sql`
-    DELETE FROM progress
-     WHERE id = ${id}
-    RETURNING id
-  `);
+  await db.transaction(async (tx) => {
+    const rows = await tx.execute(sql`
+      DELETE FROM progress
+       WHERE id = ${id}
+      RETURNING id
+    `);
 
-  const totalRes = await db.execute(sql`
-    SELECT 
-      COALESCE(
-        SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
-        0
-      ) AS total
-    FROM timelines t
-    LEFT JOIN (
-      SELECT tahap, SUM(progress_percentage) AS total_tahap
-      FROM progress
+    const totalRes = await tx.execute(sql`
+      SELECT 
+        COALESCE(
+          SUM(LEAST(100, COALESCE(tp.total_tahap, 0))) / NULLIF(COUNT(t.id), 0), 
+          0
+        ) AS total
+      FROM timelines t
+      LEFT JOIN (
+        SELECT tahap, SUM(progress_percentage) AS total_tahap
+        FROM progress
+        WHERE unit_id = ${unitId}
+        GROUP BY tahap
+      ) tp ON tp.tahap = t.task_name
+      WHERE t.unit_id = ${unitId}
+    `);
+
+    const total = Math.round(Number(totalRes[0].total ?? 0));
+
+    await tx.execute(sql`
+      UPDATE units
+         SET progress_percentage = ${total},
+             status_pembangunan = CASE
+               WHEN ${total} >= 100 THEN 'selesai'
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'
+               ELSE 'belum_mulai'
+             END,
+             updated_at = NOW()
+       WHERE id = ${unitId}
+    `);
+
+    await tx.execute(sql`
+      UPDATE timelines
+      SET status = CASE
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
+        ELSE 'planned'
+      END
       WHERE unit_id = ${unitId}
-      GROUP BY tahap
-    ) tp ON tp.tahap = t.task_name
-    WHERE t.unit_id = ${unitId}
-  `);
+    `);
+  });
 
-  const total = Math.round(Number(totalRes[0].total ?? 0));
-
-  await db.execute(sql`
-    UPDATE units
-       SET progress_percentage = ${total},
-           status_pembangunan = CASE
-             WHEN ${total} >= 100 THEN 'selesai'
-             WHEN ${total} > 0 THEN 'dalam_pembangunan'
-             ELSE 'belum_mulai'
-           END,
-           updated_at = NOW()
-     WHERE id = ${unitId}
-  `);
-
-  await db.execute(sql`
-    UPDATE timelines
-    SET status = CASE
-      WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
-      WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
-      ELSE 'planned'
-    END
-    WHERE unit_id = ${unitId}
-  `);
-
-  return rows[0];
+  return { id };
 };

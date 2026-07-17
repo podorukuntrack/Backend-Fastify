@@ -47,6 +47,7 @@ export const users = pgTable("users", {
   updated_at: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   companyIdx: index("users_company_idx").on(table.company_id),
+  phoneIdx: index("users_phone_idx").on(table.nomor_telepon),
 }));
 
 export const refreshTokens = pgTable("refresh_tokens", {
@@ -81,8 +82,8 @@ export const projects = pgTable("projects", {
 
 export const clusters = pgTable("clusters", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull(),
-  projectId: uuid("project_id").notNull(),
+  companyId: uuid("company_id").references(() => companies.id).notNull(),
+  projectId: uuid("project_id").references(() => projects.id).notNull(),
   namaCluster: varchar("nama_cluster", { length: 255 }).notNull(),
   jumlahUnit: integer("jumlah_unit").notNull().default(0),
   createdAt: timestamp("created_at", {
@@ -152,6 +153,7 @@ export const units = pgTable("units", {
     .notNull(),
 }, (table) => ({
   clusterIdx: index("units_cluster_idx").on(table.clusterId),
+  nomorUnitIdx: index("units_nomor_unit_idx").on(table.nomorUnit),
 }));
 // src/shared/schemas/schema.js (Tambahan untuk Phase 2)
 
@@ -191,6 +193,7 @@ export const progress = pgTable("progress", {
     .notNull(),
 }, (table) => ({
   unitIdx: index("progress_unit_idx").on(table.unitId),
+  unitTahapIdx: index("progress_unit_tahap_idx").on(table.unitId, table.tahap),
 }));
 
 export const documentations = pgTable("documentation", {
@@ -224,19 +227,28 @@ export const assignments = pgTable("property_assignments", {
   companyId: uuid("company_id")
     .references(() => companies.id)
     .notNull(),
-  projectId: uuid("project_id")
-    .references(() => projects.id)
+  userId: uuid("user_id")
+    .references(() => users.id)
     .notNull(),
-  contractorName: varchar("contractor_name", { length: 255 }).notNull(),
-  taskDescription: text("task_description").notNull(),
-  status: varchar("status", { length: 50 }).default("pending"), // pending, on_progress, completed
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
+  unitId: uuid("unit_id")
+    .references(() => units.id)
+    .notNull(),
+  tanggalPembelian: timestamp("tanggal_pembelian").defaultNow(),
+  statusKepemilikan: varchar("status_kepemilikan", { length: 50 }).default("active"),
+  tipePembayaran: varchar("tipe_pembayaran", { length: 50 }).notNull(),
+  hargaTotal: decimal("harga_total", { precision: 15, scale: 2 }),
+  dp: decimal("dp", { precision: 15, scale: 2 }),
+  totalDibayar: decimal("total_dibayar", { precision: 15, scale: 2 }).default("0"),
+  jatuhTempoKpr: timestamp("jatuh_tempo_kpr"),
+  tenorBulan: integer("tenor_bulan"),
+  keteranganKpr: text("keterangan_kpr"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   companyIdx: index("assignments_company_idx").on(table.companyId),
-  projectIdx: index("assignments_project_idx").on(table.projectId),
+  userIdx: index("assignments_user_idx").on(table.userId),
+  unitIdx: index("assignments_unit_idx").on(table.unitId),
+  statusIdx: index("assignments_status_idx").on(table.statusKepemilikan),
 }));
 
 export const payments = pgTable("payment_history", {
@@ -244,19 +256,19 @@ export const payments = pgTable("payment_history", {
   companyId: uuid("company_id")
     .references(() => companies.id)
     .notNull(),
-  unitId: uuid("unit_id")
-    .references(() => units.id)
+  assignmentId: uuid("assignment_id")
+    .references(() => assignments.id)
     .notNull(),
-  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-  paymentDate: timestamp("payment_date").notNull(),
+  jumlahBayar: decimal("jumlah_bayar", { precision: 15, scale: 2 }).notNull(),
+  tanggalBayar: timestamp("tanggal_bayar").notNull(),
   method: varchar("method", { length: 50 }).notNull(), // transfer, cash, kpr
   status: varchar("status", { length: 50 }).default("pending"), // pending, verified, failed
-  receiptUrl: text("receipt_url"),
+  buktiPembayaran: text("bukti_pembayaran"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   companyIdx: index("payments_company_idx").on(table.companyId),
-  unitIdx: index("payments_unit_idx").on(table.unitId),
+  assignmentIdx: index("payments_assignment_idx").on(table.assignmentId),
 }));
 
 // src/shared/schemas/schema.js (Tambahan untuk Phase 3)
@@ -347,7 +359,7 @@ export const handovers = pgTable("handovers", {
 export const handoverDefects = pgTable("handover_defects", {
   id: uuid("id").defaultRandom().primaryKey(),
   handoverId: uuid("handover_id")
-    .references(() => handovers.id)
+    .references(() => handovers.id, { onDelete: 'cascade' })
     .notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url"), // Bisa integrasi dengan R2 nanti

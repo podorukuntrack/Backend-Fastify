@@ -16,9 +16,13 @@ export const getUnitDetail = async (id, userContext) => {
   return unitDetail;
 };
 
+import * as clusterRepo from '../clusters/cluster.repository.js';
+
 export const createUnit = async (data, userContext) => {
-  // companyId tidak ada di tabel units, tapi cluster sudah terikat ke company
-  // Validasi: pastikan clusterId milik company admin
+  const clusterId = data.cluster_id ?? data.clusterId;
+  const cluster = await clusterRepo.findClusterById(clusterId, userContext);
+  if (!cluster) throw new Error('Cluster not found or access denied');
+  
   return await repo.insertUnit(data);
 };
 

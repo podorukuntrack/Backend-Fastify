@@ -25,7 +25,7 @@ export const modifyTicket = async (id, data, userContext) => {
   ticket.updatedAt = new Date();
   // Idealnya buat fungsi update di repository, untuk simplifikasi asumsikan kita punya `updateTicketStatus`
   // Karena sebelumnya di repo belum ada fungsi update, kita tambahkan logikanya:
-  return await repo.updateTicketStatus(id, data); 
+  return await repo.updateTicketStatus(id, data, userContext); 
 };
 
 export const getMessages = async (ticketId, userContext) => {

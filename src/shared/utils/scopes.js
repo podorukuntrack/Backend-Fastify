@@ -74,29 +74,36 @@ export const getTenantScope = (
       )`;
     }
 
+    const tableCompanyCol = table.companyId || table.company_id;
+    const userCompanyId = user.companyId || user.company_id;
+    
     // Jika customer belum punya companyId atau table tidak punya companyId, return undefined
-    if (!user.companyId || !table.companyId) {
+    if (!userCompanyId || !tableCompanyCol) {
       return undefined;
     }
 
     // Fallback ke companyId
     return eq(
-      table.companyId,
-      user.companyId,
+      tableCompanyCol,
+      userCompanyId,
     );
   }
 
   // ADMIN & DIREKSI
-  if (!table.companyId) {
+  const tableCompanyCol = table.companyId || table.company_id;
+  
+  if (!tableCompanyCol) {
     return undefined;
   }
 
-  if (!user.companyId) {
+  const userCompanyId = user.companyId || user.company_id;
+
+  if (!userCompanyId) {
     return sql`false`;
   }
 
   return eq(
-    table.companyId,
-    user.companyId,
+    tableCompanyCol,
+    userCompanyId,
   );
 };

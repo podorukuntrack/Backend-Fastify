@@ -14,7 +14,11 @@ export const getAssignment = async (id, userContext) => {
   return assignment;
 };
 
+import * as unitRepo from '../units/unit.repository.js';
+
 export const createAssignment = async (data, userContext) => {
+  const unit = await unitRepo.findUnitById(data.unit_id, userContext);
+  if (!unit) throw new Error('Unit not found or access denied');
   return await repo.insertAssignment(data, userContext);
 };
 

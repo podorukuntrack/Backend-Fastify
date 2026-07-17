@@ -138,7 +138,16 @@ export const findUnitById = async (id, userContext) => {
 
   const unitData = mapUnitRow(rows[0]);
 
-  // Lookup admin phone dynamically based on company code (email: admin@[kode_pt].com)
+  /**
+   * RESOLVE ADMIN PHONE NUMBER FOR WHATSAPP REDIRECTION
+   * 
+   * When a customer views a unit, they need a WhatsApp button to contact the admin.
+   * Instead of maintaining a complex admin mapping table, the system enforces a convention:
+   * The primary admin for any company is registered with the email format: admin@[kode_pt].com
+   * 
+   * We dynamically look up this email to retrieve the active WhatsApp number.
+   * Example: Company Code "PRJP" -> looks up "admin@prjp.com".
+   */
   let adminPhone = null;
   if (rows[0].kode_pt) {
     const adminEmail = `admin@${rows[0].kode_pt.trim().toLowerCase()}.com`;

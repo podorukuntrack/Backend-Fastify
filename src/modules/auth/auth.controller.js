@@ -22,8 +22,6 @@ const setAuthCookies = (reply, tokens) => {
 export const loginHandler = async (request, reply) => {
   try {
     const { email, password } = request.body;
-    // Disini idealnya pakai validasi Zod (akan kita tambahkan jika butuh middleware validasi)
-    
     const tokens = await service.loginUser(email, password, request.server);
     
     setAuthCookies(reply, tokens);

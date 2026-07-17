@@ -30,7 +30,11 @@ export const getTicketMessages = async (ticketId) => {
   return await db.select().from(ticketMessages).where(eq(ticketMessages.ticketId, ticketId)).orderBy(ticketMessages.createdAt);
 };
 
-export const updateTicketStatus = async (id, data) => {
+export const updateTicketStatus = async (id, data, userContext) => {
+  const scope = getTenantScope(tickets, userContext);
+  const conditions = [eq(tickets.id, id)];
+  if (scope) conditions.push(scope);
+
   const result = await db
     .update(tickets)
     .set({
@@ -38,7 +42,7 @@ export const updateTicketStatus = async (id, data) => {
       priority: data.priority,
       updatedAt: new Date(),
     })
-    .where(eq(tickets.id, id))
+    .where(and(...conditions))
     .returning();
   return result[0];
 };
