@@ -469,26 +469,38 @@ export default async function dashboardRoutes(fastify, options) {
       // Financials
       const financeResult = await db.execute(sql`
         SELECT 
-          COALESCE(SUM(pa.harga_total), 0) as total_revenue_target,
-          COALESCE(SUM(
-            CASE 
-              WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN pa.harga_total
-              ELSE pa.total_dibayar
-            END
-          ), 0) as total_cash_in,
-          COALESCE(SUM(
+          (SELECT COALESCE(SUM(pa.harga_total), 0)
+           FROM property_assignments pa
+           JOIN units u ON pa.unit_id = u.id
+           JOIN clusters c ON u.cluster_id = c.id
+           JOIN projects p ON p.id = c.project_id
+           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+             AND pa.status_kepemilikan = 'active'
+             ${dateFilter}) as total_revenue_target,
+             
+          (SELECT COALESCE(SUM(ph.jumlah_bayar), 0)
+           FROM payment_history ph
+           JOIN property_assignments pa ON ph.assignment_id = pa.id
+           JOIN units u ON pa.unit_id = u.id
+           JOIN clusters c ON u.cluster_id = c.id
+           JOIN projects p ON p.id = c.project_id
+           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+             AND ph.status = 'verified'
+             ${startDate && endDate ? sql` AND ph.tanggal_bayar >= ${startDate}::date AND ph.tanggal_bayar <= ${endDate}::date ` : sql``}) as total_cash_in,
+             
+          (SELECT COALESCE(SUM(
             CASE 
               WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN 0
               ELSE (pa.harga_total - pa.total_dibayar)
             END
-          ), 0) as total_piutang
-        FROM property_assignments pa
-        JOIN units u ON pa.unit_id = u.id
-        JOIN clusters c ON u.cluster_id = c.id
-        JOIN projects p ON p.id = c.project_id
-        WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
-          AND pa.status_kepemilikan = 'active'
-        ${dateFilter}
+          ), 0)
+           FROM property_assignments pa
+           JOIN units u ON pa.unit_id = u.id
+           JOIN clusters c ON u.cluster_id = c.id
+           JOIN projects p ON p.id = c.project_id
+           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+             AND pa.status_kepemilikan = 'active'
+             ${dateFilter}) as total_piutang
       `);
 
       const paymentDateFilter = startDate && endDate 
@@ -505,6 +517,7 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN clusters c ON u.cluster_id = c.id
         JOIN projects p ON p.id = c.project_id
         WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+          AND ph.status = 'verified'
         ${paymentDateFilter}
         GROUP BY DATE(ph.tanggal_bayar)
         ORDER BY date ASC
