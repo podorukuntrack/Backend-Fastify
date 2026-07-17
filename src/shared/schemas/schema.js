@@ -240,6 +240,7 @@ export const assignments = pgTable("property_assignments", {
   dp: decimal("dp", { precision: 15, scale: 2 }),
   totalDibayar: decimal("total_dibayar", { precision: 15, scale: 2 }).default("0"),
   jatuhTempoKpr: timestamp("jatuh_tempo_kpr"),
+  reminderKprDates: jsonb("reminder_kpr_dates").default([]),
   tenorBulan: integer("tenor_bulan"),
   keteranganKpr: text("keterangan_kpr"),
   createdAt: timestamp("created_at").defaultNow(),

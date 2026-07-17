@@ -34,6 +34,7 @@ const mapAssignmentRow = (row) => ({
     dp: Number(row.dp ?? 0),
     total_dibayar: Number(row.total_dibayar ?? 0),
     jatuh_tempo_kpr: row.jatuh_tempo_kpr,
+    reminder_kpr_dates: row.reminder_kpr_dates || [],
     tenor_bulan: row.tenor_bulan,
     keterangan_kpr: row.keterangan_kpr,
     persentase_dibayar: row.tipe_pembayaran === 'kredit_kpr'
@@ -76,6 +77,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
       pa.dp,
       pa.total_dibayar,
       pa.jatuh_tempo_kpr,
+      pa.reminder_kpr_dates,
       pa.tenor_bulan,
       pa.keterangan_kpr,
       pa.created_at,
@@ -140,6 +142,7 @@ export const findAssignmentById = async (id, userContext) => {
       pa.dp,
       pa.total_dibayar,
       pa.jatuh_tempo_kpr,
+      pa.reminder_kpr_dates,
       pa.tenor_bulan,
       pa.keterangan_kpr,
       pa.created_at,
@@ -159,6 +162,11 @@ export const findAssignmentById = async (id, userContext) => {
 };
 
 export const insertAssignment = async (data, userContext) => {
+  let reminderDatesJson = [];
+  if (data.reminder_kpr_dates && Array.isArray(data.reminder_kpr_dates)) {
+    reminderDatesJson = data.reminder_kpr_dates.map(date => ({ date, sent: false }));
+  }
+
   const rows = await db.execute(sql`
       INSERT INTO property_assignments (
         user_id,
@@ -170,6 +178,7 @@ export const insertAssignment = async (data, userContext) => {
         dp,
         total_dibayar,
         jatuh_tempo_kpr,
+        reminder_kpr_dates,
         tenor_bulan,
         keterangan_kpr,
         created_by
@@ -184,6 +193,7 @@ export const insertAssignment = async (data, userContext) => {
         ${data.dp ?? 0},
         0,
         ${data.jatuh_tempo_kpr ?? null},
+        ${JSON.stringify(reminderDatesJson)},
         ${data.tenor_bulan ?? 0},
         ${data.keterangan_kpr ?? null},
         ${userContext.sub}
@@ -239,14 +249,23 @@ export const updateAssignment = async (id, data, userContext) => {
   if (newTipe === 'cash_lunas') {
     data.dp = null;
     data.jatuh_tempo_kpr = null;
+    data.reminder_kpr_dates = [];
     data.tenor_bulan = null;
     data.keterangan_kpr = null;
   } else if (newTipe === 'cash_cicil') {
     data.dp = null;
     data.jatuh_tempo_kpr = null;
+    data.reminder_kpr_dates = [];
     data.keterangan_kpr = null;
   } else if (newTipe === 'kredit_kpr') {
     data.tenor_bulan = null;
+  }
+
+  let reminderDatesJson = undefined;
+  if (data.reminder_kpr_dates && Array.isArray(data.reminder_kpr_dates)) {
+    reminderDatesJson = JSON.stringify(data.reminder_kpr_dates.map(date => ({ date, sent: false })));
+  } else if (data.reminder_kpr_dates !== undefined) {
+    reminderDatesJson = JSON.stringify([]);
   }
 
   const rows = await db.execute(sql`
@@ -257,6 +276,7 @@ export const updateAssignment = async (id, data, userContext) => {
            harga_total = COALESCE(${data.harga_total ?? null}, harga_total),
            dp = ${data.dp !== undefined ? data.dp : sql`dp`},
            jatuh_tempo_kpr = ${data.jatuh_tempo_kpr !== undefined ? data.jatuh_tempo_kpr : sql`jatuh_tempo_kpr`},
+           reminder_kpr_dates = ${reminderDatesJson !== undefined ? reminderDatesJson : sql`reminder_kpr_dates`},
            tenor_bulan = ${data.tenor_bulan !== undefined ? data.tenor_bulan : sql`tenor_bulan`},
            keterangan_kpr = ${data.keterangan_kpr !== undefined ? data.keterangan_kpr : sql`keterangan_kpr`},
            updated_at = NOW()
