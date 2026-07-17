@@ -17,8 +17,8 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
 
   } else if (['admin', 'direksi'].includes(userContext.role)) {
     if (allCustomers) {
-      // Admin request all customers for assignment: return customers assigned to this company
-      conditionSql = sql`u.role = 'customer' AND u.company_id = ${userContext.companyId}::uuid`;
+      // Admin request all customers for assignment: return ALL users with role = 'customer'
+      conditionSql = sql`u.role = 'customer'`;
     } else {
       // Normal admin view: hanya customer dari company yg sama, atau customer yg diassign ke company admin
       conditionSql = sql`u.role = 'customer' AND (
