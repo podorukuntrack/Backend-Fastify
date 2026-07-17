@@ -50,6 +50,7 @@ const normalizeOwnershipStatus = (status) => {
 export const findAllAssignments = async (userContext, filters = {}) => {
   const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
+  const clusterId = filters.cluster_id ?? filters.clusterId ?? null;
   const limit = Number(filters.limit ?? 20);
   const page = Number(filters.page ?? 1);
   const offset = (page - 1) * limit;
@@ -87,6 +88,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
     WHERE (${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid)
       AND (${userId}::uuid IS NULL OR pa.user_id = ${userId}::uuid)
       AND (${filters.unitId ?? null}::uuid IS NULL OR pa.unit_id = ${filters.unitId ?? null}::uuid)
+      AND (${clusterId}::uuid IS NULL OR u.cluster_id = ${clusterId}::uuid)
     ORDER BY pa.created_at DESC
     LIMIT ${limit}
     OFFSET ${offset}
