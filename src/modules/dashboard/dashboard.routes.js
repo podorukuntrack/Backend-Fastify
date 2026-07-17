@@ -119,12 +119,7 @@ export default async function dashboardRoutes(fastify, options) {
             WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
               AND pa.status_kepemilikan = 'active') AS assignments_active,
 
-          (SELECT COALESCE(SUM(
-            CASE 
-              WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN pa.harga_total
-              ELSE pa.total_dibayar
-            END
-          ), 0)
+          (SELECT COALESCE(SUM(pa.total_dibayar), 0)
              FROM property_assignments pa
              JOIN units u ON pa.unit_id = u.id
              JOIN clusters c ON u.cluster_id = c.id
@@ -276,12 +271,7 @@ export default async function dashboardRoutes(fastify, options) {
        JOIN projects p ON c.project_id = p.id
       WHERE p.company_id = ${cid} AND ct.status != 'closed') AS open_tickets,
 
-    (SELECT COALESCE(SUM(
-      CASE 
-        WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN pa.harga_total
-        ELSE pa.total_dibayar
-      END
-    ), 0)
+    (SELECT COALESCE(SUM(pa.total_dibayar), 0)
        FROM property_assignments pa
        JOIN units u ON pa.unit_id = u.id
        JOIN clusters c ON u.cluster_id = c.id
@@ -488,10 +478,7 @@ export default async function dashboardRoutes(fastify, options) {
              ${startDate && endDate ? sql` AND ph.tanggal_bayar >= ${startDate}::date AND ph.tanggal_bayar <= ${endDate}::date ` : sql``}) as total_cash_in,
              
           (SELECT COALESCE(SUM(
-            CASE 
-              WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN 0
-              ELSE (pa.harga_total - pa.total_dibayar)
-            END
+            (pa.harga_total - pa.total_dibayar)
           ), 0)
            FROM property_assignments pa
            JOIN units u ON pa.unit_id = u.id
@@ -657,18 +644,8 @@ export default async function dashboardRoutes(fastify, options) {
           pa.harga_total,
           pa.dp,
           pa.total_dibayar,
-          (
-            CASE 
-              WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN pa.harga_total
-              ELSE pa.total_dibayar
-            END
-          ) as effective_cash_in,
-          (
-            CASE 
-              WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN 0
-              ELSE (pa.harga_total - pa.total_dibayar)
-            END
-          ) as effective_piutang
+          pa.total_dibayar as effective_cash_in,
+          (pa.harga_total - pa.total_dibayar) as effective_piutang
         FROM property_assignments pa
         JOIN units u ON pa.unit_id = u.id
         JOIN clusters c ON u.cluster_id = c.id
@@ -744,10 +721,7 @@ export default async function dashboardRoutes(fastify, options) {
           COUNT(pa.id) as total_units_bought,
           COALESCE(SUM(pa.harga_total), 0) as total_transaction_value,
           COALESCE(SUM(
-            CASE 
-              WHEN pa.tipe_pembayaran = 'kredit_kpr' AND pa.total_dibayar >= pa.dp THEN 0
-              ELSE (pa.harga_total - pa.total_dibayar)
-            END
+            (pa.harga_total - pa.total_dibayar)
           ), 0) as total_piutang
         FROM property_assignments pa
         LEFT JOIN users buyer ON pa.user_id = buyer.id

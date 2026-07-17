@@ -192,6 +192,28 @@ export const insertAssignment = async (data, userContext) => {
   `);
 
   const assignmentId = rows[0].id;
+  
+  if (data.tipe_pembayaran === 'kredit_kpr') {
+    const kprAmount = Number(data.harga_total ?? 0) - Number(data.dp ?? 0);
+    if (kprAmount > 0) {
+      await db.execute(sql`
+        INSERT INTO payment_history (
+          assignment_id, 
+          jumlah_bayar, 
+          tanggal_bayar, 
+          catatan, 
+          created_by
+        ) VALUES (
+          ${assignmentId}, 
+          ${kprAmount}, 
+          ${data.tanggal_pembelian ?? new Date().toISOString()}, 
+          'Auto-injeksi Pencairan KPR', 
+          ${userContext.sub}
+        )
+      `);
+    }
+  }
+
   await clearDashboardCache();
 
   return await findAssignmentById(assignmentId, userContext);
