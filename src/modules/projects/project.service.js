@@ -12,7 +12,12 @@ export const getProjects = async (userContext) => {
     status: project.status,
     logo_url: project.logoUrl,
     theme_color: project.themeColor,
-    created_at: project.createdAt.toISOString(),
+    created_at: project.createdAt ? project.createdAt.toISOString() : null,
+    company: project.company_nama_pt ? {
+      nama_pt: project.company_nama_pt,
+      kode_pt: project.company_kode_pt,
+      theme_color: project.company_theme_color,
+    } : null
   }));
 };
 
@@ -28,7 +33,12 @@ export const getProject = async (id, userContext) => {
     status: project.status,
     logo_url: project.logoUrl,
     theme_color: project.themeColor,
-    created_at: project.createdAt.toISOString(),
+    created_at: project.createdAt ? project.createdAt.toISOString() : null,
+    company: project.company_nama_pt ? {
+      nama_pt: project.company_nama_pt,
+      kode_pt: project.company_kode_pt,
+      theme_color: project.company_theme_color,
+    } : null
   };
 };
 

@@ -25,7 +25,11 @@ export const roleEnum = pgEnum("role", [
 
 export const companies = pgTable("companies", {
   id: uuid("id").defaultRandom().primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
+  nama_pt: varchar("nama_pt", { length: 255 }).notNull(),
+  kode_pt: varchar("kode_pt", { length: 50 }),
+  alamat: text("alamat"),
+  logo_url: text("logo_url"),
+  theme_color: varchar("theme_color", { length: 50 }).default("#4f46e5"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

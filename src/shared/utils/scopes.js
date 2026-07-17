@@ -87,8 +87,12 @@ export const getTenantScope = (
   }
 
   // ADMIN & DIREKSI
-  if (!user.companyId || !table.companyId) {
+  if (!table.companyId) {
     return undefined;
+  }
+
+  if (!user.companyId) {
+    return sql`false`;
   }
 
   return eq(

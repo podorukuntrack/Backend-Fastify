@@ -1,18 +1,52 @@
 import { db } from '../../config/database.js';
-import { projects } from '../../shared/schemas/schema.js';
+import { projects, companies } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 
 export const findAllProjects = async (userContext) => {
   const scope = getTenantScope(projects, userContext);
-  return await db.select().from(projects).where(scope);
+  return await db.select({
+    id: projects.id,
+    companyId: projects.companyId,
+    namaProyek: projects.namaProyek,
+    deskripsi: projects.deskripsi,
+    lokasi: projects.lokasi,
+    status: projects.status,
+    logoUrl: projects.logoUrl,
+    themeColor: projects.themeColor,
+    createdAt: projects.createdAt,
+    updatedAt: projects.updatedAt,
+    company_nama_pt: companies.nama_pt,
+    company_kode_pt: companies.kode_pt,
+    company_theme_color: companies.theme_color,
+  })
+  .from(projects)
+  .leftJoin(companies, eq(projects.companyId, companies.id))
+  .where(scope);
 };
 
 export const findProjectById = async (id, userContext) => {
   const scope = getTenantScope(projects, userContext);
   const condition = scope ? and(eq(projects.id, id), scope) : eq(projects.id, id);
   
-  const result = await db.select().from(projects).where(condition).limit(1);
+  const result = await db.select({
+    id: projects.id,
+    companyId: projects.companyId,
+    namaProyek: projects.namaProyek,
+    deskripsi: projects.deskripsi,
+    lokasi: projects.lokasi,
+    status: projects.status,
+    logoUrl: projects.logoUrl,
+    themeColor: projects.themeColor,
+    createdAt: projects.createdAt,
+    updatedAt: projects.updatedAt,
+    company_nama_pt: companies.nama_pt,
+    company_kode_pt: companies.kode_pt,
+    company_theme_color: companies.theme_color,
+  })
+  .from(projects)
+  .leftJoin(companies, eq(projects.companyId, companies.id))
+  .where(condition).limit(1);
   return result[0];
 };
 
