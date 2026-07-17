@@ -160,7 +160,7 @@ export const insertProgress = async (data, userContext) => {
            status_pembangunan = CASE
              WHEN ${total} >= 100 THEN 'selesai'
              WHEN ${total} > 0 THEN 'dalam_pembangunan'
-             ELSE status_pembangunan
+             ELSE 'belum_mulai'
            END,
            updated_at = NOW()
      WHERE id = ${value.unit_id}
@@ -220,7 +220,7 @@ export const updateProgress = async (id, data, userContext) => {
            status_pembangunan = CASE
              WHEN ${total} >= 100 THEN 'selesai'
              WHEN ${total} > 0 THEN 'dalam_pembangunan'
-             ELSE status_pembangunan
+             ELSE 'belum_mulai'
            END,
            updated_at = NOW()
      WHERE id = ${unitId}
@@ -280,7 +280,7 @@ export const deleteProgress = async (id, userContext) => {
            status_pembangunan = CASE
              WHEN ${total} >= 100 THEN 'selesai'
              WHEN ${total} > 0 THEN 'dalam_pembangunan'
-             ELSE status_pembangunan
+             ELSE 'belum_mulai'
            END,
            updated_at = NOW()
      WHERE id = ${unitId}
