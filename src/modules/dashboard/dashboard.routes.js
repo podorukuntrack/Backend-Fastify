@@ -683,8 +683,38 @@ export default async function dashboardRoutes(fastify, options) {
       `);
 
       const revenue = assignmentsResult; 
-      const cash_in = assignmentsResult.filter(a => Number(a.effective_cash_in) > 0);
       const piutang = assignmentsResult.filter(a => Number(a.effective_piutang) > 0);
+      
+      const cashInResult = await db.execute(sql`
+        SELECT 
+          pa.id as assignment_id,
+          u.id as unit_id,
+          u.nomor_unit,
+          c.id as cluster_id,
+          c.nama_cluster,
+          p.id as project_id,
+          p.nama_proyek,
+          p.company_id,
+          comp.nama_pt as company_name,
+          buyer.nama as customer_name,
+          pa.tanggal_pembelian,
+          pa.tipe_pembayaran,
+          SUM(ph.jumlah_bayar) as effective_cash_in
+        FROM payment_history ph
+        JOIN property_assignments pa ON ph.assignment_id = pa.id
+        JOIN units u ON pa.unit_id = u.id
+        JOIN clusters c ON u.cluster_id = c.id
+        JOIN projects p ON p.id = c.project_id
+        JOIN companies comp ON p.company_id = comp.id
+        JOIN users buyer ON pa.user_id = buyer.id
+        WHERE (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
+          AND (${sDate}::date IS NULL OR ph.tanggal_bayar >= ${sDate}::date)
+          AND (${eDate}::date IS NULL OR ph.tanggal_bayar <= ${eDate}::date)
+        GROUP BY pa.id, u.id, u.nomor_unit, c.id, c.nama_cluster, p.id, p.nama_proyek, p.company_id, comp.nama_pt, buyer.nama, pa.tanggal_pembelian, pa.tipe_pembayaran
+        ORDER BY effective_cash_in DESC
+      `);
+      
+      const cash_in = cashInResult.filter(a => Number(a.effective_cash_in) > 0);
       
       const unitsResult = await db.execute(sql`
         SELECT 
