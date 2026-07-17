@@ -284,6 +284,33 @@ export const updateAssignment = async (id, data, userContext) => {
     RETURNING id
   `);
 
+  if (data.tipe_pembayaran && data.tipe_pembayaran !== existing.pembayaran.tipe) {
+    // Delete payment history on payment method change
+    await db.execute(sql`DELETE FROM payment_history WHERE assignment_id = ${id}`);
+    
+    // Auto-inject KPR if changing to KPR
+    if (data.tipe_pembayaran === 'kredit_kpr') {
+      const kprAmount = Number(data.harga_total ?? existing.pembayaran.harga_total) - Number(data.dp ?? 0);
+      if (kprAmount > 0) {
+        await db.execute(sql`
+          INSERT INTO payment_history (
+            assignment_id, 
+            jumlah_bayar, 
+            tanggal_bayar, 
+            catatan, 
+            created_by
+          ) VALUES (
+            ${id}, 
+            ${kprAmount}, 
+            ${data.tanggal_pembelian ?? existing.tanggal_pembelian ?? new Date().toISOString()}, 
+            'Auto-injeksi Pencairan KPR', 
+            ${userContext.sub}
+          )
+        `);
+      }
+    }
+  }
+
   await clearDashboardCache();
   return await findAssignmentById(rows[0].id, userContext);
 };
