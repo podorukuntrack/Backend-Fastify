@@ -2,7 +2,7 @@ import * as service from './progress.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `progress:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `progress:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getProgressList(request.user, request.query);
   }, 3600);
@@ -11,7 +11,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByUnitHandler = async (request, reply) => {
   try {
-    const cacheKey = `progress:unit:${request.user.id}:${request.params.id}`;
+    const cacheKey = `progress:unit:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getProgressByUnit(request.params.id, request.user);
     }, 3600);
@@ -23,7 +23,7 @@ export const getByUnitHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `progress:detail:${request.user.id}:${request.params.id}`;
+    const cacheKey = `progress:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getProgress(request.params.id, request.user);
     }, 3600);

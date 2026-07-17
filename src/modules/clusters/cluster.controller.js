@@ -2,7 +2,7 @@ import * as service from './cluster.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `clusters:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `clusters:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data: result, source } = await withCache(cacheKey, async () => {
     return await service.getClusters(request.user, request.query);
   }, 3600);
@@ -13,7 +13,7 @@ export const getAllHandler = async (request, reply) => {
 export const getByProjectIdHandler = async (request, reply) => {
   // Alias the route param to the query param expected by the service
   request.query.project_id = request.params.projectId;
-  const cacheKey = `clusters:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `clusters:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data: result, source } = await withCache(cacheKey, async () => {
     return await service.getClusters(request.user, request.query);
   }, 3600);
@@ -23,7 +23,7 @@ export const getByProjectIdHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `clusters:detail:${request.user.id}:${request.params.id}`;
+    const cacheKey = `clusters:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getCluster(request.params.id, request.user);
     }, 3600);

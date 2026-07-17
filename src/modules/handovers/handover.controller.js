@@ -2,7 +2,7 @@ import * as service from './handover.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `handovers:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `handovers:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getHandovers(request.user, request.query);
   }, 3600);
@@ -11,7 +11,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `handovers:detail:${request.user.id}:${request.params.id}`;
+    const cacheKey = `handovers:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getHandover(request.params.id, request.user);
     }, 3600);

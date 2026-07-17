@@ -2,7 +2,7 @@ import * as service from './timeline.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `timelines:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `timelines:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getTimelines(request.user, request.query);
   }, 3600);

@@ -2,7 +2,7 @@ import * as service from './retention.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `retentions:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `retentions:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getRetentionsList(request.user, request.query);
   }, 3600);
@@ -11,7 +11,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `retentions:detail:${request.user.id}:${request.params.id}`;
+    const cacheKey = `retentions:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getRetentionDetail(request.params.id, request.user);
     }, 3600);

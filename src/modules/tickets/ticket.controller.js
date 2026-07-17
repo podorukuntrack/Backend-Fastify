@@ -2,7 +2,7 @@ import * as service from './ticket.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `tickets:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `tickets:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getTickets(request.user);
   }, 3600);
@@ -11,7 +11,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `tickets:detail:${request.user.id}:${request.params.id}`;
+    const cacheKey = `tickets:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getTicketDetail(request.params.id, request.user);
     }, 3600);
@@ -43,7 +43,7 @@ export const updateHandler = async (request, reply) => {
 
 export const getMessagesHandler = async (request, reply) => {
   try {
-    const cacheKey = `tickets:messages:${request.user.id}:${request.params.id}`;
+    const cacheKey = `tickets:messages:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getMessages(request.params.id, request.user);
     }, 3600);

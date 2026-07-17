@@ -2,7 +2,7 @@ import * as service from './assignment.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `assignments:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `assignments:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data: cachedRes, source } = await withCache(cacheKey, async () => {
     const data = await service.getAssignments(request.user, request.query);
     const total = await service.getAssignmentsMeta(request.query, request.user);
@@ -23,7 +23,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `assignments:detail:${request.user.id}:${request.params.id}`;
+    const cacheKey = `assignments:detail:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getAssignment(request.params.id, request.user);
     }, 3600);
@@ -62,7 +62,7 @@ export const updateHandler = async (request, reply) => {
 
 export const getPaymentsHandler = async (request, reply) => {
   try {
-    const cacheKey = `assignments:payments:${request.user.id}:${request.params.id}`;
+    const cacheKey = `assignments:payments:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getAssignmentPayments(request.params.id, request.user);
     }, 3600);

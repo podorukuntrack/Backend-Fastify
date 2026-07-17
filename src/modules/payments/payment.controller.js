@@ -2,7 +2,7 @@ import * as service from './payment.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `payments:list:${request.user.id}:${JSON.stringify(request.query)}`;
+  const cacheKey = `payments:list:${request.user.sub}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getPayments(request.user);
   }, 3600);
@@ -11,7 +11,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByUnitHandler = async (request, reply) => {
   try {
-    const cacheKey = `payments:unit:${request.user.id}:${request.params.id}`;
+    const cacheKey = `payments:unit:${request.user.sub}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getPaymentsByUnit(request.params.id, request.user);
     }, 3600);
