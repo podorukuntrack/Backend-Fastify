@@ -446,7 +446,7 @@ export default async function dashboardRoutes(fastify, options) {
         },
         security: [{ bearerAuth: [] }],
       }),
-      preHandler: authorize('owner', 'direksi', 'super_admin'),
+      preHandler: authorize('owner', 'direksi', 'super_admin', 'admin'),
     },
     async (request, reply) => {
       let cid = request.user.companyId ?? null;
