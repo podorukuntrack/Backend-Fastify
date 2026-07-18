@@ -53,6 +53,14 @@ export const getTenantScope = (
       )`;
     }
 
+    // Jika tabel punya assignmentId
+    // maka filter berdasarkan id assignment yang dimiliki customer
+    if (table.assignmentId) {
+      return sql`${table.assignmentId} IN (
+        SELECT id FROM property_assignments WHERE user_id = ${userId}::uuid
+      )`;
+    }
+
     // Projects table check
     if (table.namaProyek) {
       return sql`${table.id} IN (
