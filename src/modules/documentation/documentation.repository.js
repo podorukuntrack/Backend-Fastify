@@ -147,7 +147,6 @@ export const findDocById = async (id, userContext) => {
 export const insertDoc = async (data) => {
   const rows = await db.execute(sql`
     INSERT INTO documentation (
-      company_id,
       unit_id,
       progress_id,
       jenis,
@@ -158,7 +157,6 @@ export const insertDoc = async (data) => {
       created_by
     )
     VALUES (
-      ${data.company_id},
       ${data.unit_id},
       ${data.progress_id ?? null},
       ${data.jenis},
