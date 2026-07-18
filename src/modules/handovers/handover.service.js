@@ -39,10 +39,11 @@ export const createHandover = async (data, userContext) => {
     normalizedData.companyId = userContext.companyId ?? unit.companyId ?? unit.company_id;
   }
 
-  // Cek apakah sudah ada data serah terima untuk unit ini
+  // Cek apakah sudah ada data serah terima yang aktif atau berhasil
   const existingHandovers = await repo.findHandovers(userContext, { unitId: normalizedData.unitId });
-  if (existingHandovers.length > 0) {
-    throw new AppError('Gagal. Hanya diperbolehkan satu data serah terima per unit. Silakan edit atau hapus data yang sudah ada.', 400);
+  const hasActiveOrCompleted = existingHandovers.some(h => h.status !== 'gagal');
+  if (hasActiveOrCompleted) {
+    throw new AppError('Gagal. Terdapat jadwal serah terima yang sedang aktif atau sudah selesai untuk unit ini.', 400);
   }
 
   const result = await repo.insertHandover(normalizedData);
