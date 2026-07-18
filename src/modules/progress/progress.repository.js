@@ -158,9 +158,9 @@ export const insertProgress = async (data, userContext) => {
       UPDATE units
          SET progress_percentage = ${total},
              status_pembangunan = CASE
-               WHEN ${total} >= 100 THEN 'selesai'
-               WHEN ${total} > 0 THEN 'dalam_pembangunan'
-               ELSE 'belum_mulai'
+               WHEN ${total} >= 100 THEN 'selesai'::unit_status
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'::unit_status
+               ELSE 'belum_mulai'::unit_status
              END,
              updated_at = NOW()
        WHERE id = ${value.unit_id}
@@ -169,9 +169,9 @@ export const insertProgress = async (data, userContext) => {
     await tx.execute(sql`
       UPDATE timelines
       SET status = CASE
-        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
-        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
-        ELSE 'planned'
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'::timeline_status
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'::timeline_status
+        ELSE 'planned'::timeline_status
       END
       WHERE unit_id = ${value.unit_id}
     `);
@@ -222,9 +222,9 @@ export const updateProgress = async (id, data, userContext) => {
       UPDATE units
          SET progress_percentage = ${total},
              status_pembangunan = CASE
-               WHEN ${total} >= 100 THEN 'selesai'
-               WHEN ${total} > 0 THEN 'dalam_pembangunan'
-               ELSE 'belum_mulai'
+               WHEN ${total} >= 100 THEN 'selesai'::unit_status
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'::unit_status
+               ELSE 'belum_mulai'::unit_status
              END,
              updated_at = NOW()
        WHERE id = ${unitId}
@@ -233,9 +233,9 @@ export const updateProgress = async (id, data, userContext) => {
     await tx.execute(sql`
       UPDATE timelines
       SET status = CASE
-        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
-        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
-        ELSE 'planned'
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'::timeline_status
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'::timeline_status
+        ELSE 'planned'::timeline_status
       END
       WHERE unit_id = ${unitId}
     `);
@@ -284,9 +284,9 @@ export const deleteProgress = async (id, userContext) => {
       UPDATE units
          SET progress_percentage = ${total},
              status_pembangunan = CASE
-               WHEN ${total} >= 100 THEN 'selesai'
-               WHEN ${total} > 0 THEN 'dalam_pembangunan'
-               ELSE 'belum_mulai'
+               WHEN ${total} >= 100 THEN 'selesai'::unit_status
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'::unit_status
+               ELSE 'belum_mulai'::unit_status
              END,
              updated_at = NOW()
        WHERE id = ${unitId}
@@ -295,9 +295,9 @@ export const deleteProgress = async (id, userContext) => {
     await tx.execute(sql`
       UPDATE timelines
       SET status = CASE
-        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'
-        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'
-        ELSE 'planned'
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) >= 100 THEN 'completed'::timeline_status
+        WHEN COALESCE((SELECT SUM(progress_percentage) FROM progress WHERE unit_id = timelines.unit_id AND tahap = timelines.task_name), 0) > 0 THEN 'on_progress'::timeline_status
+        ELSE 'planned'::timeline_status
       END
       WHERE unit_id = ${unitId}
     `);

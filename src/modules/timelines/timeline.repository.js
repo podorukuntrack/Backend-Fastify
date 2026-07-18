@@ -42,8 +42,8 @@ export const insertTimeline = async (data) => {
       UPDATE units
          SET progress_percentage = ${total},
              status_pembangunan = CASE
-               WHEN ${total} >= 100 THEN 'selesai'
-               WHEN ${total} > 0 THEN 'dalam_pembangunan'
+               WHEN ${total} >= 100 THEN 'selesai'::unit_status
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'::unit_status
                ELSE status_pembangunan
              END,
              updated_at = NOW()
@@ -101,8 +101,8 @@ export const updateTimeline = async (id, data, userContext) => {
       UPDATE units
          SET progress_percentage = ${total},
              status_pembangunan = CASE
-               WHEN ${total} >= 100 THEN 'selesai'
-               WHEN ${total} > 0 THEN 'dalam_pembangunan'
+               WHEN ${total} >= 100 THEN 'selesai'::unit_status
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'::unit_status
                ELSE status_pembangunan
              END,
              updated_at = NOW()
@@ -152,8 +152,8 @@ export const deleteTimeline = async (id, userContext) => {
       UPDATE units
          SET progress_percentage = ${total},
              status_pembangunan = CASE
-               WHEN ${total} >= 100 THEN 'selesai'
-               WHEN ${total} > 0 THEN 'dalam_pembangunan'
+               WHEN ${total} >= 100 THEN 'selesai'::unit_status
+               WHEN ${total} > 0 THEN 'dalam_pembangunan'::unit_status
                ELSE status_pembangunan
              END,
              updated_at = NOW()
