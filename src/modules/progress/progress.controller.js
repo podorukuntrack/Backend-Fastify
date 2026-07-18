@@ -37,6 +37,7 @@ export const createHandler = async (request, reply) => {
   try {
     const data = await service.createProgress(request.body, request.user);
     await clearCachePattern('progress:*');
+    await clearCachePattern('timelines:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('unit:*');
@@ -51,6 +52,7 @@ export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyProgress(request.params.id, request.body, request.user);
     await clearCachePattern('progress:*');
+    await clearCachePattern('timelines:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('unit:*');
@@ -65,6 +67,7 @@ export const deleteHandler = async (request, reply) => {
   try {
     await service.removeProgress(request.params.id, request.user);
     await clearCachePattern('progress:*');
+    await clearCachePattern('timelines:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('unit:*');
