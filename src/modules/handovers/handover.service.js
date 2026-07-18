@@ -38,6 +38,13 @@ export const createHandover = async (data, userContext) => {
   if (!normalizedData.companyId) {
     normalizedData.companyId = userContext.companyId ?? unit.companyId ?? unit.company_id;
   }
+
+  // Cek apakah sudah ada data serah terima untuk unit ini
+  const existingHandovers = await repo.findHandovers(userContext, { unitId: normalizedData.unitId });
+  if (existingHandovers.length > 0) {
+    throw new AppError('Gagal. Hanya diperbolehkan satu data serah terima per unit. Silakan edit atau hapus data yang sudah ada.', 400);
+  }
+
   const result = await repo.insertHandover(normalizedData);
 
   try {

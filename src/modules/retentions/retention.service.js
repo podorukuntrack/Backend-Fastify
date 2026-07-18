@@ -34,6 +34,13 @@ export const createRetention = async (input, userContext) => {
   if (!data.companyId) {
     data.companyId = userContext.companyId ?? unit.companyId ?? unit.company_id;
   }
+
+  // Cek apakah sudah ada data retensi/garansi untuk unit ini
+  const existingRetentions = await repo.findRetentions(userContext, { unitId: data.unitId });
+  if (existingRetentions.length > 0) {
+    throw new AppError('Gagal. Hanya diperbolehkan satu data garansi/retensi per unit. Silakan edit atau hapus data yang sudah ada.', 400);
+  }
+
   const result = await repo.insertRetention(data);
 
   // Kirim Notifikasi Realtime ketika retensi dibuat
