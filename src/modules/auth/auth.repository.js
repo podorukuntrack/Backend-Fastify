@@ -1,4 +1,4 @@
-  // src/modules/auth/auth.repository.js
+// src/modules/auth/auth.repository.js
 
 import { db } from '../../config/database.js';
 import { users, refreshTokens } from '../../shared/schemas/schema.js';
@@ -31,12 +31,6 @@ export const saveRefreshToken = async (
   tokenHash,
   expiresAt
 ) => {
-  console.log('saveRefreshToken params:', {
-    userId,
-    tokenHash,
-    expiresAt,
-  });
-
   await db.insert(refreshTokens).values({
     userId,
     token: tokenHash,
@@ -59,6 +53,7 @@ export const findRefreshTokenByHash = async (tokenHash) => {
     FROM refresh_tokens rt
     JOIN users u ON u.id = rt.user_id
     WHERE rt.token_hash = ${tokenHash}
+      AND rt.revoked = FALSE
     LIMIT 1
   `);
 
@@ -70,6 +65,16 @@ export const revokeRefreshTokenByHash = async (tokenHash) => {
     UPDATE refresh_tokens
        SET revoked = TRUE
      WHERE token_hash = ${tokenHash}
+  `);
+};
+
+// FIX H1: Revoke semua refresh token milik user — dipanggil saat password berubah
+export const revokeAllUserRefreshTokens = async (userId) => {
+  await db.execute(sql`
+    UPDATE refresh_tokens
+       SET revoked = TRUE
+     WHERE user_id = ${userId}::uuid
+       AND revoked = FALSE
   `);
 };
 

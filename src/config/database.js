@@ -9,19 +9,10 @@ dotenv.config();
 // Ambil DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
 
-// Debug (opsional)
-console.log(
-  '🔗 DATABASE_URL:',
-  connectionString
-    ? connectionString.replace(/:(.*?)@/, ':****@')
-    : 'undefined'
-);
-
-
 // Validasi
 if (!connectionString) {
   throw new Error(
-    `DATABASE_URL is not defined. Please check ${envFile}`
+    'DATABASE_URL is not defined. Please check your .env file or environment variables.'
   );
 }
 

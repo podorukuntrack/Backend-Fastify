@@ -10,8 +10,9 @@ export const globalErrorHandler = (error, request, reply) => {
   // Otherwise, default to 500.
   let statusCode = error.statusCode || 500;
   
-  // For 500 errors, we don't want to leak internal system error messages to the user unless they are custom thrown errors
-  let message = (statusCode === 500 && !error.statusCode) 
+  // For 500 errors or any non-AppError, we don't want to leak internal system error messages 
+  // (like SQL queries or stack traces) to the user unless they are custom thrown errors.
+  let message = (!error.statusCode) 
     ? "Terjadi kesalahan pada server." 
     : (error.message || "Terjadi kesalahan.");
   

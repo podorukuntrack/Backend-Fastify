@@ -194,11 +194,7 @@ export const deleteUser = async (id, userContext) => {
   if (!existing) throw new AppError('User tidak ditemukan atau tidak ada akses', 400);
 
   if (existing.role === 'customer') {
-    // 1. Cek Data Protes / Tiket
-    const [{ hasTickets }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM tickets WHERE user_id = ${id}) AS "hasTickets"`);
-    if (hasTickets) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Protes/Tiket untuk pengguna ini terlebih dahulu.', 400);
-
-    // 2. Ambil ID Unit untuk pengecekan selanjutnya
+    // 1. Ambil ID Unit untuk pengecekan selanjutnya
     const assignmentsRes = await db.execute(sql`SELECT id AS assignment_id, unit_id FROM property_assignments WHERE user_id = ${id}`);
     const unitIds = assignmentsRes.map(a => a.unit_id).filter(Boolean);
     const assignmentIds = assignmentsRes.map(a => a.assignment_id).filter(Boolean);

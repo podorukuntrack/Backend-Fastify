@@ -6,12 +6,11 @@ services:
     image: redis:7-alpine
     container_name: podorukuntrack_redis_prod
     restart: always
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-podorukuntrack_redis_secret}
     volumes:
       - redis_data_prod:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-podorukuntrack_redis_secret}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -138,13 +138,13 @@ export default async function dashboardRoutes(fastify, options) {
           ) AS revenue_this_month,
 
           (SELECT COUNT(*)::int
-             FROM tickets ct
-             JOIN property_assignments pa ON ct.assignment_id = pa.id
-             JOIN units u ON pa.unit_id = u.id
+             FROM retention_complaints rc
+             JOIN retentions r ON rc.retention_id = r.id
+             JOIN units u ON r.unit_id = u.id
              JOIN clusters c ON u.cluster_id = c.id
              JOIN projects p ON p.id = c.project_id
             WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
-              AND ct.status != 'closed') AS open_tickets
+              AND rc.status = 'pending') AS open_tickets
       `);
 
       const stats = result[0];
@@ -264,12 +264,12 @@ export default async function dashboardRoutes(fastify, options) {
       WHERE p.company_id = ${cid}) AS units_sold,
 
     (SELECT COUNT(*) 
-       FROM tickets ct
-       JOIN property_assignments pa ON ct.assignment_id = pa.id
-       JOIN units u ON pa.unit_id = u.id
+       FROM retention_complaints rc
+       JOIN retentions r ON rc.retention_id = r.id
+       JOIN units u ON r.unit_id = u.id
        JOIN clusters c ON u.cluster_id = c.id
        JOIN projects p ON c.project_id = p.id
-      WHERE p.company_id = ${cid} AND ct.status != 'closed') AS open_tickets,
+      WHERE p.company_id = ${cid} AND rc.status = 'pending') AS open_tickets,
 
     (SELECT COALESCE(SUM(pa.total_dibayar), 0)
        FROM property_assignments pa
@@ -336,7 +336,7 @@ export default async function dashboardRoutes(fastify, options) {
           (SELECT COUNT(*) FROM projects WHERE company_id = ${cid}::uuid) AS total_projects,
           (SELECT COUNT(*) FROM units WHERE company_id = ${cid}::uuid) AS total_units,
           (SELECT COUNT(*) FROM units WHERE company_id = ${cid}::uuid AND status = 'sold') AS units_sold,
-          (SELECT COUNT(*) FROM tickets WHERE company_id = ${cid}::uuid AND status != 'closed') AS open_tickets,
+          (SELECT COUNT(*) FROM retention_complaints rc JOIN retentions r ON rc.retention_id = r.id WHERE r.company_id = ${cid}::uuid AND rc.status = 'pending') AS open_tickets,
           (SELECT COALESCE(SUM(amount), 0)
              FROM payments
             WHERE company_id = ${cid}::uuid

@@ -5,6 +5,7 @@ import {
   findRefreshTokenByHash,
   findUserByEmail,
   revokeRefreshTokenByHash,
+  revokeAllUserRefreshTokens,
   saveRefreshToken,
   findUserById,
   updateUserPassword,
@@ -21,6 +22,23 @@ import { findCompanyById } from '../companies/company.repository.js';
 import { getRedisClient } from '../../shared/utils/cache.js';
 import { sendOTPByEmail } from './auth.email.js';
 import { AppError } from '../../shared/utils/AppError.js';
+
+// ── Whitelist akun test untuk review Google Play Console dan App Store ──
+// Menggunakan exact-match agar tidak bisa di-exploit dengan substring (misal: "mytester@gmail.com")
+const TEST_ACCOUNTS = [
+  'podorukuntester@gmail.com',
+  '081234567890',
+  '6281234567890',
+  '082286361965',
+  '6282286361965',
+  '089999999999',
+  '629999999999',
+];
+
+const isTestContact = (contact) => {
+  const cleanContact = contact.replace(/[^0-9]/g, '');
+  return TEST_ACCOUNTS.includes(contact.toLowerCase()) || TEST_ACCOUNTS.includes(cleanContact);
+};
 
 export const loginUser = async (email, password, fastify) => {
   const user = await findUserByEmail(email);
@@ -64,12 +82,6 @@ export const loginUser = async (email, password, fastify) => {
 
   // Expired 30 hari
   const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
-
-  console.log('Login user:', {
-    userId: user.id,
-    companyId: user.company_id,
-    expiresAt,
-  });
 
   // Simpan refresh token
   await saveRefreshToken(
@@ -133,7 +145,10 @@ export const refreshTokenService = async (
     email: storedToken.email,
   };
 
- const accessToken = fastify.jwt.sign(payload);
+  // FIX H6: Tambahkan expiresIn agar access token tidak berlaku selamanya
+  const accessToken = fastify.jwt.sign(payload, {
+    expiresIn: '15m',
+  });
 
   const rawRefreshToken = crypto
     .randomBytes(40)
@@ -187,7 +202,6 @@ export const logoutUser = async (refreshToken) => {
     .update(refreshToken)
     .digest('hex');
 
-  console.log('Logout token hash:', hashedToken);
   await revokeRefreshTokenByHash(hashedToken);
 
   return true;
@@ -249,23 +263,11 @@ export const requestOtp = async (method, contact) => {
     return true; // Prevent enumeration
   }
 
-  // Detect test accounts for Google Play Console and App Store review.
-  // Stores like Apple/Google require a fully functional test account with a static OTP
-  // to review the app. These specific names and numbers are whitelisted to bypass real SMS/Email OTPs.
-  const cleanContact = contact.replace(/[^0-9]/g, '');
-  const isTestAccount = 
-    contact.toLowerCase().includes('tester') || 
-    contact.toLowerCase().includes('reviewer') || 
-    contact.toLowerCase() === 'podorukuntester@gmail.com' || 
-    cleanContact === '081234567890' || 
-    cleanContact === '6281234567890' ||
-    cleanContact === '082286361965' || 
-    cleanContact === '6282286361965' ||
-    cleanContact === '089999999999' ||
-    cleanContact === '629999999999';
+  // FIX H2: Gunakan exact-match whitelist, bukan substring
+  const testAccount = isTestContact(contact);
 
   // Use a static OTP '123456' for test accounts
-  const otp = isTestAccount ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = testAccount ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
   const redisClient = getRedisClient();
   
   if (redisClient) {
@@ -275,7 +277,7 @@ export const requestOtp = async (method, contact) => {
   }
 
   // Skip sending actual WA/Email for test accounts
-  if (isTestAccount) {
+  if (testAccount) {
     return true;
   }
 
@@ -287,7 +289,7 @@ export const requestOtp = async (method, contact) => {
     const context = { role: user.role, companyId: user.company_id };
     await sendWhatsAppMessage(user.nomor_telepon, message, context);
   } else if (method === 'email') {
-    await sendOTPByEmail(user.email, otp); // Pastikan kirim ke user.email yang valid
+    await sendOTPByEmail(user.email, otp);
   }
 
   return true;
@@ -297,25 +299,13 @@ export const verifyOtp = async (contact, otp) => {
   const redisClient = getRedisClient();
   if (!redisClient) throw new AppError('Layanan sementara tidak tersedia.', 503);
 
-  const cleanContact = contact.replace(/[^0-9]/g, '');
-
-  // Whitelist criteria for App Store and Play Store review testers.
-  // These accounts bypass the dynamic Redis OTP check and are allowed to use a static OTP.
-  const isTestAccount = 
-    contact.toLowerCase().includes('tester') || 
-    contact.toLowerCase().includes('reviewer') || 
-    contact.toLowerCase() === 'podorukuntester@gmail.com' || 
-    cleanContact === '081234567890' || 
-    cleanContact === '6281234567890' ||
-    cleanContact === '082286361965' || 
-    cleanContact === '6282286361965' ||
-    cleanContact === '089999999999' ||
-    cleanContact === '629999999999';
+  // FIX H2: Gunakan exact-match whitelist, bukan substring
+  const testAccount = isTestContact(contact);
 
   const storedOtp = await redisClient.get(`otp:${contact}`);
   
   // Accept static '123456' for test/review accounts
-  if (isTestAccount && (otp === '123456' || storedOtp === otp)) {
+  if (testAccount && (otp === '123456' || storedOtp === otp)) {
     const resetToken = crypto.randomBytes(32).toString('hex');
     await redisClient.set(`reset_token:${contact}`, resetToken, 'EX', 900); // 15 mins
     await redisClient.del(`otp:${contact}`);
@@ -359,6 +349,9 @@ export const resetPassword = async (contact, resetToken, newPassword) => {
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await updateUserPassword(user.id, passwordHash);
 
+  // FIX H1: Revoke semua refresh token saat password direset
+  await revokeAllUserRefreshTokens(user.id);
+
   await redisClient.del(`reset_token:${contact}`);
   return true;
 };
@@ -376,6 +369,10 @@ export const changePassword = async (userId, oldPassword, newPassword) => {
 
   const newPasswordHash = await bcrypt.hash(newPassword, 10);
   await updateUserPassword(userId, newPasswordHash);
+
+  // FIX H1: Revoke semua refresh token saat password berubah — mencegah attacker
+  // yang sudah punya refresh token lama tetap bisa mengakses akun
+  await revokeAllUserRefreshTokens(userId);
 
   return true;
 };

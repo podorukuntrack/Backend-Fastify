@@ -63,17 +63,6 @@ export const deleteHandler = async (request, reply) => {
   }
 };
 
-export const createDefectHandler = async (request, reply) => {
-  try {
-    const data = await service.reportDefect(request.params.id, request.body, request.user);
-    await clearCachePattern('handovers:*');
-    await clearCachePattern('unit:*');
-    await clearCachePattern('dashboard:*');
-    return reply.code(201).send({ success: true, message: 'Defect reported', data });
-  } catch (error) {
-    throw error;
-  }
-};
 
 export const respondHandler = async (request, reply) => {
   try {

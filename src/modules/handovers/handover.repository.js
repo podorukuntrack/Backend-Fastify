@@ -1,6 +1,6 @@
 // src/modules/handovers/handover.repository.js
 import { db } from '../../config/database.js';
-import { handovers, handoverDefects } from '../../shared/schemas/schema.js';
+import { handovers } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 import { AppError } from '../../shared/utils/AppError.js';
@@ -97,8 +97,3 @@ export const deleteHandover = async (id, userContext) => {
   });
 };
 
-// === DEFECTS / CACAT BANGUNAN ===
-export const insertDefect = async (data) => {
-  const result = await db.insert(handoverDefects).values(data).returning();
-  return result[0];
-};

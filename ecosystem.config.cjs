@@ -10,7 +10,8 @@ module.exports = {
       max_memory_restart: '800M', // Restart otomatis jika memakan memori terlalu besar (mencegah memory leak)
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        REDIS_PASSWORD: 'podorukuntrack_redis_secret'
       },
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: './logs/error.log',

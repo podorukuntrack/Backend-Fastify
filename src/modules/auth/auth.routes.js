@@ -145,16 +145,16 @@ export default async function authRoutes(fastify, options) {
       reply.setCookie('accessToken', tokens.accessToken, {
         path: '/',
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'strict',
         maxAge: 15 * 60
       });
 
       reply.setCookie('refreshToken', tokens.refreshToken, {
         path: '/',
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'strict',
         maxAge: 30 * 24 * 60 * 60
       });
 
@@ -196,8 +196,8 @@ export default async function authRoutes(fastify, options) {
     const cookieOpts = {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      secure: process.env.NODE_ENV !== 'development',
+      sameSite: 'strict'
     };
 
     reply.clearCookie('accessToken', cookieOpts);

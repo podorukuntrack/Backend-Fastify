@@ -1,20 +1,22 @@
 // src/modules/auth/auth.controller.js
 import * as service from './auth.service.js';
 
+// FIX C5: Cookie secure default ke true kecuali di development
+// FIX M4: sameSite 'strict' untuk CSRF protection lebih baik
 const setAuthCookies = (reply, tokens) => {
   reply.setCookie('accessToken', tokens.accessToken, {
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'strict',
     maxAge: 15 * 60
   });
 
   reply.setCookie('refreshToken', tokens.refreshToken, {
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'strict',
     maxAge: 30 * 24 * 60 * 60
   });
 };

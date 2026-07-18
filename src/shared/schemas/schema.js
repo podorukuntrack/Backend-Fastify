@@ -357,53 +357,6 @@ export const handovers = pgTable("handovers", {
   unitIdx: index("handovers_unit_idx").on(table.unitId),
 }));
 
-export const handoverDefects = pgTable("handover_defects", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  handoverId: uuid("handover_id")
-    .references(() => handovers.id, { onDelete: 'cascade' })
-    .notNull(),
-  description: text("description").notNull(),
-  imageUrl: text("image_url"), // Bisa integrasi dengan R2 nanti
-  status: varchar("status", { length: 50 }).default("reported"), // reported, fixing, resolved
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  handoverIdx: index("defects_handover_idx").on(table.handoverId),
-}));
-
-// src/shared/schemas/schema.js (Tambahan untuk Phase 4)
-
-export const tickets = pgTable("tickets", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id")
-    .references(() => companies.id)
-    .notNull(),
-  userId: uuid("user_id")
-    .references(() => users.id)
-    .notNull(), // Customer yang membuat tiket
-  subject: varchar("subject", { length: 255 }).notNull(),
-  status: varchar("status", { length: 50 }).default("open"), // open, in_progress, resolved, closed
-  priority: varchar("priority", { length: 50 }).default("normal"), // low, normal, high
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  companyIdx: index("tickets_company_idx").on(table.companyId),
-  userIdx: index("tickets_user_idx").on(table.userId),
-}));
-
-export const ticketMessages = pgTable("ticket_messages", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  ticketId: uuid("ticket_id")
-    .references(() => tickets.id)
-    .notNull(),
-  senderId: uuid("sender_id")
-    .references(() => users.id)
-    .notNull(), // Bisa customer atau CS/admin
-  message: text("message").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-}, (table) => ({
-  ticketIdx: index("tm_ticket_idx").on(table.ticketId),
-}));
 
 export const whatsappLogs = pgTable("whatsapp_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
