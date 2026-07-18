@@ -69,6 +69,7 @@ export const uploadDocument = async (fileBuffer, originalFilename, mimeType, fie
   }
 
   const docData = {
+    company_id: unit.company_id,
     unit_id: unitId,
     progress_id: progressId || null,
     jenis: dbJenis,

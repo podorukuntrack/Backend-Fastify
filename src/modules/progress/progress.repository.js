@@ -132,7 +132,7 @@ export const insertProgress = async (data, userContext) => {
   const insertedId = await db.transaction(async (tx) => {
     const rows = await tx.execute(sql`
       INSERT INTO progress (unit_id, tahap, progress_percentage, tanggal_update, catatan, created_by)
-      VALUES (${value.unit_id}, ${value.tahap}, ${value.progress_percentage}, ${value.tanggal_update ?? null}, ${value.catatan}, ${userContext.sub})
+      VALUES (${value.unit_id ?? null}, ${value.tahap ?? null}, ${value.progress_percentage ?? null}, ${value.tanggal_update ?? null}, ${value.catatan ?? null}, ${userContext.sub ?? null})
       RETURNING id
     `);
 

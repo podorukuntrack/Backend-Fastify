@@ -179,14 +179,14 @@ export const insertUnit = async (data) => {
       image_url
     )
     VALUES (
-      ${value.cluster_id},
-      ${value.nomor_unit},
-      ${value.tipe_rumah},
-      ${value.luas_tanah},
-      ${value.luas_bangunan},
-      ${value.status_pembangunan},
-      ${value.progress_percentage},
-      ${value.image_url}
+      ${value.cluster_id ?? null},
+      ${value.nomor_unit ?? null},
+      ${value.tipe_rumah ?? null},
+      ${value.luas_tanah ?? null},
+      ${value.luas_bangunan ?? null},
+      ${value.status_pembangunan ?? null},
+      ${value.progress_percentage ?? null},
+      ${value.image_url ?? null}
     )
     RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, created_at, updated_at
   `);

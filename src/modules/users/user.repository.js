@@ -133,7 +133,7 @@ export const insertUser = async (data) => {
   const companyId = ['customer', 'super_admin', 'owner'].includes(data.role) ? null : (data.company_id ?? null);
   const result = await db.execute(sql`
     INSERT INTO users (company_id, nama, email, password_hash, nomor_telepon, role, status)
-    VALUES (${companyId}, ${data.nama}, ${data.email}, ${data.password_hash}, ${data.nomor_telepon ?? null}, ${data.role}, ${data.status ?? 'active'})
+    VALUES (${companyId}, ${data.nama ?? null}, ${data.email ?? null}, ${data.password_hash ?? null}, ${data.nomor_telepon ?? null}, ${data.role ?? null}, ${data.status ?? 'active'})
     RETURNING id, company_id, nama, email, nomor_telepon, role, status, created_at, updated_at
   `);
   return result[0];
