@@ -43,7 +43,7 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Assignment created', data });
   } catch (error) {
-    return reply.code(403).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 

@@ -30,7 +30,7 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Retention recorded', data });
   } catch (error) {
-    return reply.code(403).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -78,7 +78,7 @@ export const createComplaintHandler = async (request, reply) => {
     await clearCachePattern(`retentions:*`);
     return reply.code(201).send({ success: true, message: 'Complaint recorded', data });
   } catch (error) {
-    return reply.code(403).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
