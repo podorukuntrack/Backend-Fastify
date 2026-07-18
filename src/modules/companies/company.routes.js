@@ -33,19 +33,16 @@ export default async function companyRoutes(fastify, options) {
             page: {
               type: 'string',
               description: 'Nomor halaman',
-              example: '1'
             },
 
             limit: {
               type: 'string',
               description: 'Jumlah data per halaman',
-              example: '10'
             },
 
             search: {
               type: 'string',
               description: 'Cari perusahaan berdasarkan nama',
-              example: 'PT. Maju Jaya'
             }
           }
         },
@@ -151,7 +148,6 @@ export default async function companyRoutes(fastify, options) {
               minLength: 3,
               maxLength: 255,
               description: 'Nama perusahaan',
-              example: 'PT. Maju Jaya Indonesia'
             },
 
             nama_pt: {
@@ -159,7 +155,6 @@ export default async function companyRoutes(fastify, options) {
               minLength: 3,
               maxLength: 255,
               description: 'Nama perusahaan',
-              example: 'PT. Maju Jaya Indonesia'
             },
 
             kode_pt: {
@@ -262,7 +257,6 @@ export default async function companyRoutes(fastify, options) {
               type: 'string',
               format: 'uuid',
               description: 'ID perusahaan',
-              example: '550e8400-e29b-41d4-a716-446655440000'
             }
           }
         },
