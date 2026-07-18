@@ -84,6 +84,70 @@ export default async function handoverRoutes(fastify, options) {
   }, controller.getByIdHandler);
 
   // POST - Buat handover/serah terima baru
+
+  fastify.post('/', {
+    schema: {
+      description: 'Membuat jadwal serah terima unit baru',
+      tags: ['Handovers'],
+      
+      response: {
+        201: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object', additionalProperties: true }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.createHandoverSchema)]
+  }, controller.createHandler);
+
+  // PATCH - Update handover
+  fastify.patch('/:id', {
+    schema: {
+      description: 'Mengupdate status dan informasi serah terima',
+      tags: ['Handovers'],
+      
+      
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object', additionalProperties: true }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles, validate(schema.updateHandoverSchema)]
+  }, controller.updateHandler);
+
+  // DELETE - Hapus handover
+  fastify.delete('/:id', {
+    schema: {
+      description: 'Menghapus data serah terima beserta komplainnya',
+      tags: ['Handovers'],
+      
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: { type: 'object' }
+          }
+        }
+      },
+      security: [{ bearerAuth: [] }]
+    },
+    preHandler: [writeRoles]
+  }, controller.deleteHandler);
+
   
 
   // PATCH - Customer merespon jadwal
