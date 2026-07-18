@@ -2,8 +2,8 @@ name: Neon Database Daily Backup
 
 on:
   schedule:
-  # Berjalan setiap hari pada jam 20:00 UTC (jam 03:00 WIB)
-   - cron: '0 20 * * *'
+    # Berjalan setiap hari pada jam 00:00 UTC (jam 07:00 WIB)
+    - cron: '0 0 * * *'
   workflow_dispatch: # Memungkinkan Anda menjalankan script ini secara manual (tombol Run Workflow)
 
 jobs:
@@ -17,32 +17,23 @@ jobs:
         echo "TIMESTAMP=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_ENV
         echo "FILENAME=neon_backup_$(date +'%Y%m%d_%H%M%S').sql.gz" >> $GITHUB_ENV
 
-    - name: Install PostgreSQL Client
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y postgresql-client
-
     - name: Dump Database and Compress
       env:
-        # Gunakan GitHub Secrets untuk menyimpan URL ini!
         NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
       run: |
-        # Melakukan proses logical backup, hindari owner/privileges agar mudah di-restore
-        pg_dump "$NEON_DATABASE_URL" -O -x | gzip > ${{ env.FILENAME }}
-
-    - name: Configure AWS Credentials for Cloudflare R2
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-        aws-region: auto
+        # Menggunakan Docker untuk memastikan pg_dump versi 18 (sama dengan server Neon)
+        # tanpa perlu repot mengatur apt-get repositori
+        docker run --rm -e NEON_DATABASE_URL postgres:18 sh -c 'pg_dump "$NEON_DATABASE_URL" -O -x' | gzip > ${{ env.FILENAME }}
 
     - name: Upload Backup to Cloudflare R2
       env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: auto
         R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
       run: |
-        # Mengunggah ke Cloudflare R2 menggunakan AWS CLI dengan endpoint R2
+        # Mengunggah ke Cloudflare R2 menggunakan AWS CLI bawaan runner
         aws s3 cp ${{ env.FILENAME }} s3://$R2_BUCKET_NAME/neon-backups/${{ env.FILENAME }} \
           --endpoint-url https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com
 
