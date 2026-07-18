@@ -228,7 +228,7 @@ export default async function retentionRoutes(fastify, options) {
   fastify.get('/:id/complaints', {
     schema: {
       tags: ['Retentions'],
-      params: schema.retentionIdParamSchema.params,
+      
       response: {
         200: {
           type: 'object',
@@ -248,7 +248,7 @@ export default async function retentionRoutes(fastify, options) {
   fastify.post('/:id/complaints', {
     schema: {
       tags: ['Retentions'],
-      params: schema.retentionIdParamSchema.params,
+      
       security: [{ bearerAuth: [] }]
     },
     preHandler: [readRoles, validate(schema.createComplaintSchema)]

@@ -76,7 +76,7 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Get all units',
         tags: ['Units'],
-        querystring: schema.getUnitsQuerySchema.querystring,
+        
         response: {
           200: buildResponse(unitSchemaObject, true),
         },
@@ -96,7 +96,7 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Get unit by ID',
         tags: ['Units'],
-        params: schema.unitIdParamSchema.params,
+        
         response: {
           200: buildResponse(unitSchemaObject),
         },
@@ -116,7 +116,7 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Get unit detail with cluster & project',
         tags: ['Units'],
-        params: schema.unitIdParamSchema.params,
+        
         response: {
           201: buildResponse({
             type: 'object',
@@ -143,7 +143,7 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Create new unit',
         tags: ['Units'],
-        body: schema.createUnitSchema.body,
+        
         response: {
           201: buildResponse(unitSchemaObject),
         },
@@ -163,7 +163,7 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Create multiple units',
         tags: ['Units'],
-        body: schema.bulkCreateUnitsSchema.body,
+        
         response: {
           201: buildResponse(unitSchemaObject, true),
         },
@@ -180,7 +180,7 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Create multiple units',
         tags: ['Units'],
-        body: schema.bulkCreateUnitsSchema.body,
+        
         response: {
           201: buildResponse(unitSchemaObject, true),
         },
@@ -200,8 +200,8 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Update unit',
         tags: ['Units'],
-        params: schema.unitIdParamSchema.params,
-        body: schema.updateUnitSchema.body,
+        
+        
         response: {
           200: buildResponse(unitSchemaObject),
         },
@@ -221,7 +221,7 @@ export default async function unitRoutes(fastify) {
       schema: {
         description: 'Delete unit',
         tags: ['Units'],
-        params: schema.unitIdParamSchema.params,
+        
         response: {
           200: {
             type: 'object',
