@@ -1,5 +1,6 @@
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const getAdminStats = async (companyId) => {
   const result = await db.execute(sql`

@@ -36,10 +36,7 @@ export const loginHandler = async (request, reply) => {
       }
     });
   } catch (error) {
-    if (error.message === 'Invalid credentials') {
-      return reply.code(401).send({ success: false, message: error.message, errors: [] });
-    }
-    throw error; // Lempar ke Global Error Handler
+    throw error;
   }
 };
 
@@ -83,16 +80,7 @@ export const getMeHandler = async (request, reply) => {
       source
     });
   } catch (error) {
-    if (error.message === 'User not found') {
-      return reply.code(404).send({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    return reply.code(500).send({
-      success: false,
-      message: error.message
-    });
+    throw error;
   }
 };
 
@@ -112,12 +100,6 @@ export const registerHandler = async (request, reply) => {
       }
     });
   } catch (error) {
-    if (error.message === 'Email sudah terdaftar') {
-      return reply.code(400).send({
-        success: false,
-        message: error.message
-      });
-    }
     throw error;
   }
 };
@@ -139,12 +121,6 @@ export const googleLoginHandler = async (request, reply) => {
       }
     });
   } catch (error) {
-    if (error.message.includes('Akses Ditolak') || error.message.includes('tidak valid') || error.message.includes('diperlukan')) {
-      return reply.code(400).send({
-        success: false,
-        message: error.message
-      });
-    }
     throw error;
   }
 };
@@ -159,9 +135,6 @@ export const requestOtpHandler = async (request, reply) => {
       message: 'Jika kontak terdaftar, OTP telah dikirim.',
     });
   } catch (error) {
-    if (error.message.includes('Pengguna tidak memiliki nomor WhatsApp')) {
-      return reply.code(400).send({ success: false, message: error.message });
-    }
     throw error;
   }
 };
@@ -177,9 +150,6 @@ export const verifyOtpHandler = async (request, reply) => {
       data: { resetToken }
     });
   } catch (error) {
-    if (error.message.includes('OTP tidak valid')) {
-      return reply.code(400).send({ success: false, message: error.message });
-    }
     throw error;
   }
 };
@@ -194,9 +164,6 @@ export const resetPasswordHandler = async (request, reply) => {
       message: 'Password berhasil diubah',
     });
   } catch (error) {
-    if (error.message.includes('Token reset tidak valid') || error.message.includes('User not found')) {
-      return reply.code(400).send({ success: false, message: error.message });
-    }
     throw error;
   }
 };
@@ -213,9 +180,6 @@ export const changePasswordHandler = async (request, reply) => {
       message: 'Password berhasil diubah',
     });
   } catch (error) {
-    if (error.message === 'Password lama tidak sesuai' || error.message === 'User not found') {
-      return reply.code(400).send({ success: false, message: error.message });
-    }
     throw error;
   }
 };
@@ -234,16 +198,7 @@ export const updateProfileHandler = async (request, reply) => {
       data: updated
     });
   } catch (error) {
-    if (error.message.includes('sudah digunakan')) {
-      return reply.code(400).send({
-        success: false,
-        message: error.message
-      });
-    }
-    return reply.code(500).send({
-      success: false,
-      message: error.message
-    });
+    throw error;
   }
 };
 
@@ -264,12 +219,6 @@ export const appleLoginHandler = async (request, reply) => {
       }
     });
   } catch (error) {
-    if (error.message.includes('Akses Ditolak') || error.message.includes('tidak valid') || error.message.includes('diperlukan')) {
-      return reply.code(400).send({
-        success: false,
-        message: error.message
-      });
-    }
     throw error;
   }
 };

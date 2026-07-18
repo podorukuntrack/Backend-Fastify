@@ -2,6 +2,7 @@ import { db } from '../../config/database.js';
 import { retentions, retentionComplaints } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
 
@@ -65,7 +66,7 @@ export const deleteRetention = async (id, userContext) => {
 
   const complaintRes = await db.execute(sql`SELECT COUNT(*) as count FROM retention_complaints WHERE retention_id = ${id}`);
   if (Number(complaintRes[0].count) > 0) {
-    throw new Error("Gagal menghapus Retensi. Masih terdapat data Keluhan. Harap hapus semua data Keluhan terlebih dahulu.");
+    throw new AppError("Gagal menghapus Retensi. Masih terdapat data Keluhan. Harap hapus semua data Keluhan terlebih dahulu.", 400);
   }
   
   const result = await db.delete(retentions).where(condition).returning();

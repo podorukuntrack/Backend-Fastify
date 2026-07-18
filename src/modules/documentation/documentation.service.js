@@ -2,6 +2,7 @@
 import * as repo from './documentation.repository.js';
 import { findUnitById } from '../units/unit.repository.js';
 import { uploadFileToR2, deleteFileFromR2 } from '../../shared/utils/storage.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 const fieldValue = (fields, ...keys) => {
   for (const key of keys) {
@@ -19,7 +20,7 @@ export const getDocs = async (filters, userContext) => {
 export const getUnitDocs = async (unitId, userContext) => {
   // Verifikasi apakah user (terutama customer) berhak melihat unit ini
   const unit = await findUnitById(unitId, userContext);
-  if (!unit) throw new Error('Unit not found or access denied');
+  if (!unit) throw new AppError('Data unit tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   return await repo.findDocsByUnitId(unitId, userContext);
 };
@@ -50,12 +51,12 @@ export const uploadDocument = async (fileBuffer, originalFilename, mimeType, fie
   }
 
   if (!unitId) {
-    throw new Error('unit_id is required');
+    throw new AppError('unit_id is required', 400);
   }
 
   // Verifikasi kepemilikan unit oleh admin
   const unit = await findUnitById(unitId, userContext);
-  if (!unit) throw new Error('Unit not found or access denied');
+  if (!unit) throw new AppError('Data unit tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   // Upload ke Cloudflare R2
   const r2Data = await uploadFileToR2(fileBuffer, originalFilename, mimeType);
@@ -86,7 +87,7 @@ export const uploadDocument = async (fileBuffer, originalFilename, mimeType, fie
 export const removeDocument = async (id, userContext) => {
   // 1. Cari dokumen di DB
   const doc = await repo.findDocById(id, userContext);
-  if (!doc) throw new Error('Document not found or access denied');
+  if (!doc) throw new AppError('Data dokumen tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   // 2. Hapus file dari Cloudflare R2
   if (doc.r2_key) {
@@ -100,6 +101,6 @@ export const removeDocument = async (id, userContext) => {
 
 export const modifyDocument = async (id, data, userContext) => {
   const updatedDoc = await repo.updateDoc(id, data, userContext);
-  if (!updatedDoc) throw new Error('Document not found or access denied');
+  if (!updatedDoc) throw new AppError('Data dokumen tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return updatedDoc;
 };

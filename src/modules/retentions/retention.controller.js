@@ -17,7 +17,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Retention retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -43,7 +43,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Retention updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -56,7 +56,7 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Retention deleted', data: {} });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -68,7 +68,7 @@ export const getComplaintsHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Complaints retrieved', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -88,7 +88,7 @@ export const updateComplaintHandler = async (request, reply) => {
     await clearCachePattern(`retentions:*`);
     return reply.code(200).send({ success: true, message: 'Complaint updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -99,6 +99,6 @@ export const deleteComplaintHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Complaint deleted', data: {} });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };

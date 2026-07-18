@@ -17,7 +17,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Handover retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -45,7 +45,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Handover updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -59,7 +59,7 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Handover deleted', data: {} });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -71,7 +71,7 @@ export const createDefectHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Defect reported', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -83,7 +83,7 @@ export const respondHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Handover response saved', data });
   } catch (error) {
-    return reply.code(400).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -97,6 +97,6 @@ export const confirmHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Handover confirmed completed', data });
   } catch (error) {
-    return reply.code(400).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };

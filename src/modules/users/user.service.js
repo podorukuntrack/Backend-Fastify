@@ -2,6 +2,7 @@
   import bcrypt from 'bcrypt';
   import * as repo from './user.repository.js';
   import { findUserByEmail, findUserByPhone } from '../auth/auth.repository.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
   export const getUsers = async (page, limit, userContext, filters = {}) => {
     const { data, total } = await repo.findUsers(page, limit, userContext, filters);
@@ -21,7 +22,7 @@
 
   export const getUser = async (id, userContext) => {
     const user = await repo.findUserById(id, userContext);
-    if (!user) throw new Error('User not found or access denied');
+    if (!user) throw new AppError('Data pengguna tidak ditemukan atau Anda tidak memiliki akses.', 404);
     return user;
   };
 
@@ -32,13 +33,13 @@
 
     const existingEmail = await findUserByEmail(data.email);
     if (existingEmail) {
-      throw new Error('Email sudah terdaftar. Silakan gunakan email lain.');
+      throw new AppError('Email sudah terdaftar. Silakan gunakan email lain.', 400);
     }
 
     if (data.nomor_telepon) {
       const existingPhone = await findUserByPhone(data.nomor_telepon);
       if (existingPhone) {
-        throw new Error('Nomor telepon sudah terdaftar. Silakan gunakan nomor lain.');
+        throw new AppError('Nomor telepon sudah terdaftar. Silakan gunakan nomor lain.', 400);
       }
     }
 
@@ -72,14 +73,14 @@
     if (data.email) {
       const existingEmail = await findUserByEmail(data.email);
       if (existingEmail && existingEmail.id !== id) {
-        throw new Error('Email sudah terdaftar pada akun lain. Silakan gunakan email lain.');
+        throw new AppError('Email sudah terdaftar pada akun lain. Silakan gunakan email lain.', 400);
       }
     }
 
     if (data.nomor_telepon) {
       const existingPhone = await findUserByPhone(data.nomor_telepon);
       if (existingPhone && existingPhone.id !== id) {
-        throw new Error('Nomor telepon sudah terdaftar pada akun lain. Silakan gunakan nomor lain.');
+        throw new AppError('Nomor telepon sudah terdaftar pada akun lain. Silakan gunakan nomor lain.', 400);
       }
     }
 
@@ -89,12 +90,12 @@
     }
 
     const user = await repo.updateUser(id, updateData, userContext);
-    if (!user) throw new Error('User not found or access denied');
+    if (!user) throw new AppError('Data pengguna tidak ditemukan atau Anda tidak memiliki akses.', 404);
     return user;
   };
 
   export const removeUser = async (id, userContext) => {
     const user = await repo.deleteUser(id, userContext);
-    if (!user) throw new Error('User not found or access denied');
+    if (!user) throw new AppError('Data pengguna tidak ditemukan atau Anda tidak memiliki akses.', 404);
     return user;
   };

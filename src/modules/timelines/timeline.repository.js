@@ -3,6 +3,7 @@ import { db } from '../../config/database.js';
 import { timelines } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const findTimelines = async (userContext, filters = {}) => {
   const scope = getTenantScope(timelines, userContext);
@@ -123,7 +124,7 @@ export const deleteTimeline = async (id, userContext) => {
 
   const progressRes = await db.execute(sql`SELECT COUNT(*) as count FROM progress WHERE unit_id = ${timeline.unitId} AND tahap = ${timeline.taskName}`);
   if (Number(progressRes[0].count) > 0) {
-    throw new Error("Gagal menghapus Timeline. Masih terdapat data Progress Pembangunan. Harap hapus data Progress Pembangunan terlebih dahulu.");
+    throw new AppError("Gagal menghapus Timeline. Masih terdapat data Progress Pembangunan. Harap hapus data Progress Pembangunan terlebih dahulu.", 400);
   }
 
   return await db.transaction(async (tx) => {

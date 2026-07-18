@@ -17,7 +17,7 @@ export const getByUnitHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 

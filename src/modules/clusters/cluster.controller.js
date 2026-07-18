@@ -29,7 +29,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Cluster retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -47,7 +47,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Cluster updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -61,10 +61,6 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Cluster deleted', data: {} });
   } catch (error) {
-    const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');
-    if (isConstraint) {
-      return reply.code(409).send({ success: false, message: 'Cluster tidak dapat dihapus karena masih memiliki Unit di dalamnya. Harap hapus unit terlebih dahulu.', errors: [] });
-    }
-    return reply.code(409).send({ success: false, message: error.message || 'Gagal menghapus cluster', errors: [] });
+    throw error;
   }
 };

@@ -1,6 +1,7 @@
 import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
 import { clearDashboardCache } from "../../shared/utils/cache.js";
+import { AppError } from '../../shared/utils/AppError.js';
 
 const mapAssignmentRow = (row) => ({
   id: row.id,
@@ -385,7 +386,7 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
 
   const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${assignment.unit.id}`);
   if (Number(handoverRes[0].count) > 0) {
-    throw new Error("Gagal menghapus Pembayaran. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.");
+    throw new AppError("Gagal menghapus Pembayaran. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.", 400);
   }
 
   // Hapus dari payment_history dan kembalikan jumlah yang dihapus
@@ -416,7 +417,7 @@ export const deleteAssignment = async (id, userContext) => {
 
   const dependencies = await checkDependencies(id, existing.unit.id);
   if (dependencies.length > 0) {
-    throw new Error(`Gagal menghapus Penugasan. Masih terdapat data ${dependencies.join(', ')}. Harap hapus data tersebut terlebih dahulu.`);
+    throw new AppError(`Gagal menghapus Penugasan. Masih terdapat data ${dependencies.join(', ', 400)}. Harap hapus data tersebut terlebih dahulu.`);
   }
 
   const rows = await db.execute(sql`

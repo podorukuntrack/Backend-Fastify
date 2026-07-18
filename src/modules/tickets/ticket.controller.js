@@ -17,7 +17,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Ticket retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -39,7 +39,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Ticket updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -51,7 +51,7 @@ export const getMessagesHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Messages retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -61,6 +61,6 @@ export const addMessageHandler = async (request, reply) => {
     await clearCachePattern('tickets:*');
     return reply.code(201).send({ success: true, message: 'Message added', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };

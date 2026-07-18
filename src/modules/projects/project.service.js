@@ -1,5 +1,6 @@
 // src/modules/projects/project.service.js
 import * as projectRepo from './project.repository.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const getProjects = async (userContext) => {
   const result = await projectRepo.findAllProjects(userContext);
@@ -23,7 +24,7 @@ export const getProjects = async (userContext) => {
 
 export const getProject = async (id, userContext) => {
   const project = await projectRepo.findProjectById(id, userContext);
-  if (!project) throw new Error("Project not found");
+  if (!project) throw new AppError('Data project tidak ditemukan.', 404);
 
   return {
     id: project.id,

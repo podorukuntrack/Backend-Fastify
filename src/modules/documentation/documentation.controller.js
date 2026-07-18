@@ -18,7 +18,7 @@ export const getByUnitHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Documents retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -57,8 +57,7 @@ export const uploadHandler = async (request, reply) => {
 
     return reply.code(201).send({ success: true, message: 'Document uploaded successfully', data: result });
   } catch (error) {
-    console.error("[UPLOAD ERROR DEBUG]", error);
-    return reply.code(400).send({ success: false, message: 'SERVER_ERROR: ' + error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -72,7 +71,7 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Document deleted successfully', data: {} });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -86,6 +85,6 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Document updated successfully', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };

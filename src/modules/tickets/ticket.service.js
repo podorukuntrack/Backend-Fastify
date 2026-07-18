@@ -6,7 +6,7 @@ export const getTickets = async (userContext) => {
 
 export const getTicketDetail = async (id, userContext) => {
   const ticket = await repo.findTicketById(id, userContext);
-  if (!ticket) throw new Error('Ticket not found or access denied');
+  if (!ticket) throw new AppError('Data tiket tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return ticket;
 };
 
@@ -20,7 +20,7 @@ export const createTicket = async (data, userContext) => {
 export const modifyTicket = async (id, data, userContext) => {
   // Hanya admin/CS yang bisa update status tiket, pastikan tiket ada
   const ticket = await repo.findTicketById(id, userContext);
-  if (!ticket) throw new Error('Ticket not found or access denied');
+  if (!ticket) throw new AppError('Data tiket tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   ticket.updatedAt = new Date();
   // Idealnya buat fungsi update di repository, untuk simplifikasi asumsikan kita punya `updateTicketStatus`
@@ -30,7 +30,7 @@ export const modifyTicket = async (id, data, userContext) => {
 
 export const getMessages = async (ticketId, userContext) => {
   const ticket = await repo.findTicketById(ticketId, userContext);
-  if (!ticket) throw new Error('Ticket not found or access denied');
+  if (!ticket) throw new AppError('Data tiket tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return await repo.getTicketMessages(ticketId);
 };
 
@@ -38,10 +38,11 @@ import { sendPushNotification } from '../../shared/utils/notification.js';
 import { db } from '../../config/database.js';
 import { users } from '../../shared/schemas/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const addMessage = async (ticketId, message, userContext) => {
   const ticket = await repo.findTicketById(ticketId, userContext);
-  if (!ticket) throw new Error('Ticket not found or access denied');
+  if (!ticket) throw new AppError('Data tiket tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   const inserted = await repo.insertTicketMessage({
     ticketId,

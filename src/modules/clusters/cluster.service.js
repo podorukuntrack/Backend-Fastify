@@ -1,5 +1,6 @@
 import * as repo from './cluster.repository.js';
 import * as projectRepo from '../projects/project.repository.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 // =========================
 // GET ALL
@@ -15,7 +16,7 @@ export const getCluster = async (id, userContext) => {
   const cluster = await repo.findClusterById(id, userContext);
 
   if (!cluster) {
-    throw new Error('Cluster not found or access denied');
+    throw new AppError('Data cluster tidak ditemukan atau Anda tidak memiliki akses.', 404);
   }
 
   return cluster;
@@ -32,7 +33,7 @@ export const createCluster = async (data, userContext) => {
   );
 
   if (!project) {
-    throw new Error('Project not found or access denied');
+    throw new AppError('Data project tidak ditemukan atau Anda tidak memiliki akses.', 404);
   }
 
   const insertData = {
@@ -60,7 +61,7 @@ export const modifyCluster = async (id, data, userContext) => {
     );
 
     if (!project) {
-      throw new Error('Project not found or access denied');
+      throw new AppError('Data project tidak ditemukan atau Anda tidak memiliki akses.', 404);
     }
 
     updateData.project_id = data.project_id;
@@ -81,7 +82,7 @@ export const modifyCluster = async (id, data, userContext) => {
   );
 
   if (!cluster) {
-    throw new Error('Cluster not found or access denied');
+    throw new AppError('Data cluster tidak ditemukan atau Anda tidak memiliki akses.', 404);
   }
 
   return cluster;
@@ -94,7 +95,7 @@ export const removeCluster = async (id, userContext) => {
   const cluster = await repo.deleteCluster(id, userContext);
 
   if (!cluster) {
-    throw new Error('Cluster not found or access denied');
+    throw new AppError('Data cluster tidak ditemukan atau Anda tidak memiliki akses.', 404);
   }
 
   return cluster;

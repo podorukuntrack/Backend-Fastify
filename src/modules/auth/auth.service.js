@@ -20,12 +20,13 @@ import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
 import { findCompanyById } from '../companies/company.repository.js';
 import { getRedisClient } from '../../shared/utils/cache.js';
 import { sendOTPByEmail } from './auth.email.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const loginUser = async (email, password, fastify) => {
   const user = await findUserByEmail(email);
 
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw new AppError('Email atau password salah.', 401);
   }
 
   const isValidPassword = await bcrypt.compare(
@@ -34,7 +35,7 @@ export const loginUser = async (email, password, fastify) => {
   );
 
   if (!isValidPassword) {
-    throw new Error('Invalid credentials');
+    throw new AppError('Email atau password salah.', 401);
   }
 
   // JWT payload
@@ -107,7 +108,7 @@ export const refreshTokenService = async (
   fastify
 ) => {
   if (!oldRefreshToken) {
-    throw new Error('Invalid refresh token');
+    throw new AppError('Sesi tidak valid atau telah kedaluwarsa.', 401);
   }
 
   const hashedOldToken = crypto
@@ -122,7 +123,7 @@ export const refreshTokenService = async (
     storedToken.revoked ||
     new Date(storedToken.expires_at).getTime() <= Date.now()
   ) {
-    throw new Error('Invalid refresh token');
+    throw new AppError('Sesi tidak valid atau telah kedaluwarsa.', 401);
   }
 
   const payload = {
@@ -203,14 +204,14 @@ export const unregisterDeviceToken = async (userId, fcmToken) => {
 export const registerCustomer = async (data, fastify) => {
   const existingUser = await findUserByEmail(data.email);
   if (existingUser) {
-    throw new Error('Email sudah terdaftar');
+    throw new AppError('Email sudah terdaftar', 400);
   }
 
   const submittedPhone = data.nomorTelepon || data.nomor_telepon;
   if (submittedPhone) {
     const existingPhoneUser = await findUserByPhone(submittedPhone);
     if (existingPhoneUser) {
-      throw new Error('Nomor telepon sudah terdaftar');
+      throw new AppError('Nomor telepon sudah terdaftar', 400);
     }
   }
 
@@ -270,7 +271,7 @@ export const requestOtp = async (method, contact) => {
   if (redisClient) {
     await redisClient.set(`otp:${contact}`, otp, 'EX', 300); // 5 minutes
   } else {
-    throw new Error('Redis is not available');
+    throw new AppError('Layanan sementara tidak tersedia.', 503);
   }
 
   // Skip sending actual WA/Email for test accounts
@@ -280,7 +281,7 @@ export const requestOtp = async (method, contact) => {
 
   if (method === 'wa') {
     if (!user.nomor_telepon) {
-       throw new Error('Pengguna tidak memiliki nomor WhatsApp yang terdaftar.');
+       throw new AppError('Pengguna tidak memiliki nomor WhatsApp yang terdaftar.', 400);
     }
     const message = `Halo ${user.nama},\n\nKode OTP Lupa Password Anda adalah: *${otp}*\n\nKode ini berlaku selama 5 menit. Jangan berikan kode ini kepada siapapun.`;
     const context = { role: user.role, companyId: user.company_id };
@@ -294,7 +295,7 @@ export const requestOtp = async (method, contact) => {
 
 export const verifyOtp = async (contact, otp) => {
   const redisClient = getRedisClient();
-  if (!redisClient) throw new Error('Redis is not available');
+  if (!redisClient) throw new AppError('Layanan sementara tidak tersedia.', 503);
 
   const cleanContact = contact.replace(/[^0-9]/g, '');
 
@@ -322,7 +323,7 @@ export const verifyOtp = async (contact, otp) => {
   }
 
   if (!storedOtp || storedOtp !== otp) {
-    throw new Error('OTP tidak valid atau sudah kedaluwarsa');
+    throw new AppError('OTP tidak valid atau sudah kedaluwarsa', 400);
   }
 
   const resetToken = crypto.randomBytes(32).toString('hex');
@@ -334,11 +335,11 @@ export const verifyOtp = async (contact, otp) => {
 
 export const resetPassword = async (contact, resetToken, newPassword) => {
   const redisClient = getRedisClient();
-  if (!redisClient) throw new Error('Redis is not available');
+  if (!redisClient) throw new AppError('Layanan sementara tidak tersedia.', 503);
 
   const storedToken = await redisClient.get(`reset_token:${contact}`);
   if (!storedToken || storedToken !== resetToken) {
-    throw new Error('Token reset tidak valid atau sudah kedaluwarsa');
+    throw new AppError('Token reset tidak valid atau sudah kedaluwarsa', 400);
   }
 
   let user = await findUserByEmail(contact);
@@ -352,7 +353,7 @@ export const resetPassword = async (contact, resetToken, newPassword) => {
   }
 
   if (!user) {
-    throw new Error('User not found');
+    throw new AppError('Data pengguna tidak ditemukan.', 404);
   }
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -365,12 +366,12 @@ export const resetPassword = async (contact, resetToken, newPassword) => {
 export const changePassword = async (userId, oldPassword, newPassword) => {
   const user = await findUserById(userId);
   if (!user) {
-    throw new Error('User not found');
+    throw new AppError('Data pengguna tidak ditemukan.', 404);
   }
 
   const isValidPassword = await bcrypt.compare(oldPassword, user.password_hash);
   if (!isValidPassword) {
-    throw new Error('Password lama tidak sesuai');
+    throw new AppError('Password lama tidak sesuai', 400);
   }
 
   const newPasswordHash = await bcrypt.hash(newPassword, 10);
@@ -381,7 +382,7 @@ export const changePassword = async (userId, oldPassword, newPassword) => {
 
 export const googleLoginUser = async (idToken, fastify) => {
   if (!idToken) {
-    throw new Error('ID Token Google diperlukan');
+    throw new AppError('ID Token Google diperlukan', 400);
   }
 
   // 1. Verifikasi ID Token ke Google API
@@ -390,18 +391,18 @@ export const googleLoginUser = async (idToken, fastify) => {
     const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
     tokenInfo = await response.json();
     if (!response.ok || tokenInfo.error) {
-      throw new Error(tokenInfo.error_description || 'Token Google tidak valid');
+      throw new AppError(tokenInfo.error_description || 'Token Google tidak valid');
     }
   } catch (error) {
     console.error('Google verification error:', error);
-    throw new Error('Gagal memverifikasi akun Google dengan server Google: ' + error.message);
+    throw new AppError('Gagal memverifikasi akun Google dengan server Google: ' + error.message);
   }
 
   const email = tokenInfo.email;
   const nama = tokenInfo.name || 'User Google';
 
   if (!email) {
-    throw new Error('Email tidak ditemukan dari akun Google.');
+    throw new AppError('Email tidak ditemukan dari akun Google.', 400);
   }
 
   // 2. Cari user berdasarkan email
@@ -425,7 +426,7 @@ export const googleLoginUser = async (idToken, fastify) => {
 
   // 4. RESTRICTION: Hanya allow customer
   if (user.role !== 'customer') {
-    throw new Error('Akses Ditolak: Akun Google ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.');
+    throw new AppError('Akses Ditolak: Akun Google ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.', 400);
   }
 
   // 5. Generate JWT tokens
@@ -473,14 +474,14 @@ export const googleLoginUser = async (idToken, fastify) => {
 export const updateProfile = async (userId, data) => {
   const user = await findUserById(userId);
   if (!user) {
-    throw new Error('User tidak ditemukan');
+    throw new AppError('User tidak ditemukan', 400);
   }
 
   // Validasi keunikan nomor telepon jika diinput
   if (data.nomorTelepon) {
     const existingPhoneUser = await findUserByPhone(data.nomorTelepon);
     if (existingPhoneUser && existingPhoneUser.id !== userId) {
-      throw new Error('Nomor telepon sudah digunakan oleh akun lain');
+      throw new AppError('Nomor telepon sudah digunakan oleh akun lain', 400);
     }
   }
 
@@ -489,7 +490,7 @@ export const updateProfile = async (userId, data) => {
 
   const result = await updateUserProfile(userId, namaToUpdate, teleponToUpdate);
   if (!result) {
-    throw new Error('Gagal memperbarui profil');
+    throw new AppError('Gagal memperbarui profil', 400);
   }
 
   let company = null;
@@ -514,14 +515,14 @@ export const updateProfile = async (userId, data) => {
 
 export const appleLoginUser = async (idToken, userFullName, authorizationCode, fastify) => {
   if (!idToken) {
-    throw new Error('ID Token Apple diperlukan');
+    throw new AppError('ID Token Apple diperlukan', 400);
   }
 
   // 1. Verifikasi ID Token ke Apple API
   const { appleUserId, email } = await verifyAppleToken(idToken);
 
   if (!email) {
-    throw new Error('Email tidak ditemukan dari akun Apple.');
+    throw new AppError('Email tidak ditemukan dari akun Apple.', 400);
   }
 
   // 2. Cari user berdasarkan email
@@ -545,7 +546,7 @@ export const appleLoginUser = async (idToken, userFullName, authorizationCode, f
 
   // 4. RESTRICTION: Hanya allow customer
   if (user.role !== 'customer') {
-    throw new Error('Akses Ditolak: Akun Apple ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.');
+    throw new AppError('Akses Ditolak: Akun Apple ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.', 400);
   }
 
   // 4.5. Tukarkan authorizationCode dengan Apple refresh token jika ada
@@ -601,7 +602,7 @@ export const appleLoginUser = async (idToken, userFullName, authorizationCode, f
 export const deleteUserAccount = async (userId) => {
   const hasActive = await hasActiveAssignments(userId);
   if (hasActive) {
-    throw new Error('Tidak dapat menghapus akun karena Anda masih memiliki unit properti yang aktif atau masa retensinya belum selesai.');
+    throw new AppError('Tidak dapat menghapus akun karena Anda masih memiliki unit properti yang aktif atau masa retensinya belum selesai.', 400);
   }
 
   // Apple App Store Requirement: Revoke token if exists
@@ -612,7 +613,7 @@ export const deleteUserAccount = async (userId) => {
 
   const result = await anonymizeUserAccount(userId);
   if (!result) {
-    throw new Error('Gagal menghapus akun pengguna');
+    throw new AppError('Gagal menghapus akun pengguna', 400);
   }
   return { success: true };
 };

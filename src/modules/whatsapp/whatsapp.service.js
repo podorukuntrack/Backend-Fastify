@@ -2,6 +2,7 @@
 import { db } from '../../config/database.js';
 import { whatsappLogs } from '../../shared/schemas/schema.js';
 import { notificationQueue } from '../../shared/utils/queue.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const sendWhatsAppMessage = async (phone, messageText, userContext) => {
   // Push the job to the queue
@@ -42,7 +43,7 @@ export const processWhatsAppMessage = async (phone, messageText, userContext) =>
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to send message via OpenWA Microservice: ${response.statusText}`);
+      throw new AppError(`Failed to send message via OpenWA Microservice: ${response.statusText}`, 400);
     }
 
     // Catat ke log

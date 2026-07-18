@@ -3,6 +3,7 @@ import { findUnitById } from '../units/unit.repository.js';
 import { sendPushNotification } from '../../shared/utils/notification.js';
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const getProgressList = async (userContext, filters = {}) => {
   return await repo.findAllProgress(userContext, filters);
@@ -11,20 +12,20 @@ export const getProgressList = async (userContext, filters = {}) => {
 export const getProgressByUnit = async (unitId, userContext) => {
   // Verifikasi apakah user berhak melihat unit ini
   const unit = await findUnitById(unitId, userContext);
-  if (!unit) throw new Error('Unit not found or access denied');
+  if (!unit) throw new AppError('Data unit tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return await repo.findProgressByUnitId(unitId, userContext);
 };
 
 export const getProgress = async (id, userContext) => {
   const data = await repo.findProgressById(id, userContext);
-  if (!data) throw new Error('Progress not found or access denied');
+  if (!data) throw new AppError('Data progres tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return data;
 };
 
 export const createProgress = async (data, userContext) => {
   const unitId = data.unit_id ?? data.unitId;
   const unit = await findUnitById(unitId, userContext);
-  if (!unit) throw new Error('Unit not found or access denied');
+  if (!unit) throw new AppError('Data unit tidak ditemukan atau Anda tidak memiliki akses.', 404);
   const result = await repo.insertProgress({ ...data, unit_id: unitId }, userContext);
 
   try {
@@ -49,10 +50,10 @@ export const createProgress = async (data, userContext) => {
 
 export const modifyProgress = async (id, data, userContext) => {
   const existing = await repo.findProgressById(id, userContext);
-  if (!existing) throw new Error('Progress not found or access denied');
+  if (!existing) throw new AppError('Data progres tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   const result = await repo.updateProgress(id, data, userContext);
-  if (!result) throw new Error('Progress not found or access denied');
+  if (!result) throw new AppError('Data progres tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   // Hanya kirim notifikasi jika tahap (stage) atau persentase progress berubah
   const isPercentageChanged = result.progress_percentage !== existing.progress_percentage;
@@ -86,6 +87,6 @@ export const modifyProgress = async (id, data, userContext) => {
 
 export const removeProgress = async (id, userContext) => {
   const result = await repo.deleteProgress(id, userContext);
-  if (!result) throw new Error('Progress not found or access denied');
+  if (!result) throw new AppError('Data progres tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return result;
 };

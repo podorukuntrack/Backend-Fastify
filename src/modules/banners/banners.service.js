@@ -1,5 +1,6 @@
 import * as repository from './banners.repository.js';
 import { uploadFileToR2, deleteFileFromR2 } from '../../shared/utils/storage.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const getBanners = async () => {
   return await repository.findAll();
@@ -7,7 +8,7 @@ export const getBanners = async () => {
 
 export const getBanner = async (id) => {
   const banner = await repository.findById(id);
-  if (!banner) throw new Error('Banner not found');
+  if (!banner) throw new AppError('Data banner tidak ditemukan.', 404);
   return banner;
 };
 
@@ -31,7 +32,7 @@ export const createBanner = async (fields, fileData) => {
 
 export const updateBanner = async (id, fields, fileData) => {
   const banner = await repository.findById(id);
-  if (!banner) throw new Error('Banner not found');
+  if (!banner) throw new AppError('Data banner tidak ditemukan.', 404);
   
   let imageUrl = banner.imageUrl;
   let r2Key = banner.r2Key;
@@ -63,7 +64,7 @@ export const updateBanner = async (id, fields, fileData) => {
 
 export const deleteBanner = async (id) => {
   const banner = await repository.findById(id);
-  if (!banner) throw new Error('Banner not found');
+  if (!banner) throw new AppError('Data banner tidak ditemukan.', 404);
   
   if (banner.r2Key) {
     await deleteFileFromR2(banner.r2Key);

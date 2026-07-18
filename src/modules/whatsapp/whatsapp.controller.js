@@ -9,7 +9,7 @@ export const sendHandler = async (request, reply) => {
     await service.sendWhatsAppMessage(phone, message, request.user);
     return reply.code(200).send({ success: true, message: 'WhatsApp message processed', data: {} });
   } catch (error) {
-    return reply.code(500).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 

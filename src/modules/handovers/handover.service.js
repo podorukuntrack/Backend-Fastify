@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { users } from '../../shared/schemas/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
 import { sendWhatsAppMessage } from '../whatsapp/whatsapp.service.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 const normalizeInput = (data) => {
   const normalized = { ...data };
@@ -25,14 +26,14 @@ export const getHandovers = async (userContext, filters = {}) => {
 
 export const getHandover = async (id, userContext) => {
   const handover = await repo.findHandoverById(id, userContext);
-  if (!handover) throw new Error('Handover not found or access denied');
+  if (!handover) throw new AppError('Data serah terima tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return handover;
 };
 
 export const createHandover = async (data, userContext) => {
   const normalizedData = normalizeInput(data);
   const unit = await findUnitById(normalizedData.unitId, userContext);
-  if (!unit) throw new Error('Unit not found or access denied');
+  if (!unit) throw new AppError('Data unit tidak ditemukan atau Anda tidak memiliki akses.', 404);
   
   if (!normalizedData.companyId) {
     normalizedData.companyId = userContext.companyId ?? unit.companyId ?? unit.company_id;
@@ -62,7 +63,7 @@ export const createHandover = async (data, userContext) => {
 export const modifyHandover = async (id, data, userContext) => {
   const normalizedData = normalizeInput(data);
   const result = await repo.updateHandover(id, normalizedData, userContext);
-  if (!result) throw new Error('Handover not found or access denied');
+  if (!result) throw new AppError('Data serah terima tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   try {
     const targetUnitId = result.unit_id ?? result.unitId;
@@ -188,7 +189,7 @@ export const modifyHandover = async (id, data, userContext) => {
 
 export const removeHandover = async (id, userContext) => {
   const handover = await repo.findHandoverById(id, userContext);
-  if (!handover) throw new Error('Handover not found or access denied');
+  if (!handover) throw new AppError('Data serah terima tidak ditemukan atau Anda tidak memiliki akses.', 404);
   
   const result = await repo.deleteHandover(id, userContext);
   return result;
@@ -196,7 +197,7 @@ export const removeHandover = async (id, userContext) => {
 
 export const reportDefect = async (handoverId, data, userContext) => {
   const handover = await repo.findHandoverById(handoverId, userContext);
-  if (!handover) throw new Error('Handover not found or access denied');
+  if (!handover) throw new AppError('Data serah terima tidak ditemukan atau Anda tidak memiliki akses.', 404);
   
   data.handoverId = handoverId;
   const result = await repo.insertDefect(data);

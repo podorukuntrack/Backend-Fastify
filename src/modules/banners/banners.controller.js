@@ -5,7 +5,7 @@ export const getAllHandler = async (request, reply) => {
     const data = await service.getBanners();
     return reply.code(200).send({ success: true, message: 'Success', data });
   } catch (error) {
-    return reply.code(500).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -14,7 +14,7 @@ export const getByIdHandler = async (request, reply) => {
     const data = await service.getBanner(request.params.id);
     return reply.code(200).send({ success: true, message: 'Success', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -51,7 +51,7 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Banner created', data });
   } catch (error) {
-    return reply.code(500).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -62,7 +62,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Banner updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -71,6 +71,6 @@ export const deleteHandler = async (request, reply) => {
     await service.deleteBanner(request.params.id);
     return reply.code(200).send({ success: true, message: 'Banner deleted', data: {} });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };

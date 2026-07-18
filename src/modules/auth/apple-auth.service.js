@@ -9,11 +9,12 @@ export const verifyAppleToken = async (identityToken) => {
     return { appleUserId, email };
   } catch (error) {
     console.error('Apple ID Token verification failed:', error);
-    throw new Error('Verifikasi token Apple gagal: ' + error.message);
+    throw new AppError('Verifikasi token Apple gagal: ' + error.message);
   }
 };
 
 import fs from 'fs';
+import { AppError } from '../../shared/utils/AppError.js';
 
 const getClientSecret = () => {
   const privateKey = process.env.APPLE_PRIVATE_KEY_PATH 

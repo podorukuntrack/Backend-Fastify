@@ -1,5 +1,6 @@
 import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
+import { AppError } from '../../shared/utils/AppError.js';
 
 const mapProgressRow = (row) => ({
   id: row.id,
@@ -126,7 +127,7 @@ export const insertProgress = async (data, userContext) => {
 `);
 
   if (!timelineCheck.length) {
-    throw new Error("Tahap tidak ditemukan pada timeline unit ini");
+    throw new AppError("Tahap tidak ditemukan pada timeline unit ini", 400);
   }
 
   const insertedId = await db.transaction(async (tx) => {
@@ -252,7 +253,7 @@ export const deleteProgress = async (id, userContext) => {
 
   const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${unitId}`);
   if (Number(handoverRes[0].count) > 0) {
-    throw new Error("Gagal menghapus Progress Pembangunan. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.");
+    throw new AppError("Gagal menghapus Progress Pembangunan. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.", 400);
   }
 
   await db.transaction(async (tx) => {

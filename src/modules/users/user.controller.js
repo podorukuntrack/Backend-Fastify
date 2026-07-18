@@ -27,7 +27,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -38,9 +38,6 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'User created', data });
   } catch (error) {
-    if (error.code === '23505' || error.message.includes('terdaftar')) {
-      return reply.code(409).send({ success: false, message: 'Email sudah terdaftar. Silakan gunakan email lain.', errors: [] });
-    }
     throw error;
   }
 };
@@ -52,8 +49,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'User updated', data });
   } catch (error) {
-    const statusCode = error.message.includes('terdaftar') ? 400 : 404;
-    return reply.code(statusCode).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -64,8 +60,6 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'User deleted', data: {} });
   } catch (error) {
-    console.error('Delete User Error:', error);
-    const statusCode = error.message.includes('Tidak dapat menghapus') ? 400 : 404;
-    return reply.code(statusCode).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };

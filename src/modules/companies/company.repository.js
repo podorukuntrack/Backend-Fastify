@@ -1,6 +1,7 @@
 // src/modules/companies/company.repository.js
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const findAllCompanies = async () => {
   return await db.execute(sql`

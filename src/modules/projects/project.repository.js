@@ -2,6 +2,7 @@ import { db } from '../../config/database.js';
 import { projects, companies } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const findAllProjects = async (userContext) => {
   const scope = getTenantScope(projects, userContext);

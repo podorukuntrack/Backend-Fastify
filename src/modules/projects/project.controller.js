@@ -17,7 +17,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Project retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -28,7 +28,7 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Project created', data });
   } catch (error) {
-    return reply.code(error.statusCode || 400).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -39,7 +39,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Project updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -53,11 +53,7 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Project deleted', data: {} });
   } catch (error) {
-    const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');
-    if (isConstraint) {
-      return reply.code(409).send({ success: false, message: 'Project tidak dapat dihapus karena masih memiliki data (Cluster/Unit). Harap hapus isinya terlebih dahulu.', errors: [] });
-    }
-    return reply.code(409).send({ success: false, message: error.message || 'Gagal menghapus project', errors: [] });
+    throw error;
   }
 };
 
@@ -72,6 +68,6 @@ export const getStatsHandler = async (request, reply) => {
 
     return reply.code(200).send({ success: true, message: 'Project stats retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };

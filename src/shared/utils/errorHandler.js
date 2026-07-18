@@ -6,8 +6,15 @@
 export const globalErrorHandler = (error, request, reply) => {
   request.server.log.error(error);
 
+  // If it's a known AppError, we use its status code and message.
+  // Otherwise, default to 500.
   let statusCode = error.statusCode || 500;
-  let message = error.message || "Terjadi kesalahan pada server.";
+  
+  // For 500 errors, we don't want to leak internal system error messages to the user unless they are custom thrown errors
+  let message = (statusCode === 500 && !error.statusCode) 
+    ? "Terjadi kesalahan pada server." 
+    : (error.message || "Terjadi kesalahan.");
+  
   let errors = [];
 
   // 1. Validation Errors (Fastify / AJV)
@@ -65,7 +72,7 @@ export const globalErrorHandler = (error, request, reply) => {
   ) {
     statusCode = 401;
     message = "Akses ditolak. Anda belum login atau token tidak valid.";
-  } else if (error.code === 'FAST_JWT_EXPIRED' || error.message.includes('token expired')) {
+  } else if (error.code === 'FAST_JWT_EXPIRED' || (error.message && error.message.includes('token expired'))) {
     statusCode = 401;
     message = "Sesi Anda telah berakhir. Silakan login kembali.";
   }

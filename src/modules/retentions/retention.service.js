@@ -3,6 +3,7 @@ import { findUnitById } from '../units/unit.repository.js';
 import { sendPushNotification } from '../../shared/utils/notification.js';
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 const normalizeInput = (data) => {
   if (!data) return data;
@@ -21,14 +22,14 @@ export const getRetentionsList = async (userContext, filters = {}) => {
 
 export const getRetentionDetail = async (id, userContext) => {
   const retention = await repo.findRetentionById(id, userContext);
-  if (!retention) throw new Error('Retention not found or access denied');
+  if (!retention) throw new AppError('Data retensi tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return retention;
 };
 
 export const createRetention = async (input, userContext) => {
   const data = normalizeInput(input);
   const unit = await findUnitById(data.unitId, userContext);
-  if (!unit) throw new Error('Unit not found or access denied');
+  if (!unit) throw new AppError('Data unit tidak ditemukan atau Anda tidak memiliki akses.', 404);
   
   if (!data.companyId) {
     data.companyId = userContext.companyId ?? unit.companyId ?? unit.company_id;
@@ -62,7 +63,7 @@ export const createRetention = async (input, userContext) => {
 
 export const modifyRetention = async (id, input, userContext) => {
   const result = await repo.updateRetention(id, normalizeInput(input), userContext);
-  if (!result) throw new Error('Retention not found or access denied');
+  if (!result) throw new AppError('Data retensi tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
   // Kirim Notifikasi Realtime ketika status retensi di-update
   try {
@@ -102,7 +103,7 @@ export const modifyRetention = async (id, input, userContext) => {
 
 export const removeRetention = async (id, userContext) => {
   const result = await repo.deleteRetention(id, userContext);
-  if (!result) throw new Error('Retention not found or access denied');
+  if (!result) throw new AppError('Data retensi tidak ditemukan atau Anda tidak memiliki akses.', 404);
   return result;
 };
 

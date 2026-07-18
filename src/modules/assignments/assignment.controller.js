@@ -29,7 +29,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Assignment retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -57,8 +57,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Assignment updated', data });
   } catch (error) {
-    const status = error.message.toLowerCase().includes('not found') ? 404 : 400;
-    return reply.code(status).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -70,7 +69,7 @@ export const getPaymentsHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Payments retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -83,7 +82,7 @@ export const createPaymentHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Payment created', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -96,7 +95,7 @@ export const updatePaymentHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Payment updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -109,7 +108,7 @@ export const deletePaymentHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Payment deleted', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -123,10 +122,6 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Assignment deleted', data: deleted });
   } catch (error) {
-    const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');
-    if (isConstraint) {
-      return reply.code(409).send({ success: false, message: 'Penugasan tidak dapat dihapus karena sudah memiliki histori pembayaran, dokumen serah terima, atau data garansi. Harap hapus isinya terlebih dahulu.', errors: [] });
-    }
-    return reply.code(409).send({ success: false, message: error.message || 'Gagal menghapus assignment', errors: [] });
+    throw error;
   }
 };

@@ -17,7 +17,7 @@ export const getByIdHandler = async (request, reply) => {
     }, 300);
     return reply.code(200).send({ success: true, message: 'Unit retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -32,7 +32,7 @@ export const getDetailHandler = async (request, reply) => {
 
     return reply.code(200).send({ success: true, message: 'Unit detail retrieved', data, source });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -57,7 +57,7 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Unit updated', data });
   } catch (error) {
-    return reply.code(404).send({ success: false, message: error.message, errors: [] });
+    throw error;
   }
 };
 
@@ -85,10 +85,6 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Unit deleted', data: {} });
   } catch (error) {
-    const isConstraint = error.code === '23503' || String(error.message).includes('foreign key') || String(error.message).includes('violates') || String(error.message).includes('Failed query');
-    if (isConstraint) {
-      return reply.code(409).send({ success: false, message: 'Unit tidak dapat dihapus karena sudah memiliki data terkait (seperti progres pembangunan atau data serah terima).', errors: [] });
-    }
-    return reply.code(409).send({ success: false, message: error.message || 'Gagal menghapus unit', errors: [] });
+    throw error;
   }
 };

@@ -3,6 +3,7 @@ import { db } from '../../config/database.js';
 import { handovers, handoverDefects } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
 
@@ -70,17 +71,17 @@ export const updateHandover = async (id, data, userContext) => {
   if (scope) conditions.push(scope);
 
   const result = await db.update(handovers).set(data).where(and(...conditions)).returning();
-  if (!result || result.length === 0) throw new Error("Data Serah Terima tidak ditemukan atau akses ditolak");
+  if (!result || result.length === 0) throw new AppError("Data Serah Terima tidak ditemukan atau akses ditolak", 400);
   return mapHandoverRow(result[0]);
 };
 
 export const deleteHandover = async (id, userContext) => {
   const existing = await findHandoverById(id, userContext);
-  if (!existing) throw new Error("Data Serah Terima tidak ditemukan atau akses ditolak");
+  if (!existing) throw new AppError("Data Serah Terima tidak ditemukan atau akses ditolak", 400);
 
   const retentionRes = await db.execute(sql`SELECT COUNT(*) as count FROM retentions WHERE unit_id = ${existing.unit_id}`);
   if (Number(retentionRes[0].count) > 0) {
-    throw new Error("Gagal menghapus Serah Terima. Masih terdapat data Retensi / Garansi. Harap hapus data Retensi terlebih dahulu.");
+    throw new AppError("Gagal menghapus Serah Terima. Masih terdapat data Retensi / Garansi. Harap hapus data Retensi terlebih dahulu.", 400);
   }
 
   const scope = getTenantScope(handovers, userContext);

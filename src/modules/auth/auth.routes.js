@@ -168,12 +168,8 @@ export default async function authRoutes(fastify, options) {
         },
       });
     } catch (error) {
-      return reply.code(401).send({
-        success: false,
-        message: error.message,
-        errors: [],
-      });
-    }
+    throw error;
+  }
   });
 
   fastify.post(
@@ -352,11 +348,8 @@ export default async function authRoutes(fastify, options) {
           data: result,
         });
       } catch (error) {
-        return reply.code(500).send({
-          success: false,
-          message: error.message,
-        });
-      }
+    throw error;
+  }
     },
   );
 
@@ -386,11 +379,8 @@ export default async function authRoutes(fastify, options) {
           data: {},
         });
       } catch (error) {
-        return reply.code(500).send({
-          success: false,
-          message: error.message,
-        });
-      }
+    throw error;
+  }
     },
   );
 

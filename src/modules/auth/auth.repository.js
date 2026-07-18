@@ -4,6 +4,7 @@ import { db } from '../../config/database.js';
 import { users, refreshTokens } from '../../shared/schemas/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const findUserByEmail = async (email) => {
   const result = await db

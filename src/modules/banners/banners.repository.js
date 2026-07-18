@@ -1,6 +1,7 @@
 import { db } from '../../config/database.js';
 import { banners } from '../../shared/schemas/schema.js';
 import { eq } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const findAll = async () => {
   return await db.select().from(banners);

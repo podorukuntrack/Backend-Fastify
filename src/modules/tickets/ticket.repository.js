@@ -3,6 +3,7 @@ import { db } from '../../config/database.js';
 import { tickets, ticketMessages } from '../../shared/schemas/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const findTickets = async (userContext) => {
   const scope = getTenantScope(tickets, userContext);

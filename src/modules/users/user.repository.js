@@ -1,6 +1,7 @@
 // src/modules/users/user.repository.js
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 
 export const findUsers = async (page, limit, userContext, filters = {}) => {
@@ -190,12 +191,12 @@ export const deleteUser = async (id, userContext) => {
 
   // Cek apakah user yang mau dihapus ada dan bisa diakses
   const existing = await findUserById(id, userContext);
-  if (!existing) throw new Error('User tidak ditemukan atau tidak ada akses');
+  if (!existing) throw new AppError('User tidak ditemukan atau tidak ada akses', 400);
 
   if (existing.role === 'customer') {
     // 1. Cek Data Protes / Tiket
     const [{ hasTickets }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM tickets WHERE user_id = ${id}) AS "hasTickets"`);
-    if (hasTickets) throw new Error('Tidak dapat menghapus akun: Harap hapus data Protes/Tiket untuk pengguna ini terlebih dahulu.');
+    if (hasTickets) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Protes/Tiket untuk pengguna ini terlebih dahulu.', 400);
 
     // 2. Ambil ID Unit untuk pengecekan selanjutnya
     const assignmentsRes = await db.execute(sql`SELECT id AS assignment_id, unit_id FROM property_assignments WHERE user_id = ${id}`);
@@ -207,32 +208,32 @@ export const deleteUser = async (id, userContext) => {
       
       // 3. Cek Retensi
       const [{ hasRetentions }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM retentions WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasRetentions"`);
-      if (hasRetentions) throw new Error('Tidak dapat menghapus akun: Harap hapus data Retensi untuk pengguna ini terlebih dahulu.');
+      if (hasRetentions) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Retensi untuk pengguna ini terlebih dahulu.', 400);
 
       // 4. Cek Serah Terima (Handovers)
       const [{ hasHandovers }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM handovers WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasHandovers"`);
-      if (hasHandovers) throw new Error('Tidak dapat menghapus akun: Harap hapus data Serah Terima untuk pengguna ini terlebih dahulu.');
+      if (hasHandovers) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Serah Terima untuk pengguna ini terlebih dahulu.', 400);
 
       // 5. Cek Pembayaran
       const assignmentIdsArray = assignmentIds.length > 0 ? `{${assignmentIds.join(',')}}` : '{}';
       const [{ hasPayments }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM payment_history WHERE assignment_id = ANY(${assignmentIdsArray}::uuid[])) AS "hasPayments"`);
-      if (hasPayments) throw new Error('Tidak dapat menghapus akun: Harap hapus data Pembayaran untuk pengguna ini terlebih dahulu.');
+      if (hasPayments) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Pembayaran untuk pengguna ini terlebih dahulu.', 400);
       
       const [{ hasPaymentsMain }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM payments WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasPaymentsMain"`);
-      if (hasPaymentsMain) throw new Error('Tidak dapat menghapus akun: Harap hapus data Pembayaran (Tagihan) untuk pengguna ini terlebih dahulu.');
+      if (hasPaymentsMain) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Pembayaran (Tagihan) untuk pengguna ini terlebih dahulu.', 400);
 
       // 6. Cek Progress Pembangunan
       const [{ hasProgress }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM progress WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasProgress"`);
-      if (hasProgress) throw new Error('Tidak dapat menghapus akun: Harap hapus data Progress Pembangunan untuk pengguna ini terlebih dahulu.');
+      if (hasProgress) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Progress Pembangunan untuk pengguna ini terlebih dahulu.', 400);
 
       // 7. Cek Timeline
       const [{ hasTimeline }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM timelines WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasTimeline"`);
-      if (hasTimeline) throw new Error('Tidak dapat menghapus akun: Harap hapus data Timeline untuk pengguna ini terlebih dahulu.');
+      if (hasTimeline) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Timeline untuk pengguna ini terlebih dahulu.', 400);
     }
 
     if (assignmentIds.length > 0) {
       // 8. Cek Assignment
-      throw new Error('Tidak dapat menghapus akun: Harap hapus atau batalkan Assignment (Penugasan Unit) untuk pengguna ini terlebih dahulu.');
+      throw new AppError('Tidak dapat menghapus akun: Harap hapus atau batalkan Assignment (Penugasan Unit) untuk pengguna ini terlebih dahulu.', 400);
     }
 
     // Jika sampai di sini, semua bersih. Hapus data personal yang tidak perlu validasi UI.

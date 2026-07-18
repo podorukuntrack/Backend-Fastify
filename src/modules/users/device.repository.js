@@ -1,6 +1,7 @@
 import { db } from '../../config/database.js';
 import { userDevices } from '../../shared/schemas/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const upsertDeviceToken = async (userId, fcmToken, deviceType) => {
   // Check if token already exists

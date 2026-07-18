@@ -2,6 +2,7 @@
 import * as repo from './company.repository.js';
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { AppError } from '../../shared/utils/AppError.js';
 
 export const getCompanies = async () => {
   return await repo.findAllCompanies();
@@ -9,7 +10,7 @@ export const getCompanies = async () => {
 
 export const getCompany = async (id) => {
   const company = await repo.findCompanyById(id);
-  if (!company) throw new Error('Company not found');
+  if (!company) throw new AppError('Data perusahaan tidak ditemukan.', 404);
   return company;
 };
 
@@ -19,7 +20,7 @@ export const createCompany = async (data) => {
 
 export const modifyCompany = async (id, data) => {
   const company = await repo.updateCompany(id, data);
-  if (!company) throw new Error('Company not found');
+  if (!company) throw new AppError('Data perusahaan tidak ditemukan.', 404);
   return company;
 };
 
@@ -51,8 +52,8 @@ export const canDeleteCompany = async (companyId) => {
 
 export const removeCompany = async (id) => {
   const canDelete = await canDeleteCompany(id);
-  if (!canDelete) throw new Error('Company cannot be deleted because it has associated data.');
+  if (!canDelete) throw new AppError('Perusahaan tidak dapat dihapus karena memiliki data terkait.', 409);
   const company = await repo.deleteCompany(id);
-  if (!company) throw new Error('Company not found');
+  if (!company) throw new AppError('Data perusahaan tidak ditemukan.', 404);
   return company;
 };

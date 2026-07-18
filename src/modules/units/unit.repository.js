@@ -2,6 +2,7 @@ import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
 import { units } from '../../shared/schemas/schema.js';
 import { clearDashboardCache } from '../../shared/utils/cache.js';
+import { AppError } from '../../shared/utils/AppError.js';
 
 const mapUnitRow = (row) => ({
   id: row.id,
@@ -256,7 +257,7 @@ export const deleteUnit = async (id, userContext) => {
 
   const assignmentRes = await db.execute(sql`SELECT COUNT(*) as count FROM property_assignments WHERE unit_id = ${id}`);
   if (Number(assignmentRes[0].count) > 0) {
-    throw new Error("Gagal menghapus Unit. Masih terdapat data Penugasan Pemilik (Assignment). Harap hapus Penugasan terlebih dahulu.");
+    throw new AppError("Gagal menghapus Unit. Masih terdapat data Penugasan Pemilik (Assignment). Harap hapus Penugasan terlebih dahulu.", 400);
   }
 
   const rows = await db.execute(sql`
