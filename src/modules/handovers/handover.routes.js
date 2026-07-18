@@ -21,23 +21,19 @@ export default async function handoverRoutes(fastify, options) {
           page: {
             type: 'string',
             description: 'Nomor halaman (default: 1)',
-            example: '1'
           },
           limit: {
             type: 'string',
             description: 'Jumlah data per halaman (default: 20)',
-            example: '10'
           },
           unitId: {
             type: 'string',
             format: 'uuid',
             description: 'Filter berdasarkan ID unit',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           status: {
             type: 'string',
             description: 'Filter berdasarkan status serah terima',
-            example: 'dijadwalkan'
           }
         }
       },
@@ -69,7 +65,6 @@ export default async function handoverRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID handover/serah terima',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },

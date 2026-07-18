@@ -22,36 +22,30 @@ export default async function paymentRoutes(fastify, options) {
             page: {
               type: "string",
               description: "Nomor halaman (default: 1)",
-              example: "1"
             },
             limit: {
               type: "string",
               description: "Jumlah data per halaman (default: 20)",
-              example: "10"
             },
             status: {
               type: "string",
               enum: ["pending", "verified", "failed"],
               description: "Filter berdasarkan status pembayaran",
-              example: "verified"
             },
             method: {
               type: "string",
               enum: ["transfer", "cash", "kpr"],
               description: "Filter berdasarkan metode pembayaran",
-              example: "transfer"
             },
             fromDate: {
               type: "string",
               format: "date",
               description: "Filter pembayaran dari tanggal",
-              example: "2024-01-01"
             },
             toDate: {
               type: "string",
               format: "date",
               description: "Filter pembayaran sampai tanggal",
-              example: "2024-12-31"
             }
           }
         },
@@ -100,7 +94,6 @@ export default async function paymentRoutes(fastify, options) {
               type: "string",
               format: "uuid",
               description: "ID unit untuk melihat riwayat pembayarannya",
-              example: "550e8400-e29b-41d4-a716-446655440000"
             }
           }
         },
@@ -110,12 +103,10 @@ export default async function paymentRoutes(fastify, options) {
             page: {
               type: "string",
               description: "Nomor halaman",
-              example: "1"
             },
             limit: {
               type: "string",
               description: "Jumlah data per halaman",
-              example: "10"
             }
           }
         },
@@ -165,42 +156,35 @@ export default async function paymentRoutes(fastify, options) {
               type: "string",
               format: "uuid",
               description: "ID Unit yang melakukan pembayaran",
-              example: "550e8400-e29b-41d4-a716-446655440000"
             },
             amount: {
               type: "number",
               description: "Jumlah pembayaran dalam rupiah",
-              example: 100000000
             },
             paymentDate: {
               type: "string",
               format: "date-time",
               description: "Tanggal pembayaran dilakukan (ISO-8601)",
-              example: "2024-06-15T14:30:00Z"
             },
             method: {
               type: "string",
               enum: ["transfer", "cash", "kpr"],
               description: "Metode pembayaran",
-              example: "transfer"
             },
             status: {
               type: "string",
               enum: ["pending", "verified", "failed"],
               description: "Status pembayaran awal (default: pending)",
-              example: "pending"
             },
             receiptUrl: {
               type: "string",
               format: "uri",
               description: "URL bukti pembayaran/kuitansi (optional)",
-              example: "https://example.com/receipt-123.pdf"
             },
             companyId: {
               type: "string",
               format: "uuid",
               description: "ID Perusahaan (optional)",
-              example: "550e8400-e29b-41d4-a716-446655440001"
             }
           }
         },

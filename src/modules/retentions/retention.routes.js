@@ -21,24 +21,20 @@ export default async function retentionRoutes(fastify, options) {
           page: {
             type: 'string',
             description: 'Nomor halaman (default: 1)',
-            example: '1'
           },
           limit: {
             type: 'string',
             description: 'Jumlah data per halaman (default: 20)',
-            example: '10'
           },
           status: {
             type: 'string',
             enum: ['active', 'released', 'claimed'],
             description: 'Filter berdasarkan status retensi',
-            example: 'active'
           },
           unitId: {
             type: 'string',
             format: 'uuid',
             description: 'Filter berdasarkan Unit ID',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -70,7 +66,6 @@ export default async function retentionRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID retensi yang ingin diambil',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -102,24 +97,20 @@ export default async function retentionRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID Unit untuk retensi',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           dueDate: {
             type: 'string',
             format: 'date-time',
             description: 'Tanggal berlaku retensi (ISO-8601)',
-            example: '2025-06-01T17:00:00Z'
           },
           status: {
             type: 'string',
             enum: ['active', 'released', 'claimed'],
             description: 'Status awal retensi (default: active)',
-            example: 'active'
           },
           notes: {
             type: 'string',
             description: 'Catatan retensi (opsional)',
-            example: 'Retensi untuk garansi kualitas pengerjaan'
           },
           linkFoto360: {
             type: ['string', 'null'],
@@ -129,7 +120,6 @@ export default async function retentionRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID Perusahaan (optional)',
-            example: '550e8400-e29b-41d4-a716-446655440001'
           }
         }
       },
@@ -161,7 +151,6 @@ export default async function retentionRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID retensi yang ingin diupdate',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -172,18 +161,15 @@ export default async function retentionRoutes(fastify, options) {
             type: 'string',
             format: 'date-time',
             description: 'Tanggal berlaku baru',
-            example: '2025-07-01T17:00:00Z'
           },
           status: {
             type: 'string',
             enum: ['active', 'released', 'claimed'],
             description: 'Status retensi baru',
-            example: 'released'
           },
           notes: {
             type: 'string',
             description: 'Catatan baru',
-            example: 'Retensi dilepaskan setelah inspeksi final'
           },
           linkFoto360: {
             type: ['string', 'null'],
@@ -219,7 +205,6 @@ export default async function retentionRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID retensi yang ingin dihapus',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },

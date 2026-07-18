@@ -29,7 +29,6 @@ export default async function documentationRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID unit untuk melihat dokumentasinya',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -39,7 +38,6 @@ export default async function documentationRoutes(fastify, options) {
           type: {
             type: 'string',
             description: 'Tipe dokumen (contoh: blueprint, sertifikat, foto)',
-            example: 'blueprint'
           }
         }
       },
@@ -97,7 +95,6 @@ export default async function documentationRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID Unit untuk upload dokumen',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           file: {
             type: 'string',
@@ -107,7 +104,6 @@ export default async function documentationRoutes(fastify, options) {
           docType: {
             type: 'string',
             description: 'Tipe dokumen (blueprint, sertifikat, foto, dll)',
-            example: 'blueprint'
           }
         }
       },
@@ -231,7 +227,6 @@ export default async function documentationRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID dokumen yang ingin dihapus',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },

@@ -20,28 +20,23 @@ export default async function progressRoutes(fastify, options) {
           page: {
             type: 'string',
             description: 'Nomor halaman (default: 1)',
-            example: '1'
           },
           limit: {
             type: 'string',
             description: 'Jumlah data per halaman (default: 20)',
-            example: '10'
           },
           unitId: {
             type: 'string',
             format: 'uuid',
             description: 'Filter berdasarkan Unit ID',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           minPercentage: {
             type: 'number',
             description: 'Filter progress minimal (0-100)',
-            example: '50'
           },
           maxPercentage: {
             type: 'number',
             description: 'Filter progress maksimal (0-100)',
-            example: '100'
           }
         }
       },
@@ -92,7 +87,6 @@ export default async function progressRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID progress record yang ingin diambil',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -133,7 +127,6 @@ export default async function progressRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID unit untuk melihat progress-nya',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -176,27 +169,23 @@ export default async function progressRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID Unit yang di-update progressnya',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           unit_id: {
             type: 'string',
             format: 'uuid',
             description: 'ID Unit yang di-update progressnya',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           percentage: {
             type: 'number',
             minimum: 0,
             maximum: 100,
             description: 'Persentase progress pengerjaan unit (0-100)',
-            example: '75'
           },
           progress_percentage: {
             type: 'number',
             minimum: 0,
             maximum: 100,
             description: 'Persentase progress pengerjaan unit (0-100)',
-            example: '75'
           },
           tahap: {
             type: 'string'
@@ -211,13 +200,11 @@ export default async function progressRoutes(fastify, options) {
           notes: {
             type: 'string',
             description: 'Catatan atau keterangan progress (opsional)',
-            example: 'Pengecatan dinding sudah 75% selesai'
           },
           companyId: {
             type: 'string',
             format: 'uuid',
             description: 'ID Perusahaan (optional untuk admin)',
-            example: '550e8400-e29b-41d4-a716-446655440001'
           }
         }
       },
@@ -249,7 +236,6 @@ export default async function progressRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID progress record yang ingin diupdate',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -261,12 +247,10 @@ export default async function progressRoutes(fastify, options) {
             minimum: 0,
             maximum: 100,
             description: 'Persentase progress baru',
-            example: '85'
           },
           notes: {
             type: 'string',
             description: 'Catatan progress baru',
-            example: 'Pengecatan sudah 85% selesai, tinggal finishing'
           },
           unit_id: {
             type: 'string',
@@ -317,7 +301,6 @@ export default async function progressRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID progress record yang ingin dihapus',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },

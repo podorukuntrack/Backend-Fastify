@@ -17,7 +17,6 @@ export default async function dashboardRoutes(fastify, options) {
       properties: {
         success: {
           type: "boolean",
-          example: true,
         },
         data: {
           type: "object",
@@ -207,28 +206,23 @@ export default async function dashboardRoutes(fastify, options) {
             total_projects: {
               type: "integer",
               description: "Jumlah total project",
-              example: 12,
             },
             total_units: {
               type: "integer",
               description: "Jumlah total unit",
-              example: 150,
             },
             units_sold: {
               type: "integer",
               description: "Jumlah unit yang sudah terjual",
-              example: 85,
             },
             open_tickets: {
               type: "integer",
               description: "Jumlah tiket yang masih terbuka",
-              example: 7,
             },
             total_revenue: {
               type: "number",
               description:
                 "Total revenue dari pembayaran dengan status verified",
-              example: 1250000000,
             },
           }),
         },
@@ -305,17 +299,14 @@ export default async function dashboardRoutes(fastify, options) {
             open_tickets: {
               type: "integer",
               description: "Jumlah tiket dengan status open",
-              example: 5,
             },
             pending_responses: {
               type: "integer",
               description: "Jumlah tiket dengan status in_progress",
-              example: 3,
             },
             wa_sent_today: {
               type: "integer",
               description: "Jumlah pesan WhatsApp yang dikirim hari ini",
-              example: 42,
             },
           }),
         },
@@ -369,18 +360,15 @@ export default async function dashboardRoutes(fastify, options) {
             total_companies: {
               type: "integer",
               description: "Jumlah total perusahaan",
-              example: 25,
             },
             total_customers: {
               type: "integer",
               description: "Jumlah total user dengan role customer",
-              example: 1340,
             },
             revenue_global: {
               type: "number",
               description:
                 "Total revenue dari seluruh pembayaran dengan status verified",
-              example: 4589000000,
             },
           }),
         },

@@ -17,10 +17,10 @@ export default async function clusterRoutes(fastify, options) {
       querystring: {
         type: 'object',
         properties: {
-          page: { type: 'string', description: 'Nomor halaman (default: 1)', example: '1' },
-          limit: { type: 'string', description: 'Jumlah data per halaman (default: 20)', example: '10' },
+          page: { type: 'string', description: 'Nomor halaman (default: 1)', },
+          limit: { type: 'string', description: 'Jumlah data per halaman (default: 20)', },
           project_id: { type: 'string', format: 'uuid', description: 'Filter berdasarkan Project ID' },
-          search: { type: 'string', description: 'Cari cluster berdasarkan nama', example: 'Cluster A' }
+          search: { type: 'string', description: 'Cari cluster berdasarkan nama', }
         }
       },
       response: {

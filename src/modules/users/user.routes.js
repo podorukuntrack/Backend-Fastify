@@ -21,28 +21,23 @@ export default async function userRoutes(fastify, options) {
           page: {
             type: 'string',
             description: 'Nomor halaman (default: 1)',
-            example: '1'
           },
           limit: {
             type: 'string',
             description: 'Jumlah data per halaman (default: 20)',
-            example: '10'
           },
           search: {
             type: 'string',
             description: 'Cari user berdasarkan nama atau email',
-            example: 'john@example.com'
           },
           role: {
             type: 'string',
             enum: ['super_admin', 'admin', 'direksi', 'owner', 'customer'],
             description: 'Filter berdasarkan role',
-            example: 'admin'
           },
           all_customers: {
             type: 'string',
             description: 'Ambil semua customer tanpa filter company (admin only)',
-            example: 'true'
           }
         }
       },
@@ -102,44 +97,37 @@ export default async function userRoutes(fastify, options) {
             minLength: 3,
             maxLength: 255,
             description: 'Nama lengkap user',
-            example: 'John Doe'
           },
           nama: {
             type: 'string',
             minLength: 3,
             maxLength: 255,
             description: 'Nama lengkap user',
-            example: 'John Doe'
           },
           email: {
             type: 'string',
             format: 'email',
             description: 'Email user (harus unik)',
-            example: 'john@example.com'
           },
           password: {
             type: 'string',
             minLength: 6,
             description: 'Password (minimal 6 karakter)',
-            example: 'password123'
           },
           role: {
             type: 'string',
             enum: ['super_admin', 'admin', 'direksi', 'owner', 'customer'],
             description: 'Role user (default: customer)',
-            example: 'admin'
           },
           companyId: {
             type: 'string',
             format: 'uuid',
             description: 'ID Perusahaan (optional untuk super_admin)',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           company_id: {
             type: 'string',
             format: 'uuid',
             description: 'ID Perusahaan (optional untuk super_admin)',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           nomor_telepon: {
             type: 'string'
@@ -191,7 +179,6 @@ export default async function userRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID user yang ingin diambil',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -244,7 +231,6 @@ export default async function userRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID user yang ingin diupdate',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },
@@ -256,19 +242,16 @@ export default async function userRoutes(fastify, options) {
             minLength: 3,
             maxLength: 255,
             description: 'Nama user baru',
-            example: 'John Doe Updated'
           },
           role: {
             type: 'string',
             enum: ['super_admin', 'admin', 'direksi', 'owner', 'customer'],
             description: 'Role user baru',
-            example: 'admin'
           },
           companyId: {
             type: 'string',
             format: 'uuid',
             description: 'ID Perusahaan baru',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           },
           nama: {
             type: 'string',
@@ -326,7 +309,6 @@ export default async function userRoutes(fastify, options) {
             type: 'string',
             format: 'uuid',
             description: 'ID user yang ingin dihapus',
-            example: '550e8400-e29b-41d4-a716-446655440000'
           }
         }
       },

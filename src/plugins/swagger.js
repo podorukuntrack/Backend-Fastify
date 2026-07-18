@@ -88,7 +88,6 @@ async function swaggerPlugin(fastify) {
             schema: {
               type: 'string'
             },
-            example: 'company-123'
           },
 
           paginationLimit: {
@@ -101,7 +100,6 @@ async function swaggerPlugin(fastify) {
               default: 10,
               minimum: 1
             },
-            example: 10
           },
 
           paginationOffset: {
@@ -114,7 +112,6 @@ async function swaggerPlugin(fastify) {
               default: 0,
               minimum: 0
             },
-            example: 0
           }
         }
       },
