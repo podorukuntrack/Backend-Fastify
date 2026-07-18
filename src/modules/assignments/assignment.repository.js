@@ -39,7 +39,13 @@ const mapAssignmentRow = (row) => ({
     tenor_bulan: row.tenor_bulan,
     keterangan_kpr: row.keterangan_kpr,
     persentase_dibayar: row.tipe_pembayaran === 'kredit_kpr'
-      ? (Number(row.dp ?? 0) > 0 ? Math.min((Number(row.total_dibayar ?? 0) / Number(row.dp)) * 100, 100) : 0)
+      ? (Number(row.dp ?? 0) > 0 
+          ? (function() {
+              const kprAmount = Number(row.harga_total ?? 0) - Number(row.dp ?? 0);
+              const customerPaid = Number(row.total_dibayar ?? 0) - kprAmount;
+              return Math.min(Math.max((customerPaid / Number(row.dp)) * 100, 0), 100);
+            })() 
+          : 0)
       : (Number(row.harga_total ?? 0) > 0 ? Math.min((Number(row.total_dibayar ?? 0) / Number(row.harga_total)) * 100, 100) : 0),
   },
 });
