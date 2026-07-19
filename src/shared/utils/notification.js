@@ -66,7 +66,9 @@ export const sendPushNotification = async (userIds, title, body, data = {}) => {
         acc[key] = String(data[key]);
         return acc;
       }, {
-        click_action: 'FLUTTER_NOTIFICATION_CLICK'
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        title: String(title),
+        body: String(body)
       }),
       android: {
         priority: 'high',
