@@ -152,6 +152,11 @@ export const addComplaint = async (retentionId, input, userContext) => {
 
 export const editComplaint = async (retentionId, complaintId, input, userContext) => {
   const retention = await getRetentionDetail(retentionId, userContext);
+  
+  // Get old status to prevent duplicate/spam notifications
+  const oldComplaint = await repo.findComplaintById(complaintId);
+  const oldStatus = oldComplaint?.status;
+  
   const result = await repo.updateComplaint(complaintId, input);
 
   try {
@@ -161,7 +166,8 @@ export const editComplaint = async (retentionId, complaintId, input, userContext
     `);
     const userIds = assignments.map(a => a.user_id ?? a.userId);
     
-    if (userIds.length > 0 && input.status !== undefined) {
+    // Only notify if status was explicitly changed
+    if (userIds.length > 0 && input.status !== undefined && input.status !== oldStatus) {
       const statusText = result.status === 'resolved' ? 'Selesai Diperbaiki' : 'Menunggu Perbaikan';
       await sendPushNotification(
         userIds,

@@ -92,6 +92,12 @@ export const findComplaintsByRetentionId = async (retentionId) => {
   return result.map(mapComplaintRow);
 };
 
+export const findComplaintById = async (id) => {
+  const result = await db.select().from(retentionComplaints).where(eq(retentionComplaints.id, id)).limit(1);
+  if (!result || result.length === 0) return null;
+  return mapComplaintRow(result[0]);
+};
+
 export const insertComplaint = async (data) => {
   const result = await db.insert(retentionComplaints).values(data).returning();
   return mapComplaintRow(result[0]);
