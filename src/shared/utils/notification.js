@@ -60,8 +60,10 @@ export const sendPushNotification = async (userIds, title, body, data = {}) => {
     }
 
     // 2. Prepare message payload
+    // We send a data-only message for Android so we can handle it manually in Flutter
+    // (to prevent Android OS from silencing grouped notifications).
+    // For iOS, we use apns.payload.aps.alert to trigger a normal push notification.
     const message = {
-      notification: { title, body },
       data: Object.keys(data).reduce((acc, key) => {
         acc[key] = String(data[key]);
         return acc;
@@ -72,10 +74,6 @@ export const sendPushNotification = async (userIds, title, body, data = {}) => {
       }),
       android: {
         priority: 'high',
-        notification: {
-          sound: 'notif_podorukun',
-          channelId: 'podo_custom_sound_channel_v4',
-        }
       },
       apns: {
         headers: {
@@ -83,6 +81,10 @@ export const sendPushNotification = async (userIds, title, body, data = {}) => {
         },
         payload: {
           aps: {
+            alert: {
+              title: String(title),
+              body: String(body),
+            },
             sound: 'notif_podorukun.wav',
           }
         }
