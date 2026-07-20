@@ -1,6 +1,6 @@
 // src/modules/handovers/handover.repository.js
 import { db } from '../../config/database.js';
-import { handovers, handoverDefects } from '../../shared/schemas/schema.js';
+import { handovers } from '../../shared/schemas/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getTenantScope } from '../../shared/utils/scopes.js';
 import { AppError } from '../../shared/utils/AppError.js';
@@ -89,11 +89,7 @@ export const deleteHandover = async (id, userContext) => {
   if (scope) conditions.push(scope);
   
   return await db.transaction(async (tx) => {
-    // Delete handover defects first to avoid foreign key constraints
-    await tx.delete(handoverDefects).where(eq(handoverDefects.handoverId, id));
-    
     const result = await tx.delete(handovers).where(and(...conditions)).returning();
     return mapHandoverRow(result[0]);
   });
 };
-
