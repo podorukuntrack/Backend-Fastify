@@ -21,7 +21,7 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
     SELECT 
       ph.id,
       ph.jumlah_bayar AS amount,
-      'verified' AS status,
+      'diterima' AS status,
       'transfer' AS method,
       ph.tanggal_bayar AS "paymentDate",
       ph.bukti_pembayaran AS "receiptUrl",
@@ -33,17 +33,19 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
     JOIN projects proj ON proj.id = c.project_id
     WHERE pa.unit_id = ${unitId}::uuid
       AND ${scopeCondition}
+      AND (ph.catatan IS NULL OR LOWER(ph.catatan) NOT LIKE '%auto-injeksi%')
     ORDER BY ph.tanggal_bayar DESC
   `);
 
   return rows.map(row => ({
     id: row.id,
     amount: Number(row.amount ?? 0),
-    status: row.status ?? 'pending',
+    status: row.status ?? 'diterima',
     method: row.method ?? 'transfer',
     paymentDate: row.paymentDate ? new Date(row.paymentDate) : new Date(),
     receiptUrl: row.receiptUrl || null,
-    notes: row.notes || null
+    notes: row.notes || null,
+    isAutoInjeksi: false
   }));
 };
 
