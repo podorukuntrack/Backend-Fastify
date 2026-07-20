@@ -1,4 +1,5 @@
 import * as repo from './assignment.repository.js';
+import { sendPushNotification } from '../../shared/utils/notification.js';
 
 export const getAssignments = async (userContext, filters = {}) => {
   return await repo.findAllAssignments(userContext, filters);
@@ -38,6 +39,28 @@ export const getAssignmentPayments = async (id, userContext) => {
 export const createAssignmentPayment = async (id, data, userContext) => {
   const result = await repo.insertPayment(id, data, userContext);
   if (!result) throw new AppError('Data penugasan tidak ditemukan atau Anda tidak memiliki akses.', 404);
+
+  // Kirim notifikasi push ke pelanggan
+  try {
+    const assignment = await repo.findAssignmentById(id, userContext);
+    if (assignment) {
+      const userId = assignment.user?.id;
+      const nomorUnit = assignment.unit?.nomor_unit ?? id;
+      const amountStr = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(data.jumlah_bayar ?? 0);
+
+      if (userId) {
+        await sendPushNotification(
+          [userId],
+          'Progres Pembayaran Masuk',
+          `Pembayaran sebesar ${amountStr} untuk unit ${nomorUnit} telah dikonfirmasi.`,
+          { type: 'payment_progress', unitId: assignment.unit?.id ?? '', paymentId: result.id }
+        );
+      }
+    }
+  } catch (e) {
+    console.error('Failed to send payment notification:', e.message);
+  }
+
   return result;
 };
 

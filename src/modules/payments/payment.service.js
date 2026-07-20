@@ -20,16 +20,13 @@ export const createPayment = async (data, userContext) => {
   
   const result = await repo.insertPayment(data);
 
-  // Trigger push notification for non-KPR payments
+  // Trigger push notification for payments
   try {
     const assignments = await db.execute(sql`
       SELECT user_id, tipe_pembayaran FROM property_assignments WHERE unit_id = ${data.unitId}::uuid
     `);
     
-    // We only send if tipe_pembayaran is NOT 'kredit_kpr'
-    // Since an assignment could be multiple, we filter them.
-    const eligibleAssignments = assignments.filter(a => a.tipe_pembayaran !== 'kredit_kpr');
-    const userIds = eligibleAssignments.map(a => a.user_id ?? a.userId);
+    const userIds = assignments.map(a => a.user_id ?? a.userId);
     
     if (userIds.length > 0) {
       const unitNo = unit.nomor_unit ?? unit.nomorUnit ?? data.unitId;
