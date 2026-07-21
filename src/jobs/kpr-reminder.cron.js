@@ -3,12 +3,8 @@ import { db } from '../config/database.js';
 import { sql } from 'drizzle-orm';
 import { sendPushNotification } from '../shared/utils/notification.js';
 
-export const startKprReminderCron = () => {
-  console.log('🕒 Starting KPR Reminder Cron Job...');
-  
-  // Run daily at 12:00 PM WIB (Asia/Jakarta)
-  cron.schedule('0 12 * * *', async () => {
-    try {
+export const executeKprReminderJob = async () => {
+  try {
       // Get today's date in YYYY-MM-DD in Asia/Jakarta timezone
       const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
       
@@ -84,10 +80,16 @@ export const startKprReminderCron = () => {
           `);
         }
       }
-    } catch (error) {
-      console.error('KPR Reminder Cron Error:', error);
-    }
-  }, {
+  } catch (error) {
+    console.error('KPR Reminder Cron Error:', error);
+  }
+};
+
+export const startKprReminderCron = () => {
+  console.log('🕒 Starting KPR Reminder Cron Job...');
+  
+  // Run daily at 12:00 PM WIB (Asia/Jakarta)
+  cron.schedule('0 12 * * *', executeKprReminderJob, {
     timezone: "Asia/Jakarta"
   });
 };

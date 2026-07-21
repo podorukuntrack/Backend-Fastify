@@ -58,6 +58,9 @@ export const updatePaymentSchema = {
     jumlah_bayar: z.coerce.number().positive().optional(),
     tanggal_bayar: z.string().optional(),
     catatan: z.string().optional(),
-    bukti_pembayaran: z.string().url("Bukti pembayaran harus berupa URL valid").optional(),
+    bukti_pembayaran: z.union([
+      z.string().url("Bukti pembayaran harus berupa URL valid"),
+      z.array(z.string().url("Setiap bukti pembayaran harus berupa URL valid"))
+    ]).optional(),
   }),
 };
