@@ -346,9 +346,13 @@ export const insertPayment = async (assignmentId, data, userContext) => {
   const assignment = await findAssignmentById(assignmentId, userContext);
   if (!assignment) return null;
 
+  const buktiPembayaran = Array.isArray(data.bukti_pembayaran) 
+    ? JSON.stringify(data.bukti_pembayaran) 
+    : (data.bukti_pembayaran ?? null);
+
   const rows = await db.execute(sql`
     INSERT INTO payment_history (assignment_id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_by)
-    VALUES (${assignmentId}, ${data.jumlah_bayar}, ${data.tanggal_bayar ?? null}, ${data.catatan ?? null}, ${data.bukti_pembayaran ?? null}, ${userContext.sub})
+    VALUES (${assignmentId}, ${data.jumlah_bayar}, ${data.tanggal_bayar ?? null}, ${data.catatan ?? null}, ${buktiPembayaran}, ${userContext.sub})
     RETURNING id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_at
   `);
 
@@ -367,13 +371,17 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
   if (oldPaymentRows.length === 0) return null;
   const oldAmount = oldPaymentRows[0].jumlah_bayar;
 
+  const buktiPembayaran = Array.isArray(data.bukti_pembayaran) 
+    ? JSON.stringify(data.bukti_pembayaran) 
+    : (data.bukti_pembayaran ?? null);
+
   // Update record pembayaran
   const rows = await db.execute(sql`
     UPDATE payment_history
        SET jumlah_bayar = COALESCE(${data.jumlah_bayar ?? null}, jumlah_bayar),
            tanggal_bayar = COALESCE(${data.tanggal_bayar ?? null}, tanggal_bayar),
            catatan = COALESCE(${data.catatan ?? null}, catatan),
-           bukti_pembayaran = COALESCE(${data.bukti_pembayaran ?? null}, bukti_pembayaran)
+           bukti_pembayaran = COALESCE(${buktiPembayaran}, bukti_pembayaran)
      WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
     RETURNING id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_at
   `);
