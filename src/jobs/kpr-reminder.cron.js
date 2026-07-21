@@ -25,8 +25,7 @@ export const startKprReminderCron = () => {
         WHERE pa.status_kepemilikan = 'active'
           AND pa.tipe_pembayaran = 'kredit_kpr'
           AND pa.total_dibayar < pa.harga_total
-          AND pa.reminder_kpr_dates IS NOT NULL
-          AND jsonb_array_length(pa.reminder_kpr_dates) > 0
+          AND pa.jatuh_tempo_kpr IS NOT NULL
       `);
 
       const rows = assignments.rows || assignments;
@@ -35,29 +34,45 @@ export const startKprReminderCron = () => {
         let dates = row.reminder_kpr_dates || [];
         let updated = false;
 
+        const dueDateStr = new Date(row.jatuh_tempo_kpr).toISOString().split('T')[0];
+        const dueDateObj = new Date(dueDateStr);
+        const todayObj = new Date(todayStr);
+        const timeDiff = dueDateObj.getTime() - todayObj.getTime();
+        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+        let shouldSend = false;
+        let reminderText = '';
+
+        // 1. Check custom dates
         for (let i = 0; i < dates.length; i++) {
           if (dates[i].date === todayStr && !dates[i].sent) {
-            
-            // Calculate days before due date
-            const dueDate = new Date(row.jatuh_tempo_kpr);
-            const reminderDate = new Date(todayStr);
-            const timeDiff = dueDate.getTime() - reminderDate.getTime();
-            const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-            
-            let reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} tinggal ${daysDiff} hari lagi (pada ${dueDate.toLocaleDateString('id-ID')}).`;
-            if (daysDiff === 0) reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} adalah HARI INI!`;
-            if (daysDiff < 0) reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} telah lewat.`;
-            
-            await sendPushNotification(
-              [row.user_id],
-              'Pengingat Jatuh Tempo KPR',
-              reminderText,
-              { type: 'kpr_reminder', assignmentId: row.id, unitId: row.unit_id }
-            );
-
+            shouldSend = true;
+            reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} tinggal ${daysDiff} hari lagi (pada ${dueDateObj.toLocaleDateString('id-ID')}).`;
             dates[i].sent = true;
             updated = true;
           }
+        }
+
+        // 2. Check D-Day (Hari H)
+        if (daysDiff === 0) {
+          shouldSend = true;
+          reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} adalah HARI INI!`;
+        }
+
+        // 3. Check Overdue (Hari lewat)
+        if (daysDiff < 0) {
+          shouldSend = true;
+          // You might want to make it daily, or specific days. Since cron runs daily, this sends every day.
+          reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} telah lewat ${Math.abs(daysDiff)} hari. Harap segera lakukan pembayaran.`;
+        }
+
+        if (shouldSend) {
+          await sendPushNotification(
+            [row.user_id],
+            'Pengingat Jatuh Tempo KPR',
+            reminderText,
+            { type: 'kpr_reminder', assignmentId: row.id, unitId: row.unit_id }
+          );
         }
 
         if (updated) {
