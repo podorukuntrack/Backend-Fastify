@@ -686,7 +686,8 @@ export default async function dashboardRoutes(fastify, options) {
           u.id as unit_id, u.nomor_unit, u.status_pembangunan, u.progress_percentage,
           c.id as cluster_id, c.nama_cluster, p.id as project_id, p.nama_proyek, comp.nama_pt as company_name,
           (CASE WHEN pa.id IS NOT NULL THEN true ELSE false END) as is_sold,
-          buyer.nama as customer_name
+          buyer.nama as customer_name,
+          (SELECT r.due_date FROM retentions r WHERE r.unit_id = u.id AND r.status = 'active' ORDER BY r.created_at DESC LIMIT 1) as retention_due_date
         FROM units u
         JOIN clusters c ON u.cluster_id = c.id
         JOIN projects p ON p.id = c.project_id
