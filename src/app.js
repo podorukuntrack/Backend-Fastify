@@ -36,18 +36,16 @@ export async function buildApp() {
   const app = Fastify({
     bodyLimit: 10 * 1024 * 1024, // 10MB — cukup untuk JSON besar, file upload dibatasi terpisah oleh multipart plugin
     trustProxy: true, // Percaya pada header X-Forwarded-For dari Nginx / Cloudflare
-    logger: process.env.LOG_PRETTY === "true"
-      ? {
-          transport: {
-            target: "pino-pretty",
-            options: {
-              translateTime: "HH:MM:ss",
-              ignore: "pid,hostname",
-              colorize: true,
-            },
-          },
-        }
-      : true,
+    logger: {
+      transport: {
+        target: "pino-pretty",
+        options: {
+          ignore: "pid,hostname,time",
+          colorize: true,
+          singleLine: false,
+        },
+      },
+    },
   });
   const allowedOrigins = process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",")
@@ -163,11 +161,9 @@ export async function buildApp() {
   await app.register(dashboardRoutes, { prefix: "/api/v1/dashboard" });
   await app.register(bannersRoutes, { prefix: "/api/v1/banners" });
 
-  app.get("/", async () => ({
-    success: true,
-    message: "Welcome to PropTrack API v2.0",
-    data: {},
-  }));
+  app.get("/", async (_request, reply) => {
+    return reply.code(404).type("text/plain").send("");
+  });
 
   // ── Health Check ─────────────────────────────────────────────
   app.get("/health", async (_request, reply) => {
