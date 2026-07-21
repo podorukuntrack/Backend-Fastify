@@ -1,6 +1,7 @@
 import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
 import { AppError } from '../../shared/utils/AppError.js';
+import { clearDashboardCache } from '../../shared/utils/cache.js';
 
 const mapProgressRow = (row) => ({
   id: row.id,
@@ -180,6 +181,7 @@ export const insertProgress = async (data, userContext) => {
     return rows[0].id;
   });
 
+  await clearDashboardCache();
   return await findProgressById(insertedId, userContext);
 };
 
@@ -242,6 +244,7 @@ export const updateProgress = async (id, data, userContext) => {
     `);
   });
 
+  await clearDashboardCache();
   return await findProgressById(id, userContext);
 };
 
@@ -304,5 +307,6 @@ export const deleteProgress = async (id, userContext) => {
     `);
   });
 
+  await clearDashboardCache();
   return { id };
 };
