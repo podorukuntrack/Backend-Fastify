@@ -15,6 +15,7 @@ export const rotateImage = async (request, reply) => {
   // Example url: https://pub-xxxxxxxx.r2.dev/1721568283457-12345678.webp
   // Also handle cases with query params ?v=123
   const urlObj = new URL(fileUrl);
+  const baseUrl = urlObj.origin + urlObj.pathname;
   const pathname = urlObj.pathname;
   const urlParts = pathname.split('/');
   const fileKey = urlParts[urlParts.length - 1];
@@ -44,7 +45,7 @@ export const rotateImage = async (request, reply) => {
     for (const t of tables) {
       await db.execute(sql.raw(`
         UPDATE ${t.name}
-        SET ${t.col} = REPLACE(${t.col}, '${fileUrl}', '${newUrl}')
+        SET ${t.col} = REPLACE(${t.col}, '${baseUrl}', '${newUrl}')
         WHERE ${t.col} LIKE '%${fileKey}%'
       `)).catch(e => console.error(`Error updating ${t.name}:`, e));
     }
