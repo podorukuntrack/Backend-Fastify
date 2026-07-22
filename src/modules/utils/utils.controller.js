@@ -48,14 +48,13 @@ export const rotateImage = async (request, reply) => {
       { name: 'units', col: 'image_url' },
       { name: 'handovers', col: 'image_url' },
       { name: 'handovers', col: 'document_url' },
-      { name: 'handover_defects', col: 'image_url' },
       { name: 'retentions', col: 'photo_before_url' },
       { name: 'retentions', col: 'photo_after_url' },
-      { name: 'documentation', col: 'url' },
+      { name: 'documentation', col: 'url', keyCol: 'r2_key' },
       { name: 'payment_history', col: 'bukti_pembayaran' },
-      { name: 'payments', col: 'receipt_url' },
       { name: 'companies', col: 'logo_url' },
-      { name: 'projects', col: 'logo_url' }
+      { name: 'projects', col: 'logo_url' },
+      { name: 'banners', col: 'image_url', keyCol: 'r2_key' }
     ];
 
     for (const t of tables) {
@@ -64,7 +63,28 @@ export const rotateImage = async (request, reply) => {
         SET ${t.col} = REPLACE(${t.col}, '${baseUrl}', '${newUrl}')
         WHERE ${t.col} LIKE '%${fileKey}%'
       `)).catch(() => { /* Abaikan jika tabel tidak ada */ });
+      
+      if (t.keyCol) {
+        await db.execute(sql.raw(`
+          UPDATE ${t.name}
+          SET ${t.keyCol} = REPLACE(${t.keyCol}, '${fileKey}', '${result.newFileKey}')
+          WHERE ${t.keyCol} LIKE '%${fileKey}%'
+        `)).catch(() => {});
+      }
     }
+    
+    // Khusus untuk retention_complaints karena menggunakan JSONB array
+    await db.execute(sql.raw(`
+      UPDATE retention_complaints
+      SET photo_before_urls = CAST(REPLACE(CAST(photo_before_urls AS TEXT), '${baseUrl}', '${newUrl}') AS JSONB)
+      WHERE CAST(photo_before_urls AS TEXT) LIKE '%${fileKey}%'
+    `)).catch(() => {});
+    
+    await db.execute(sql.raw(`
+      UPDATE retention_complaints
+      SET photo_after_urls = CAST(REPLACE(CAST(photo_after_urls AS TEXT), '${baseUrl}', '${newUrl}') AS JSONB)
+      WHERE CAST(photo_after_urls AS TEXT) LIKE '%${fileKey}%'
+    `)).catch(() => {});
 
     return {
       message: 'Image rotated successfully',
