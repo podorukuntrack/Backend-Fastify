@@ -31,6 +31,11 @@ export const rotateImage = async (request, reply) => {
     fileKey = decodeURIComponent(urlParts[urlParts.length - 1]);
   }
 
+  console.log(`[DEBUG ROTATE] fileUrl received: ${fileUrl}`);
+  console.log(`[DEBUG ROTATE] baseUrl parsed: ${baseUrl}`);
+  console.log(`[DEBUG ROTATE] r2PublicUrl from env: ${r2PublicUrl}`);
+  console.log(`[DEBUG ROTATE] fileKey extracted: ${fileKey}`);
+
   if (!fileKey) {
     throw new AppError(400, 'Invalid fileUrl, cannot extract fileKey');
   }
