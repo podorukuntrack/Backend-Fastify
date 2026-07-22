@@ -1,6 +1,8 @@
 // src/modules/utils/utils.controller.js
 import { rotateFileInR2 } from '../../shared/utils/storage.js';
 import { AppError } from '../../shared/utils/AppError.js';
+import { db } from '../../config/database.js';
+import { sql } from 'drizzle-orm';
 
 export const rotateImage = async (request, reply) => {
   const { fileUrl, degrees } = request.body;
@@ -22,10 +24,35 @@ export const rotateImage = async (request, reply) => {
   }
 
   try {
-    await rotateFileInR2(fileKey, degrees);
+    const result = await rotateFileInR2(fileKey, degrees);
+    const newUrl = result.newFileUrl;
+
+    const tables = [
+      { name: 'units', col: 'image_url' },
+      { name: 'handovers', col: 'image_url' },
+      { name: 'handovers', col: 'document_url' },
+      { name: 'handover_defects', col: 'image_url' },
+      { name: 'retentions', col: 'photo_before_url' },
+      { name: 'retentions', col: 'photo_after_url' },
+      { name: 'documentation', col: 'url' },
+      { name: 'payment_history', col: 'bukti_pembayaran' },
+      { name: 'payments', col: 'receipt_url' },
+      { name: 'companies', col: 'logo_url' },
+      { name: 'projects', col: 'logo_url' }
+    ];
+
+    for (const t of tables) {
+      await db.execute(sql.raw(`
+        UPDATE ${t.name}
+        SET ${t.col} = REPLACE(${t.col}, '${fileUrl}', '${newUrl}')
+        WHERE ${t.col} LIKE '%${fileKey}%'
+      `)).catch(e => console.error(`Error updating ${t.name}:`, e));
+    }
+
     return {
       message: 'Image rotated successfully',
-      success: true
+      success: true,
+      newUrl
     };
   } catch (error) {
     console.error('Rotate image error:', error);

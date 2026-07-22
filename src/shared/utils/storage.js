@@ -91,16 +91,32 @@ export const rotateFileInR2 = async (fileKey, degrees = 90) => {
       .rotate(angle)
       .toBuffer();
       
+    const newFileKey = fileKey.replace(/(\.webp|\.jpg|\.png|\.jpeg)$/i, `-r${Date.now()}$1`);
+
     const putCommand = new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: fileKey,
+      Key: newFileKey,
       Body: processedBuffer,
       ContentType: response.ContentType,
     });
 
     await s3Client.send(putCommand);
     
-    return true;
+    // Attempt to delete old file
+    try {
+      const delCommand = new DeleteObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: fileKey,
+      });
+      await s3Client.send(delCommand);
+    } catch (delErr) {
+      console.error('Failed to delete old rotated file:', delErr);
+    }
+    
+    return {
+      newFileKey,
+      newFileUrl: `${process.env.R2_PUBLIC_URL}/${newFileKey}`
+    };
   } catch (err) {
     console.error('Error rotating file in R2:', err);
     throw err;
