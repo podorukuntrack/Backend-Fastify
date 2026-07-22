@@ -12,13 +12,24 @@ export const rotateImage = async (request, reply) => {
   }
 
   // Extract fileKey from fileUrl
-  // Example url: https://pub-xxxxxxxx.r2.dev/1721568283457-12345678.webp
-  // Also handle cases with query params ?v=123
   const urlObj = new URL(fileUrl);
   const baseUrl = urlObj.origin + urlObj.pathname;
-  const pathname = urlObj.pathname;
-  const urlParts = pathname.split('/');
-  const fileKey = urlParts[urlParts.length - 1];
+  
+  let fileKey = '';
+  const r2PublicUrl = process.env.R2_PUBLIC_URL;
+  
+  if (r2PublicUrl && baseUrl.startsWith(r2PublicUrl)) {
+    // Extract everything after the public URL as the key (supports folders)
+    fileKey = baseUrl.replace(r2PublicUrl, '');
+    if (fileKey.startsWith('/')) {
+      fileKey = fileKey.substring(1);
+    }
+    fileKey = decodeURIComponent(fileKey);
+  } else {
+    // Fallback: just take the last part of the path
+    const urlParts = baseUrl.split('/');
+    fileKey = decodeURIComponent(urlParts[urlParts.length - 1]);
+  }
 
   if (!fileKey) {
     throw new AppError(400, 'Invalid fileUrl, cannot extract fileKey');
@@ -57,6 +68,6 @@ export const rotateImage = async (request, reply) => {
     };
   } catch (error) {
     console.error('Rotate image error:', error);
-    throw new AppError(500, 'Failed to rotate image');
+    throw new AppError(500, `Failed to rotate image: ${error.message} (Key: ${fileKey})`);
   }
 };
