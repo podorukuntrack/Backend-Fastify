@@ -3,6 +3,7 @@ import { rotateFileInR2 } from '../../shared/utils/storage.js';
 import { AppError } from '../../shared/utils/AppError.js';
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { clearCachePattern } from '../../shared/utils/cache.js';
 
 export const rotateImage = async (request, reply) => {
   const { fileUrl, degrees } = request.body;
@@ -85,6 +86,16 @@ export const rotateImage = async (request, reply) => {
       SET photo_after_urls = CAST(REPLACE(CAST(photo_after_urls AS TEXT), '${baseUrl}', '${newUrl}') AS JSONB)
       WHERE CAST(photo_after_urls AS TEXT) LIKE '%${fileKey}%'
     `)).catch(() => {});
+    
+    // Clear Redis cache so frontend gets the new URL instead of the old one
+    await clearCachePattern('documentations:*').catch(() => {});
+    await clearCachePattern('units:*').catch(() => {});
+    await clearCachePattern('projects:*').catch(() => {});
+    await clearCachePattern('unit:*').catch(() => {});
+    await clearCachePattern('handovers:*').catch(() => {});
+    await clearCachePattern('retentions:*').catch(() => {});
+    await clearCachePattern('dashboard:*').catch(() => {});
+    await clearCachePattern('banners:*').catch(() => {});
 
     return {
       message: 'Image rotated successfully',
