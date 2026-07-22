@@ -68,7 +68,7 @@ export const deleteFileFromR2 = async (fileKey) => {
   return true;
 };
 
-export const rotateFileInR2 = async (fileKey, direction = 'cw') => {
+export const rotateFileInR2 = async (fileKey, degrees = 90) => {
   try {
     const getCommand = new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
@@ -86,7 +86,7 @@ export const rotateFileInR2 = async (fileKey, direction = 'cw') => {
 
     const fileBuffer = await streamToBuffer(response.Body);
     
-    const angle = direction === 'cw' ? 90 : -90;
+    const angle = parseInt(degrees, 10);
     const processedBuffer = await sharp(fileBuffer)
       .rotate(angle)
       .toBuffer();

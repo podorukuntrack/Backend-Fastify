@@ -3,7 +3,7 @@ import { rotateFileInR2 } from '../../shared/utils/storage.js';
 import { AppError } from '../../shared/utils/AppError.js';
 
 export const rotateImage = async (request, reply) => {
-  const { fileUrl, direction } = request.body;
+  const { fileUrl, degrees } = request.body;
 
   if (!fileUrl) {
     throw new AppError(400, 'fileUrl is required');
@@ -22,7 +22,7 @@ export const rotateImage = async (request, reply) => {
   }
 
   try {
-    await rotateFileInR2(fileKey, direction);
+    await rotateFileInR2(fileKey, degrees);
     return {
       message: 'Image rotated successfully',
       success: true
