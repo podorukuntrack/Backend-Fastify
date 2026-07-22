@@ -63,7 +63,7 @@ export const rotateImage = async (request, reply) => {
         UPDATE ${t.name}
         SET ${t.col} = REPLACE(${t.col}, '${baseUrl}', '${newUrl}')
         WHERE ${t.col} LIKE '%${fileKey}%'
-      `)).catch(e => console.error(`Error updating ${t.name}:`, e));
+      `)).catch(() => { /* Abaikan jika tabel tidak ada */ });
     }
 
     return {
