@@ -43,7 +43,7 @@ export const executeKprReminderJob = async () => {
         const typeName = isCashCicil ? 'Cash Cicil' : 'KPR';
 
         // 1. Check custom dates
-        const currentDay = todayObj.getDate();
+        const currentDay = parseInt(todayStr.split('-')[2], 10);
         if (dates.includes(currentDay)) {
           shouldSend = true;
           const dueMsg = daysDiff > 0 ? `tinggal ${daysDiff} hari lagi` : (daysDiff === 0 ? "adalah HARI INI" : `telah lewat ${Math.abs(daysDiff)} hari`);
