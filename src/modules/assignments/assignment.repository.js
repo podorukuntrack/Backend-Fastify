@@ -169,9 +169,9 @@ export const findAssignmentById = async (id, userContext) => {
 };
 
 export const insertAssignment = async (data, userContext) => {
-  let reminderDatesJson = [];
+  let reminderDatesJson = "[]";
   if (data.reminder_kpr_dates && Array.isArray(data.reminder_kpr_dates)) {
-    reminderDatesJson = data.reminder_kpr_dates;
+    reminderDatesJson = JSON.stringify(data.reminder_kpr_dates);
   }
 
   const rows = await db.execute(sql`
