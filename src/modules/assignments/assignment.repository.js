@@ -261,9 +261,7 @@ export const updateAssignment = async (id, data, userContext) => {
     data.keterangan_kpr = null;
   } else if (newTipe === 'cash_cicil') {
     data.dp = null;
-    data.jatuh_tempo_kpr = null;
-    data.reminder_kpr_dates = [];
-    data.keterangan_kpr = null;
+    data.tenor_bulan = null;
   } else if (newTipe === 'kredit_kpr') {
     data.tenor_bulan = null;
   }

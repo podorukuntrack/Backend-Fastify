@@ -42,7 +42,7 @@ export const assignmentIdParamSchema = {
 export const createPaymentSchema = {
   params: z.object({ id: z.string().uuid() }),
   body: z.object({
-    jumlah_bayar: z.coerce.number().positive(),
+    jumlah_bayar: z.coerce.number().refine(val => val !== 0, "Jumlah tidak boleh 0"),
     tanggal_bayar: z.string().optional(),
     catatan: z.string().optional(),
     bukti_pembayaran: z.union([
@@ -55,7 +55,7 @@ export const createPaymentSchema = {
 export const updatePaymentSchema = {
   params: z.object({ id: z.string().uuid(), paymentId: z.string().uuid() }),
   body: z.object({
-    jumlah_bayar: z.coerce.number().positive().optional(),
+    jumlah_bayar: z.coerce.number().refine(val => val !== 0, "Jumlah tidak boleh 0").optional(),
     tanggal_bayar: z.string().optional(),
     catatan: z.string().optional(),
     bukti_pembayaran: z.union([

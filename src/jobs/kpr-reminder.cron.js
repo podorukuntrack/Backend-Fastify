@@ -15,11 +15,12 @@ export const executeKprReminderJob = async () => {
           pa.user_id, 
           pa.reminder_kpr_dates,
           pa.jatuh_tempo_kpr,
+          pa.tipe_pembayaran,
           u.nomor_unit
         FROM property_assignments pa
         JOIN units u ON pa.unit_id = u.id
         WHERE pa.status_kepemilikan = 'active'
-          AND pa.tipe_pembayaran = 'kredit_kpr'
+          AND pa.tipe_pembayaran IN ('kredit_kpr', 'cash_cicil')
           AND pa.total_dibayar < pa.harga_total
           AND pa.jatuh_tempo_kpr IS NOT NULL
       `);
@@ -39,11 +40,14 @@ export const executeKprReminderJob = async () => {
         let shouldSend = false;
         let reminderText = '';
 
+        const isCashCicil = row.tipe_pembayaran === 'cash_cicil';
+        const typeName = isCashCicil ? 'Cash Cicil' : 'KPR';
+
         // 1. Check custom dates
         for (let i = 0; i < dates.length; i++) {
           if (dates[i].date === todayStr && !dates[i].sent) {
             shouldSend = true;
-            reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} tinggal ${daysDiff} hari lagi (pada ${dueDateObj.toLocaleDateString('id-ID')}).`;
+            reminderText = `Jatuh tempo pembayaran ${typeName} Anda untuk unit ${row.nomor_unit} tinggal ${daysDiff} hari lagi (pada ${dueDateObj.toLocaleDateString('id-ID')}).`;
             dates[i].sent = true;
             updated = true;
           }
@@ -52,20 +56,20 @@ export const executeKprReminderJob = async () => {
         // 2. Check D-Day (Hari H)
         if (daysDiff === 0) {
           shouldSend = true;
-          reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} adalah HARI INI!`;
+          reminderText = `Jatuh tempo pembayaran ${typeName} Anda untuk unit ${row.nomor_unit} adalah HARI INI!`;
         }
 
         // 3. Check Overdue (Hari lewat)
         if (daysDiff < 0) {
           shouldSend = true;
           // You might want to make it daily, or specific days. Since cron runs daily, this sends every day.
-          reminderText = `Jatuh tempo KPR Anda untuk unit ${row.nomor_unit} telah lewat ${Math.abs(daysDiff)} hari. Harap segera lakukan pembayaran.`;
+          reminderText = `Jatuh tempo pembayaran ${typeName} Anda untuk unit ${row.nomor_unit} telah lewat ${Math.abs(daysDiff)} hari. Harap segera lakukan pembayaran.`;
         }
 
         if (shouldSend) {
           await sendPushNotification(
             [row.user_id],
-            'Pengingat Jatuh Tempo KPR',
+            `Pengingat Jatuh Tempo ${typeName}`,
             reminderText,
             { type: 'kpr_reminder', assignmentId: row.id, unitId: row.unit_id }
           );
