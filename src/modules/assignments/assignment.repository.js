@@ -171,7 +171,7 @@ export const findAssignmentById = async (id, userContext) => {
 export const insertAssignment = async (data, userContext) => {
   let reminderDatesJson = [];
   if (data.reminder_kpr_dates && Array.isArray(data.reminder_kpr_dates)) {
-    reminderDatesJson = data.reminder_kpr_dates.map(date => ({ date, sent: false }));
+    reminderDatesJson = data.reminder_kpr_dates;
   }
 
   const rows = await db.execute(sql`
@@ -268,7 +268,7 @@ export const updateAssignment = async (id, data, userContext) => {
 
   let reminderDatesJson = undefined;
   if (data.reminder_kpr_dates && Array.isArray(data.reminder_kpr_dates)) {
-    reminderDatesJson = JSON.stringify(data.reminder_kpr_dates.map(date => ({ date, sent: false })));
+    reminderDatesJson = JSON.stringify(data.reminder_kpr_dates);
   } else if (data.reminder_kpr_dates !== undefined) {
     reminderDatesJson = JSON.stringify([]);
   }

@@ -28,8 +28,7 @@ export const executeKprReminderJob = async () => {
       const rows = assignments.rows || assignments;
 
       for (const row of rows) {
-        let dates = row.reminder_kpr_dates || [];
-        let updated = false;
+        let dates = Array.isArray(row.reminder_kpr_dates) ? row.reminder_kpr_dates : [];
 
         const dueDateStr = new Date(row.jatuh_tempo_kpr).toISOString().split('T')[0];
         const dueDateObj = new Date(dueDateStr);
@@ -44,13 +43,11 @@ export const executeKprReminderJob = async () => {
         const typeName = isCashCicil ? 'Cash Cicil' : 'KPR';
 
         // 1. Check custom dates
-        for (let i = 0; i < dates.length; i++) {
-          if (dates[i].date === todayStr && !dates[i].sent) {
-            shouldSend = true;
-            reminderText = `Jatuh tempo pembayaran ${typeName} Anda untuk unit ${row.nomor_unit} tinggal ${daysDiff} hari lagi (pada ${dueDateObj.toLocaleDateString('id-ID')}).`;
-            dates[i].sent = true;
-            updated = true;
-          }
+        const currentDay = todayObj.getDate();
+        if (dates.includes(currentDay)) {
+          shouldSend = true;
+          const dueMsg = daysDiff > 0 ? `tinggal ${daysDiff} hari lagi` : (daysDiff === 0 ? "adalah HARI INI" : `telah lewat ${Math.abs(daysDiff)} hari`);
+          reminderText = `Pengingat bulanan pembayaran ${typeName} unit ${row.nomor_unit}. Jatuh tempo ${dueMsg}. Harap lakukan pembayaran jika belum.`;
         }
 
         // 2. Check D-Day (Hari H)
@@ -75,14 +72,7 @@ export const executeKprReminderJob = async () => {
           );
         }
 
-        if (updated) {
-          const newDatesJson = JSON.stringify(dates);
-          await db.execute(sql`
-            UPDATE property_assignments 
-            SET reminder_kpr_dates = ${newDatesJson}::jsonb 
-            WHERE id = ${row.id}
-          `);
-        }
+        // No DB update needed for repeating dates
       }
   } catch (error) {
     console.error('KPR Reminder Cron Error:', error);
