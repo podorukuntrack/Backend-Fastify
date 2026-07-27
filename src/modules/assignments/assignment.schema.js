@@ -22,6 +22,7 @@ export const createAssignmentSchema = {
 export const updateAssignmentSchema = {
   params: z.object({ id: z.string().uuid() }),
   body: z.object({
+    user_id: z.string().uuid("Format User ID tidak valid").optional(),
     tanggal_pembelian: z.string().optional(),
     status_kepemilikan: z.enum(['active', 'inactive', 'cancelled', 'completed']).optional(),
     tipe_pembayaran: z.enum(['cash_lunas', 'cash_cicil', 'kredit_kpr']).optional(),

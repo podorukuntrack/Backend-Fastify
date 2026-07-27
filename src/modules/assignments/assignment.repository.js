@@ -275,7 +275,8 @@ export const updateAssignment = async (id, data, userContext) => {
 
   const rows = await db.execute(sql`
     UPDATE property_assignments
-       SET tanggal_pembelian = COALESCE(${data.tanggal_pembelian ?? null}, tanggal_pembelian),
+       SET user_id = COALESCE(${data.user_id ?? null}::uuid, user_id),
+           tanggal_pembelian = COALESCE(${data.tanggal_pembelian ?? null}, tanggal_pembelian),
            status_kepemilikan = COALESCE(${normalizeOwnershipStatus(data.status_kepemilikan) ?? null}, status_kepemilikan),
            tipe_pembayaran = COALESCE(${data.tipe_pembayaran ?? null}, tipe_pembayaran),
            harga_total = COALESCE(${data.harga_total ?? null}, harga_total),
