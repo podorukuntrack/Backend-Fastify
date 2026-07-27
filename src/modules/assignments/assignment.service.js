@@ -49,10 +49,18 @@ export const createAssignmentPayment = async (id, data, userContext) => {
       const amountStr = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(data.jumlah_bayar ?? 0);
 
       if (userId) {
+        const isRefund = Number(data.jumlah_bayar ?? 0) < 0;
+        const absAmountStr = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Math.abs(data.jumlah_bayar ?? 0));
+
+        const notifTitle = isRefund ? 'Pengembalian Dana' : 'Progres Pembayaran Masuk';
+        const notifBody = isRefund
+          ? `Pengembalian dana sebesar ${absAmountStr} untuk unit ${nomorUnit} telah diproses.`
+          : `Pembayaran sebesar ${absAmountStr} untuk unit ${nomorUnit} telah dikonfirmasi.`;
+
         await sendPushNotification(
           [userId],
-          'Progres Pembayaran Masuk',
-          `Pembayaran sebesar ${amountStr} untuk unit ${nomorUnit} telah dikonfirmasi.`,
+          notifTitle,
+          notifBody,
           { type: 'payment_progress', unitId: assignment.unit?.id ?? '', paymentId: result.id }
         );
       }
