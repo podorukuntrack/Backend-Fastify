@@ -33,7 +33,7 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
     JOIN projects proj ON proj.id = c.project_id
     WHERE pa.unit_id = ${unitId}::uuid
       AND ${scopeCondition}
-      AND (ph.catatan IS NULL OR LOWER(ph.catatan) NOT LIKE '%auto-injeksi%')
+      AND (ph.is_auto_inject = false OR ph.is_auto_inject IS NULL)
     ORDER BY ph.tanggal_bayar DESC
   `);
 

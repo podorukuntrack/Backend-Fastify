@@ -265,6 +265,7 @@ export const payments = pgTable("payment_history", {
   method: varchar("method", { length: 50 }).notNull(), // transfer, cash, kpr
   status: varchar("status", { length: 50 }).default("pending"), // pending, verified, failed
   buktiPembayaran: text("bukti_pembayaran"),
+  isAutoInject: boolean("is_auto_inject").default(false).notNull(), // Flag untuk record auto-injeksi KPR
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({

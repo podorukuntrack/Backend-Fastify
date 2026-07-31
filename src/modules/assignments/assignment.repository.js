@@ -219,12 +219,14 @@ export const insertAssignment = async (data, userContext) => {
           jumlah_bayar, 
           tanggal_bayar, 
           catatan, 
+          is_auto_inject,
           created_by
         ) VALUES (
           ${assignmentId}, 
           ${kprAmount}, 
           ${data.tanggal_pembelian ?? new Date().toISOString()}, 
           'Auto-injeksi Pencairan KPR', 
+          true,
           ${userContext.sub}
         )
       `);
@@ -304,12 +306,14 @@ export const updateAssignment = async (id, data, userContext) => {
             jumlah_bayar, 
             tanggal_bayar, 
             catatan, 
+            is_auto_inject,
             created_by
           ) VALUES (
             ${id}, 
             ${kprAmount}, 
             ${data.tanggal_pembelian ?? existing.tanggal_pembelian ?? new Date().toISOString()}, 
             'Auto-injeksi Pencairan KPR', 
+            true,
             ${userContext.sub}
           )
         `);
@@ -332,6 +336,7 @@ export const findPaymentsByAssignmentId = async (assignmentId, userContext) => {
       ph.tanggal_bayar,
       ph.catatan,
       ph.bukti_pembayaran,
+      ph.is_auto_inject,
       ph.created_at,
       creator.nama AS dicatat_oleh
     FROM payment_history ph
@@ -362,6 +367,26 @@ export const insertPayment = async (assignmentId, data, userContext) => {
 export const updatePayment = async (assignmentId, paymentId, data, userContext) => {
   const assignment = await findAssignmentById(assignmentId, userContext);
   if (!assignment) return null;
+
+  // Cek apakah ini pembayaran auto-injeksi KPR
+  const autoInjectCheckRows = await db.execute(sql`
+    SELECT is_auto_inject, catatan FROM payment_history 
+    WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
+  `);
+  const isAutoInject = autoInjectCheckRows.length > 0 && 
+    (autoInjectCheckRows[0].is_auto_inject === true || 
+     autoInjectCheckRows[0].catatan?.toLowerCase().includes('auto-injeksi'));
+  
+  if (isAutoInject) {
+    // Auto-injeksi hanya boleh diubah nominalnya (untuk koreksi pencairan bank)
+    if (data.catatan !== undefined || data.tanggal_bayar !== undefined) {
+      throw new AppError(
+        "Pembayaran Auto-injeksi Pencairan KPR hanya dapat diubah nominalnya. " +
+        "Catatan dan tanggal tidak dapat diubah.",
+        400
+      );
+    }
+  }
 
   // Dapatkan nominal pembayaran sebelumnya
   const oldPaymentRows = await db.execute(sql`
@@ -396,6 +421,22 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
 export const deletePayment = async (assignmentId, paymentId, userContext) => {
   const assignment = await findAssignmentById(assignmentId, userContext);
   if (!assignment) return null;
+
+  // Cek apakah ini pembayaran auto-injeksi KPR — tidak boleh dihapus
+  const autoInjectCheck = await db.execute(sql`
+    SELECT is_auto_inject, catatan FROM payment_history 
+    WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
+  `);
+  if (autoInjectCheck.length > 0 && 
+      (autoInjectCheck[0].is_auto_inject === true || 
+       autoInjectCheck[0].catatan?.toLowerCase().includes('auto-injeksi'))) {
+    throw new AppError(
+      "Pembayaran Auto-injeksi Pencairan KPR tidak dapat dihapus. " +
+      "Record ini adalah pencatatan otomatis pencairan dana KPR dari bank. " +
+      "Jika ingin mengubah skema pembayaran, silakan ubah tipe pembayaran di Tab Assignment.",
+      400
+    );
+  }
 
   const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${assignment.unit.id}`);
   if (Number(handoverRes[0].count) > 0) {
