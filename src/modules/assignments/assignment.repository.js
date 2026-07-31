@@ -211,6 +211,9 @@ export const insertAssignment = async (data, userContext) => {
   const assignmentId = rows[0].id;
   
   if (data.tipe_pembayaran === 'kredit_kpr') {
+    if (Number(data.dp ?? 0) > Number(data.harga_total ?? 0)) {
+      throw new AppError("Down Payment (DP) tidak boleh melebihi Harga Total (NET).", 400);
+    }
     const kprAmount = Number(data.harga_total ?? 0) - Number(data.dp ?? 0);
     if (kprAmount > 0) {
       await db.execute(sql`
@@ -225,7 +228,7 @@ export const insertAssignment = async (data, userContext) => {
           ${assignmentId}, 
           ${kprAmount}, 
           ${data.tanggal_pembelian ?? new Date().toISOString()}, 
-          'Auto-injeksi Pencairan KPR', 
+          'Auto-injeksi Pencairan KPR otomatis oleh sistem', 
           true,
           ${userContext.sub}
         )
@@ -298,7 +301,12 @@ export const updateAssignment = async (id, data, userContext) => {
     
     // Auto-inject KPR if changing to KPR
     if (data.tipe_pembayaran === 'kredit_kpr') {
-      const kprAmount = Number(data.harga_total ?? existing.pembayaran.harga_total) - Number(data.dp ?? 0);
+      const dpAmount = Number(data.dp ?? 0);
+      const hargaTotal = Number(data.harga_total ?? existing.pembayaran.harga_total);
+      if (dpAmount > hargaTotal) {
+        throw new AppError("Down Payment (DP) tidak boleh melebihi Harga Total (NET).", 400);
+      }
+      const kprAmount = hargaTotal - dpAmount;
       if (kprAmount > 0) {
         await db.execute(sql`
           INSERT INTO payment_history (
@@ -312,7 +320,7 @@ export const updateAssignment = async (id, data, userContext) => {
             ${id}, 
             ${kprAmount}, 
             ${data.tanggal_pembelian ?? existing.tanggal_pembelian ?? new Date().toISOString()}, 
-            'Auto-injeksi Pencairan KPR', 
+            'Auto-injeksi Pencairan KPR otomatis oleh sistem', 
             true,
             ${userContext.sub}
           )
