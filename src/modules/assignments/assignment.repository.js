@@ -370,7 +370,7 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
 
   // Cek apakah ini pembayaran auto-injeksi KPR
   const autoInjectCheckRows = await db.execute(sql`
-    SELECT is_auto_inject, catatan FROM payment_history 
+    SELECT is_auto_inject, catatan, jumlah_bayar FROM payment_history 
     WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
   `);
   const isAutoInject = autoInjectCheckRows.length > 0 && 
@@ -385,6 +385,43 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
         "Catatan dan tanggal tidak dapat diubah.",
         400
       );
+    }
+
+    // Validasi perubahan nominal auto-inject terhadap harga total dan DP yang sudah dibayar
+    if (data.jumlah_bayar !== undefined) {
+      const newKprAmount = Number(data.jumlah_bayar);
+      const hargaTotal = assignment.pembayaran.harga_total;
+      const oldKprAmount = Number(autoInjectCheckRows[0].jumlah_bayar);
+
+      // KPR amount tidak boleh >= harga total
+      if (newKprAmount >= hargaTotal) {
+        throw new AppError(
+          `Nominal pencairan KPR (${new Intl.NumberFormat('id-ID').format(newKprAmount)}) ` +
+          `tidak boleh sama atau lebih besar dari harga total unit (${new Intl.NumberFormat('id-ID').format(hargaTotal)}).`,
+          400
+        );
+      }
+
+      if (newKprAmount <= 0) {
+        throw new AppError("Nominal pencairan KPR harus lebih dari 0.", 400);
+      }
+
+      const newDp = hargaTotal - newKprAmount;
+
+      // Hitung berapa DP yang sudah dibayar customer (total_dibayar - old kpr amount)
+      const customerPaid = assignment.pembayaran.total_dibayar - oldKprAmount;
+
+      // Jika KPR naik (DP turun), cek apakah customer sudah bayar melebihi DP baru
+      if (customerPaid > newDp) {
+        const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+        throw new AppError(
+          `Tidak dapat mengubah pencairan KPR menjadi ${fmt(newKprAmount)} ` +
+          `karena DP baru akan menjadi ${fmt(newDp)}, ` +
+          `sedangkan customer sudah membayar DP sebesar ${fmt(customerPaid)}. ` +
+          `Hapus sebagian pembayaran DP terlebih dahulu sebelum mengubah nominal pencairan.`,
+          400
+        );
+      }
     }
   }
 
@@ -413,6 +450,17 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
   if (rows.length === 0) return null;
   const newAmount = rows[0].jumlah_bayar;
   const diff = Number(newAmount) - Number(oldAmount);
+
+  // Jika auto-inject berubah, sinkronkan DP di property_assignments
+  if (isAutoInject && diff !== 0) {
+    const newDp = assignment.pembayaran.harga_total - Number(newAmount);
+    await db.execute(sql`
+      UPDATE property_assignments
+         SET dp = ${newDp},
+             updated_at = NOW()
+       WHERE id = ${assignmentId}
+    `);
+  }
 
   await clearDashboardCache();
   return rows[0];
