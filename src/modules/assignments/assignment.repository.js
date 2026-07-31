@@ -378,7 +378,7 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
 
   // Cek apakah ini pembayaran auto-injeksi KPR
   const autoInjectCheckRows = await db.execute(sql`
-    SELECT is_auto_inject, catatan, jumlah_bayar FROM payment_history 
+    SELECT is_auto_inject, catatan, jumlah_bayar, tanggal_bayar FROM payment_history 
     WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
   `);
   const isAutoInject = autoInjectCheckRows.length > 0 && 
@@ -386,8 +386,14 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
      autoInjectCheckRows[0].catatan?.toLowerCase().includes('auto-injeksi'));
   
   if (isAutoInject) {
+    const existing = autoInjectCheckRows[0];
     // Auto-injeksi hanya boleh diubah nominalnya (untuk koreksi pencairan bank)
-    if (data.catatan !== undefined || data.tanggal_bayar !== undefined) {
+    // Izinkan jika catatan/tanggal dikirim tapi nilainya sama (form mengirim semua field)
+    const catatanChanged = data.catatan !== undefined && data.catatan !== existing.catatan;
+    const tanggalChanged = data.tanggal_bayar !== undefined && 
+      new Date(data.tanggal_bayar).toISOString().slice(0,10) !== new Date(existing.tanggal_bayar).toISOString().slice(0,10);
+    
+    if (catatanChanged || tanggalChanged) {
       throw new AppError(
         "Pembayaran Auto-injeksi Pencairan KPR hanya dapat diubah nominalnya. " +
         "Catatan dan tanggal tidak dapat diubah.",
