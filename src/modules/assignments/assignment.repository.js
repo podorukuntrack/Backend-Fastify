@@ -368,6 +368,35 @@ export const insertPayment = async (assignmentId, data, userContext) => {
     RETURNING id, jumlah_bayar, tanggal_bayar, catatan, bukti_pembayaran, created_at
   `);
 
+  if (Number(data.jumlah_bayar) < 0) {
+    const refundAmount = Math.abs(Number(data.jumlah_bayar));
+    if (assignment.pembayaran.tipe === 'kredit_kpr') {
+      const autoInjectRows = await db.execute(sql`
+        SELECT id FROM payment_history
+        WHERE assignment_id = ${assignmentId} AND (is_auto_inject = true OR catatan ILIKE '%auto-injeksi%')
+        LIMIT 1
+      `);
+      if (autoInjectRows.length > 0) {
+        await db.execute(sql`
+          UPDATE payment_history 
+          SET jumlah_bayar = jumlah_bayar + ${refundAmount}
+          WHERE id = ${autoInjectRows[0].id}
+        `);
+        await db.execute(sql`
+          UPDATE property_assignments
+          SET dp = dp - ${refundAmount}, updated_at = NOW()
+          WHERE id = ${assignmentId}
+        `);
+      }
+    } else {
+      await db.execute(sql`
+        UPDATE property_assignments
+        SET harga_total = harga_total - ${refundAmount}, updated_at = NOW()
+        WHERE id = ${assignmentId}
+      `);
+    }
+  }
+
   await clearDashboardCache();
   return rows[0];
 };
@@ -476,6 +505,39 @@ export const updatePayment = async (assignmentId, paymentId, data, userContext) 
     `);
   }
 
+  // Tangani penyesuaian untuk refund (pembayaran negatif)
+  const oldRefundEffect = Number(oldAmount) < 0 ? Math.abs(Number(oldAmount)) : 0;
+  const newRefundEffect = Number(newAmount) < 0 ? Math.abs(Number(newAmount)) : 0;
+  const refundDiff = newRefundEffect - oldRefundEffect;
+
+  if (refundDiff !== 0) {
+    if (assignment.pembayaran.tipe === 'kredit_kpr') {
+      const autoInjectRows = await db.execute(sql`
+        SELECT id FROM payment_history
+        WHERE assignment_id = ${assignmentId} AND (is_auto_inject = true OR catatan ILIKE '%auto-injeksi%')
+        LIMIT 1
+      `);
+      if (autoInjectRows.length > 0 && autoInjectRows[0].id !== paymentId) {
+        await db.execute(sql`
+          UPDATE payment_history 
+          SET jumlah_bayar = jumlah_bayar + ${refundDiff}
+          WHERE id = ${autoInjectRows[0].id}
+        `);
+        await db.execute(sql`
+          UPDATE property_assignments
+          SET dp = dp - ${refundDiff}, updated_at = NOW()
+          WHERE id = ${assignmentId}
+        `);
+      }
+    } else {
+      await db.execute(sql`
+        UPDATE property_assignments
+        SET harga_total = harga_total - ${refundDiff}, updated_at = NOW()
+        WHERE id = ${assignmentId}
+      `);
+    }
+  }
+
   await clearDashboardCache();
   return rows[0];
 };
@@ -513,7 +575,36 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
   `);
 
   if (rows.length === 0) return null;
-  const deletedAmount = rows[0].jumlah_bayar;
+  const deletedAmount = Number(rows[0].jumlah_bayar);
+
+  if (deletedAmount < 0) {
+    const refundAmount = Math.abs(deletedAmount);
+    if (assignment.pembayaran.tipe === 'kredit_kpr') {
+      const autoInjectRows = await db.execute(sql`
+        SELECT id FROM payment_history
+        WHERE assignment_id = ${assignmentId} AND (is_auto_inject = true OR catatan ILIKE '%auto-injeksi%')
+        LIMIT 1
+      `);
+      if (autoInjectRows.length > 0) {
+        await db.execute(sql`
+          UPDATE payment_history 
+          SET jumlah_bayar = jumlah_bayar - ${refundAmount}
+          WHERE id = ${autoInjectRows[0].id}
+        `);
+        await db.execute(sql`
+          UPDATE property_assignments
+          SET dp = dp + ${refundAmount}, updated_at = NOW()
+          WHERE id = ${assignmentId}
+        `);
+      }
+    } else {
+      await db.execute(sql`
+        UPDATE property_assignments
+        SET harga_total = harga_total + ${refundAmount}, updated_at = NOW()
+        WHERE id = ${assignmentId}
+      `);
+    }
+  }
 
   await clearDashboardCache();
   return true;
