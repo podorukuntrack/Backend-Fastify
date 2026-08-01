@@ -78,6 +78,7 @@ export const createPaymentHandler = async (request, reply) => {
     const data = await service.createAssignmentPayment(request.params.id, request.body, request.user);
     await clearCachePattern('assignments:*');
     await clearCachePattern('payments:*');
+    await clearCachePattern('retentions:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
     return reply.code(201).send({ success: true, message: 'Payment created', data });
@@ -91,6 +92,7 @@ export const updatePaymentHandler = async (request, reply) => {
     const data = await service.modifyAssignmentPayment(request.params.id, request.params.paymentId, request.body, request.user);
     await clearCachePattern('assignments:*');
     await clearCachePattern('payments:*');
+    await clearCachePattern('retentions:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Payment updated', data });
@@ -104,6 +106,7 @@ export const deletePaymentHandler = async (request, reply) => {
     const data = await service.removeAssignmentPayment(request.params.id, request.params.paymentId, request.user);
     await clearCachePattern('assignments:*');
     await clearCachePattern('payments:*');
+    await clearCachePattern('retentions:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Payment deleted', data });

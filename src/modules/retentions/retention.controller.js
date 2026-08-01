@@ -25,6 +25,7 @@ export const createHandler = async (request, reply) => {
   try {
     const data = await service.createRetention(request.body, request.user);
     await clearCachePattern('retentions:*');
+    await clearCachePattern('assignments:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
@@ -38,6 +39,7 @@ export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyRetention(request.params.id, request.body, request.user);
     await clearCachePattern('retentions:*');
+    await clearCachePattern('assignments:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
@@ -51,6 +53,7 @@ export const deleteHandler = async (request, reply) => {
   try {
     await service.removeRetention(request.params.id, request.user);
     await clearCachePattern('retentions:*');
+    await clearCachePattern('assignments:*');
     await clearCachePattern('units:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
