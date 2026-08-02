@@ -2,7 +2,7 @@ import * as service from './project.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `projects:list:${request.user.sub}:${JSON.stringify(request.query)}`;
+  const cacheKey = `projects:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getProjects(request.user);
   }, 300);
@@ -11,7 +11,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `projects:detail:${request.user.sub}:${request.params.id}`;
+    const cacheKey = `projects:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getProject(request.params.id, request.user);
     }, 300);
@@ -60,7 +60,7 @@ export const deleteHandler = async (request, reply) => {
 export const getStatsHandler = async (request, reply) => {
   try {
     const projectId = request.params.id;
-    const cacheKey = `projects:stats:${request.user.sub}:${projectId}`;
+    const cacheKey = `projects:stats:${request.user.sub}:${request.user.companyId || 'all'}:${projectId}`;
     
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getProjectStatistics(projectId, request.user);

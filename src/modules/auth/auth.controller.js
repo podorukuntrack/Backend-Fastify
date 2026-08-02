@@ -48,7 +48,7 @@ import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getMeHandler = async (request, reply) => {
   try {
-    const cacheKey = `users:me:${request.user.sub}`;
+    const cacheKey = `users:me:${request.user.sub}:${request.user.companyId || 'all'}`;
     const { data, source } = await withCache(cacheKey, async () => {
       const user = await findUserById(request.user.sub);
       if (!user) {

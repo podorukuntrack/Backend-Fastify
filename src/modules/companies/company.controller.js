@@ -3,7 +3,7 @@ import * as service from './company.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `companies:list`;
+  const cacheKey = `companies:list:${request.user.sub}:${request.user.companyId || 'all'}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getCompanies();
   }, 300);
@@ -12,7 +12,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `companies:detail:${request.params.id}`;
+    const cacheKey = `companies:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getCompany(request.params.id);
     }, 300);

@@ -546,14 +546,25 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
   const assignment = await findAssignmentById(assignmentId, userContext);
   if (!assignment) return null;
 
-  // Cek apakah ini pembayaran auto-injeksi KPR — tidak boleh dihapus
-  const autoInjectCheck = await db.execute(sql`
-    SELECT is_auto_inject, catatan FROM payment_history 
+  // Validasi bahwa unit data tersedia pada assignment
+  const unitId = assignment?.unit?.id;
+  if (!unitId) {
+    throw new AppError("Data unit tidak ditemukan pada assignment ini. Silakan periksa data assignment.", 400);
+  }
+
+  // Validasi bahwa payment yang akan dihapus memang ada
+  const paymentCheck = await db.execute(sql`
+    SELECT id, is_auto_inject, catatan FROM payment_history 
     WHERE id = ${paymentId} AND assignment_id = ${assignmentId}
   `);
-  if (autoInjectCheck.length > 0 && 
-      (autoInjectCheck[0].is_auto_inject === true || 
-       autoInjectCheck[0].catatan?.toLowerCase().includes('auto-injeksi'))) {
+  if (paymentCheck.length === 0) {
+    throw new AppError("Data pembayaran tidak ditemukan atau sudah terhapus.", 404);
+  }
+
+  // Cek apakah ini pembayaran auto-injeksi KPR — tidak boleh dihapus
+  const payment = paymentCheck[0];
+  if (payment.is_auto_inject === true || 
+      payment.catatan?.toLowerCase().includes('auto-injeksi')) {
     throw new AppError(
       "Pembayaran Auto-injeksi Pencairan KPR tidak dapat dihapus. " +
       "Record ini adalah pencatatan otomatis pencairan dana KPR dari bank. " +
@@ -562,8 +573,9 @@ export const deletePayment = async (assignmentId, paymentId, userContext) => {
     );
   }
 
-  const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${assignment.unit.id}`);
-  if (Number(handoverRes[0].count) > 0) {
+  // Cek apakah ada data serah terima (handover) — jika ada, blokir penghapusan
+  const handoverRes = await db.execute(sql`SELECT COUNT(*) as count FROM handovers WHERE unit_id = ${unitId}`);
+  if (handoverRes.length > 0 && Number(handoverRes[0].count) > 0) {
     throw new AppError("Gagal menghapus Pembayaran. Masih terdapat data Serah Terima. Harap hapus data Serah Terima terlebih dahulu.", 400);
   }
 

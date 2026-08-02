@@ -2,7 +2,7 @@ import * as service from './unit.service.js';
 import { withCache, clearCachePattern, delCache } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
-  const cacheKey = `units:list:${request.user.sub}:${JSON.stringify(request.query)}`;
+  const cacheKey = `units:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getUnits(request.user, request.query);
   }, 300);
@@ -11,7 +11,7 @@ export const getAllHandler = async (request, reply) => {
 
 export const getByIdHandler = async (request, reply) => {
   try {
-    const cacheKey = `units:detail:${request.user.sub}:${request.params.id}`;
+    const cacheKey = `units:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getUnit(request.params.id, request.user);
     }, 300);
@@ -24,7 +24,7 @@ export const getByIdHandler = async (request, reply) => {
 export const getDetailHandler = async (request, reply) => {
   try {
     const unitId = request.params.id;
-    const cacheKey = `unit:detail_stats:${request.user.sub}:${unitId}`;
+    const cacheKey = `unit:detail_stats:${request.user.sub}:${request.user.companyId || 'all'}:${unitId}`;
     
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getUnitDetail(unitId, request.user);
