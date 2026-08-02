@@ -74,6 +74,7 @@ export async function buildApp() {
       "Content-Type",
       "Authorization",
       "X-Requested-With",
+      "X-Company-ID",
       "Accept",
       "Origin",
     ],
