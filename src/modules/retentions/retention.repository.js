@@ -92,8 +92,15 @@ export const findComplaintsByRetentionId = async (retentionId) => {
   return result.map(mapComplaintRow);
 };
 
-export const findComplaintById = async (id) => {
-  const result = await db.select().from(retentionComplaints).where(eq(retentionComplaints.id, id)).limit(1);
+// Semua operasi complaint wajib menyertakan retentionId. Akses ke retensi sudah
+// diverifikasi di service, tapi tanpa pasangan retention_id di WHERE, complaintId
+// milik retensi lain (bahkan lintas perusahaan) tetap bisa disentuh.
+export const findComplaintById = async (retentionId, id) => {
+  const result = await db
+    .select()
+    .from(retentionComplaints)
+    .where(and(eq(retentionComplaints.id, id), eq(retentionComplaints.retentionId, retentionId)))
+    .limit(1);
   if (!result || result.length === 0) return null;
   return mapComplaintRow(result[0]);
 };
@@ -103,13 +110,22 @@ export const insertComplaint = async (data) => {
   return mapComplaintRow(result[0]);
 };
 
-export const updateComplaint = async (id, data) => {
+export const updateComplaint = async (retentionId, id, data) => {
   data.updatedAt = new Date();
-  const result = await db.update(retentionComplaints).set(data).where(eq(retentionComplaints.id, id)).returning();
+  const result = await db
+    .update(retentionComplaints)
+    .set(data)
+    .where(and(eq(retentionComplaints.id, id), eq(retentionComplaints.retentionId, retentionId)))
+    .returning();
+  if (!result || result.length === 0) return null;
   return mapComplaintRow(result[0]);
 };
 
-export const deleteComplaint = async (id) => {
-  const result = await db.delete(retentionComplaints).where(eq(retentionComplaints.id, id)).returning();
+export const deleteComplaint = async (retentionId, id) => {
+  const result = await db
+    .delete(retentionComplaints)
+    .where(and(eq(retentionComplaints.id, id), eq(retentionComplaints.retentionId, retentionId)))
+    .returning();
+  if (!result || result.length === 0) return null;
   return mapComplaintRow(result[0]);
 };

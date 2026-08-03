@@ -1,7 +1,7 @@
   // src/modules/users/user.service.js
   import bcrypt from 'bcrypt';
   import * as repo from './user.repository.js';
-  import { findUserByEmail, findUserByPhone } from '../auth/auth.repository.js';
+  import { findUserByEmail, findUserByPhone, revokeAllUserRefreshTokens } from '../auth/auth.repository.js';
 import { AppError } from '../../shared/utils/AppError.js';
 
   export const getUsers = async (page, limit, userContext, filters = {}) => {
@@ -26,7 +26,26 @@ import { AppError } from '../../shared/utils/AppError.js';
     return user;
   };
 
+  // Manajemen akun staf (admin/direksi/owner/super_admin) adalah wewenang super_admin.
+  // Admin hanya mengelola customer.
+  const assertCanManageStaff = (userContext) => {
+    if (userContext.role !== 'super_admin') {
+      throw new AppError(
+        'Hanya Super Admin yang dapat mengelola akun staf (admin/direksi/owner).',
+        403
+      );
+    }
+  };
+
+  // '' dan null sama-sama berarti "tidak diisi" — form web mengirim keduanya.
+  const normalizeId = (v) => (v === '' || v === null || v === undefined ? null : v);
+
   export const createUser = async (data, userContext) => {
+    // Tanpa penjagaan ini, admin bisa membuat akun super_admin baru lewat POST /users.
+    if (data.role && data.role !== 'customer') {
+      assertCanManageStaff(userContext);
+    }
+
     if (userContext.companyId && data.role !== 'customer') {
       data.company_id = userContext.companyId;
     }
@@ -61,6 +80,27 @@ import { AppError } from '../../shared/utils/AppError.js';
   };
 
   export const modifyUser = async (id, data, userContext) => {
+    const target = await repo.findUserById(id, userContext);
+    if (!target) throw new AppError('Data pengguna tidak ditemukan atau Anda tidak memiliki akses.', 404);
+
+    const isSelf = id === userContext.sub;
+    const requestedCompanyId = normalizeId(data.company_id ?? data.companyId);
+
+    if (isSelf) {
+      // Jalur eskalasi utama: admin PATCH dirinya sendiri dengan role super_admin.
+      // Nama/email/password sendiri tetap boleh diubah.
+      if (data.role !== undefined && data.role !== target.role) {
+        throw new AppError('Anda tidak dapat mengubah role akun Anda sendiri.', 403);
+      }
+      if (requestedCompanyId !== null && requestedCompanyId !== normalizeId(target.company_id)) {
+        throw new AppError('Anda tidak dapat memindahkan akun Anda sendiri ke perusahaan lain.', 403);
+      }
+    } else {
+      // Menyentuh akun staf, atau menaikkan seseorang menjadi staf, hanya super_admin.
+      if (target.role !== 'customer') assertCanManageStaff(userContext);
+      if (data.role && data.role !== 'customer') assertCanManageStaff(userContext);
+    }
+
     const updateData = {
       company_id: data.role === 'customer' ? null : (data.company_id ?? data.companyId),
       nama: data.nama ?? data.name,
@@ -91,6 +131,13 @@ import { AppError } from '../../shared/utils/AppError.js';
 
     const user = await repo.updateUser(id, updateData, userContext);
     if (!user) throw new AppError('Data pengguna tidak ditemukan atau Anda tidak memiliki akses.', 404);
+
+    // Menonaktifkan harus langsung memutus sesi yang sedang berjalan. Tanpa ini,
+    // aplikasi mobile tetap hidup lewat refresh token yang berlaku 30 hari.
+    if (data.status === 'inactive' && target.status !== 'inactive') {
+      await revokeAllUserRefreshTokens(id);
+    }
+
     return user;
   };
 

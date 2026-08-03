@@ -44,7 +44,12 @@ export const getProject = async (id, userContext) => {
 };
 
 export const createProject = async (data, userContext) => {
-  const companyId = data.company_id ?? data.companyId ?? userContext.companyId;
+  // Admin selalu terkunci ke perusahaannya sendiri. Sebelumnya company_id dari
+  // request body dipakai apa adanya, sehingga admin PT A bisa membuat project
+  // atas nama PT B hanya dengan mengirim UUID-nya.
+  const companyId = ['super_admin', 'owner'].includes(userContext.role)
+    ? (data.company_id ?? data.companyId ?? userContext.companyId)
+    : userContext.companyId;
 
   if (!companyId) {
     const error = new Error("Pilih perusahaan terlebih dahulu untuk membuat proyek");

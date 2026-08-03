@@ -6,11 +6,15 @@ services:
     image: redis:7-alpine
     container_name: podorukuntrack_redis_prod
     restart: always
-    command: redis-server --requirepass ${REDIS_PASSWORD:-podorukuntrack_redis_secret}
+    # Nilai cadangan dihapus: apa pun yang tertulis di sini ikut ter-commit dan
+    # menjadi kata sandi publik. Sintaks `:?` membuat `docker compose up` berhenti
+    # dengan pesan jelas bila variabelnya belum diisi — lebih baik gagal daripada
+    # berjalan dengan kredensial yang diketahui umum.
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD wajib diisi di .env}
     volumes:
       - redis_data_prod:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-podorukuntrack_redis_secret}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD wajib diisi di .env}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,9 +33,34 @@ services:
     networks:
       - proptrack_prod_net
 
+  # ── WAHA (WhatsApp HTTP API) ───────────────────────────────────
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: podorukuntrack_whatsapp_prod
+    restart: always
+    ports:
+      - "2785:3000"
+    volumes:
+      - whatsapp_data_prod:/app/.wwebjs_auth
+    environment:
+      # Kunci API dan kata sandi dashboard tidak boleh punya nilai cadangan di file
+      # yang ter-commit. WAHA_API_KEY harus sama dengan OPENWA_API_KEY di .env
+      # backend, karena itulah kunci yang dikirim backend lewat header X-Api-Key.
+      - WAHA_API_KEY=${WAHA_API_KEY:?WAHA_API_KEY wajib diisi di .env}
+      - WAHA_GOWS_PATH=/app/gows
+      - WAHA_GOWS_SOCKET=/tmp/gows.sock
+      - WAHA_ZIPPER=ZIPUNZIP
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME:-admin}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:?WAHA_DASHBOARD_PASSWORD wajib diisi di .env}
+      - WHATSAPP_SWAGGER_USERNAME=${WHATSAPP_SWAGGER_USERNAME:-admin}
+      - WHATSAPP_SWAGGER_PASSWORD=${WHATSAPP_SWAGGER_PASSWORD:?WHATSAPP_SWAGGER_PASSWORD wajib diisi di .env}
+    networks:
+      - proptrack_prod_net
+
 volumes:
   redis_data_prod:
   uptime_kuma_data_prod:
+  whatsapp_data_prod:
 
 networks:
   proptrack_prod_net:

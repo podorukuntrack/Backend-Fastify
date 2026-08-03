@@ -61,6 +61,7 @@ export default async function userRoutes(fastify, options) {
                   company_id: { type: ['string', 'null'], format: 'uuid' },
                   nomor_telepon: { type: ['string', 'null'] },
                   status: { type: 'string' },
+                  active_units: { type: 'integer' },
                   created_at: { type: 'string', format: 'date-time' },
                   updated_at: { type: 'string', format: 'date-time' }
                 }

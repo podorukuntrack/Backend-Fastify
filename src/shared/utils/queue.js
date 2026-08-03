@@ -10,8 +10,8 @@ export const notificationQueue = new Queue('notificationQueue', { connection });
 
 export const notificationWorker = new Worker('notificationQueue', async (job) => {
   if (job.name === 'sendWhatsApp') {
-    const { phone, messageText, userContext } = job.data;
-    await processWhatsAppMessage(phone, messageText, userContext);
+    const { phone, messageText, userContext, options } = job.data;
+    await processWhatsAppMessage(phone, messageText, userContext, options);
   }
 }, { connection });
 

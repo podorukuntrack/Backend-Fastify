@@ -4,11 +4,23 @@ import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
 import { AppError } from '../../shared/utils/AppError.js';
 
-export const getCompanies = async () => {
-  return await repo.findAllCompanies();
+// super_admin & owner memang berwenang lintas perusahaan; admin & direksi tidak.
+const isCrossCompanyRole = (userContext) =>
+  ['super_admin', 'owner'].includes(userContext?.role);
+
+export const getCompanies = async (userContext) => {
+  const all = await repo.findAllCompanies();
+  if (isCrossCompanyRole(userContext)) return all;
+
+  // Admin/direksi hanya perlu perusahaannya sendiri — sebelumnya endpoint ini
+  // mengembalikan seluruh PT beserta alamat dan logonya ke semua role.
+  return all.filter((c) => c.id === userContext?.companyId);
 };
 
-export const getCompany = async (id) => {
+export const getCompany = async (id, userContext) => {
+  if (!isCrossCompanyRole(userContext) && id !== userContext?.companyId) {
+    throw new AppError('Data perusahaan tidak ditemukan.', 404);
+  }
   const company = await repo.findCompanyById(id);
   if (!company) throw new AppError('Data perusahaan tidak ditemukan.', 404);
   return company;

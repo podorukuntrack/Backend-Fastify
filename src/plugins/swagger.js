@@ -2,8 +2,6 @@
 import fp from 'fastify-plugin';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats'; // ← tambah ini
 
 /**
  * Menghapus keyword OpenAPI yang tidak dikenali AJV:
@@ -30,28 +28,9 @@ export function removeExamples(schema) {
 }
 
 async function swaggerPlugin(fastify) {
-  /**
-   * Buat instance AJV sendiri.
-   * Fastify akan menggunakan compiler ini untuk semua route schema.
-   */
-  const ajv = new Ajv({
-    coerceTypes: true,
-    useDefaults: true,
-    removeAdditional: false,
-    allErrors: true,
-    strict: false
-  });
-
-    addFormats(ajv); // ← tambah ini
-
-  /**
-   * Compiler global untuk seluruh schema.
-   * Semua keyword `example` dibersihkan terlebih dahulu.
-   */
-  fastify.setValidatorCompiler(({ schema }) => {
-    const cleanedSchema = removeExamples(schema);
-    return ajv.compile(cleanedSchema);
-  });
+  // setValidatorCompiler dipindahkan ke src/plugins/validator.js supaya aturan
+  // validasi tetap sama di development maupun produksi — plugin ini hanya
+  // diregistrasi di development, jadi tidak boleh memuat perilaku runtime.
 
   // Register OpenAPI documentation generator
   await fastify.register(swagger, {

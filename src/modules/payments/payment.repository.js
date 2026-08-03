@@ -1,14 +1,15 @@
 import { db } from '../../config/database.js';
-import { payments } from '../../shared/schemas/schema.js';
-import { eq, and, sql } from 'drizzle-orm';
-import { getTenantScope } from '../../shared/utils/scopes.js';
-import { AppError } from '../../shared/utils/AppError.js';
+import { sql } from 'drizzle-orm';
 
-export const findAllPayments = async (userContext) => {
-  const scope = getTenantScope(payments, userContext);
-  return await db.select().from(payments).where(scope).orderBy(payments.createdAt);
-};
-
+/**
+ * Riwayat pembayaran satu unit.
+ *
+ * Query ini sengaja raw SQL terhadap `payment_history` — tabel Drizzle `payments`
+ * yang dulu ada di sini memetakan kolom yang tidak pernah ada di database
+ * (company_id, method, status, updated_at) sehingga selalu gagal. Kolom `status`
+ * dan `method` di bawah adalah nilai tetap agar bentuk respons ke aplikasi
+ * mobile tidak berubah.
+ */
 export const findPaymentsByUnitId = async (unitId, userContext) => {
   let scopeCondition = sql`true`;
   if (userContext.role === 'customer') {
@@ -18,7 +19,7 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
   }
 
   const rows = await db.execute(sql`
-    SELECT 
+    SELECT
       ph.id,
       ph.jumlah_bayar AS amount,
       'diterima' AS status,
@@ -47,10 +48,4 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
     notes: row.notes || null,
     isAutoInjeksi: false
   }));
-};
-
-export const insertPayment = async (data) => {
-  data.paymentDate = new Date(data.paymentDate);
-  const result = await db.insert(payments).values(data).returning();
-  return result[0];
 };

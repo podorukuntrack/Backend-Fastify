@@ -34,6 +34,17 @@ export const createUnits = async (payload, userContext) => {
     throw new AppError('Units array is required and must not be empty', 400);
   }
 
+  // Jalur bulk sebelumnya melewatkan pemeriksaan yang ada di createUnit(), sehingga
+  // admin bisa menitipkan unit ke cluster milik perusahaan lain hanya dengan
+  // mengirim UUID cluster-nya. Cukup periksa cluster unik sekali masing-masing.
+  const clusterIds = [...new Set(units.map((u) => u.cluster_id ?? u.clusterId))];
+  for (const clusterId of clusterIds) {
+    const cluster = await clusterRepo.findClusterById(clusterId, userContext);
+    if (!cluster) {
+      throw new AppError('Data cluster tidak ditemukan atau Anda tidak memiliki akses.', 404);
+    }
+  }
+
   return await repo.insertUnits(units);
 };
 

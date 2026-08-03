@@ -49,7 +49,8 @@ export const findRefreshTokenByHash = async (tokenHash) => {
       u.role,
       u.company_id,
       u.nama,
-      u.nomor_telepon
+      u.nomor_telepon,
+      u.status
     FROM refresh_tokens rt
     JOIN users u ON u.id = rt.user_id
     WHERE rt.token_hash = ${tokenHash}
@@ -127,6 +128,9 @@ export const anonymizeUserAccount = async (userId) => {
         email: anonEmail,
         nomor_telepon: null,
         password_hash: 'DELETED_' + crypto.randomBytes(32).toString('hex'),
+        // Ditandai nonaktif agar guard status di alur login/refresh ikut menolak,
+        // bukan hanya mengandalkan password_hash yang sudah tidak valid.
+        status: 'inactive',
         updated_at: new Date(),
       })
       .where(eq(users.id, userId))
@@ -137,17 +141,27 @@ export const anonymizeUserAccount = async (userId) => {
   return result;
 };
 
-export const hasActiveAssignments = async (userId) => {
+/**
+ * Unit yang menahan penghapusan akun: assignment yang masih aktif, dan retensinya
+ * belum lewat. Mengembalikan nomor unit agar pesan penolakan bisa menyebut
+ * unit mana yang jadi penyebab.
+ *
+ * Sebelumnya menyaring `status_kepemilikan != 'cancelled'`, padahal CHECK constraint
+ * tabelnya hanya mengizinkan 'active' dan 'inactive' — jadi filter itu tidak pernah
+ * menyaring apa pun. Assignment yang sudah di-nonaktifkan seharusnya tidak menahan.
+ */
+export const findBlockingAssignments = async (userId) => {
   const rows = await db.execute(sql`
-    SELECT pa.id 
+    SELECT DISTINCT u.nomor_unit
     FROM property_assignments pa
+    JOIN units u ON u.id = pa.unit_id
     LEFT JOIN retentions r ON r.unit_id = pa.unit_id
     WHERE pa.user_id = ${userId}::uuid
-      AND pa.status_kepemilikan != 'cancelled'
+      AND pa.status_kepemilikan = 'active'
       AND (r.id IS NULL OR r.due_date >= NOW())
-    LIMIT 1
+    ORDER BY u.nomor_unit
   `);
-  return rows.length > 0;
+  return rows.map((r) => r.nomor_unit).filter(Boolean);
 };
 
 export const updateUserAppleToken = async (userId, token) => {

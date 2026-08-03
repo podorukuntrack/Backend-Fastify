@@ -40,6 +40,17 @@ export default async function dashboardRoutes(fastify, options) {
     },
     async (request, reply) => {
       const cid = request.user.companyId ?? null;
+
+      // cid null berarti query di bawah jatuh ke cabang "IS NULL" = lintas perusahaan.
+      // Itu hanya sah untuk super_admin & owner.
+      if (!cid && !["super_admin", "owner"].includes(request.user.role)) {
+        return reply.code(403).send({
+          success: false,
+          message: 'Akun Anda belum terhubung ke perusahaan mana pun. Hubungi Super Admin.',
+          errors: [],
+        });
+      }
+
       const cacheKey = `dashboard:stats:${cid || "global"}`;
 
       // 1. Cek Cache
@@ -284,126 +295,15 @@ export default async function dashboardRoutes(fastify, options) {
     },
   );
 
-  // =========================================================
-  // 2. CUSTOMER SERVICE DASHBOARD
-  // =========================================================
-  fastify.get(
-    "/customer-service",
-    {
-      schema: removeExamples({
-        description: "Mendapatkan ringkasan dashboard untuk customer service.",
-        tags: ["Dashboard"],
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: successSchema({
-            open_tickets: {
-              type: "integer",
-              description: "Jumlah tiket dengan status open",
-            },
-            pending_responses: {
-              type: "integer",
-              description: "Jumlah tiket dengan status in_progress",
-            },
-            wa_sent_today: {
-              type: "integer",
-              description: "Jumlah pesan WhatsApp yang dikirim hari ini",
-            },
-          }),
-        },
-      }),
-      preHandler: authorize('admin'),
-    },
-    async (request, reply) => {
-      const cid = request.user.companyId;
-      const cacheKey = `dashboard:cs:${cid || "global"}`;
-
-      const cachedData = await getCache(cacheKey);
-      if (cachedData) {
-        return reply.send({ success: true, source: "cache", data: cachedData });
-      }
-
-      const result = await db.execute(sql`
-        SELECT
-          (SELECT COUNT(*) FROM projects WHERE company_id = ${cid}::uuid) AS total_projects,
-          (SELECT COUNT(*) FROM units WHERE company_id = ${cid}::uuid) AS total_units,
-          (SELECT COUNT(*) FROM units WHERE company_id = ${cid}::uuid AND status = 'sold') AS units_sold,
-          (SELECT COUNT(*) FROM retention_complaints rc JOIN retentions r ON rc.retention_id = r.id WHERE r.company_id = ${cid}::uuid AND rc.status = 'pending') AS open_tickets,
-          (SELECT COALESCE(SUM(amount), 0)
-             FROM payments
-            WHERE company_id = ${cid}::uuid
-              AND status = 'verified') AS total_revenue
-      `);
-      const responseData = result[0];
-      await setCache(cacheKey, responseData, 300);
-
-      return {
-        success: true,
-        source: "database",
-        data: responseData,
-      };
-    },
-  );
-
-  // =========================================================
-  // 3. GLOBAL ANALYTICS (SUPER ADMIN ONLY)
-  // =========================================================
-  fastify.get(
-    "/analytics/global",
-    {
-      schema: removeExamples({
-        description:
-          "Mendapatkan statistik global seluruh perusahaan. Hanya untuk super_admin.",
-        tags: ["Dashboard"],
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: successSchema({
-            total_companies: {
-              type: "integer",
-              description: "Jumlah total perusahaan",
-            },
-            total_customers: {
-              type: "integer",
-              description: "Jumlah total user dengan role customer",
-            },
-            revenue_global: {
-              type: "number",
-              description:
-                "Total revenue dari seluruh pembayaran dengan status verified",
-            },
-          }),
-        },
-      }),
-      preHandler: authorize("super_admin"),
-    },
-    async (request, reply) => {
-      const cacheKey = `dashboard:analytics:global`;
-
-      const cachedData = await getCache(cacheKey);
-      if (cachedData) {
-        return reply.send({ success: true, source: "cache", data: cachedData });
-      }
-
-      const result = await db.execute(sql`
-        SELECT
-          (SELECT COUNT(*) FROM companies) AS total_companies,
-          (SELECT COUNT(*)
-             FROM users
-            WHERE role = 'customer') AS total_customers,
-          (SELECT COALESCE(SUM(amount), 0)
-             FROM payments
-            WHERE status = 'verified') AS revenue_global
-      `);
-
-      const responseData = result[0];
-      await setCache(cacheKey, responseData, 300);
-
-      return {
-        success: true,
-        source: "database",
-        data: responseData,
-      };
-    },
-  );
+  /**
+   * Endpoint "/customer-service" dan "/analytics/global" DIHAPUS.
+   *
+   * Keduanya query tabel `payments` yang tidak ada di database (dan
+   * "/customer-service" juga memakai units.company_id serta units.status yang
+   * juga tidak ada), sehingga selalu membalas 500. Tidak dipanggil web maupun
+   * aplikasi mobile. Statistik lintas perusahaan untuk super_admin & owner
+   * tersedia di /stats dan /executive yang query-nya sudah benar.
+   */
 
   // =========================================================
   // 4. EXECUTIVE DASHBOARD (DIREKSI & OWNER)
@@ -431,7 +331,16 @@ export default async function dashboardRoutes(fastify, options) {
       if (['owner', 'super_admin'].includes(request.user.role) && request.query.companyId) {
         cid = request.query.companyId;
       }
-      
+
+      // Sama seperti /stats: cid null = lintas perusahaan, hanya untuk super_admin & owner.
+      if (!cid && !["super_admin", "owner"].includes(request.user.role)) {
+        return reply.code(403).send({
+          success: false,
+          message: 'Akun Anda belum terhubung ke perusahaan mana pun. Hubungi Super Admin.',
+          errors: [],
+        });
+      }
+
       const { startDate, endDate } = request.query;
       const cacheKey = `dashboard:executive:v3:${cid || "global"}:${startDate || "all"}:${endDate || "all"}`;
 
@@ -590,7 +499,8 @@ export default async function dashboardRoutes(fastify, options) {
             customers: { type: "array" }
           })
         }
-      }
+      },
+      preHandler: authorize('super_admin', 'owner', 'admin', 'direksi'),
     },
     async (request, reply) => {
       const user = request.user;
@@ -603,6 +513,17 @@ export default async function dashboardRoutes(fastify, options) {
         }
       } else {
         filterCid = user.companyId;
+
+        // Hanya super_admin & owner yang boleh melihat lintas perusahaan.
+        // Tanpa penjagaan ini, admin/direksi tanpa company_id akan lolos ke
+        // cabang "IS NULL" pada setiap query di bawah dan menerima data semua PT.
+        if (!filterCid) {
+          return reply.code(403).send({
+            success: false,
+            message: 'Akun Anda belum terhubung ke perusahaan mana pun. Hubungi Super Admin.',
+            errors: [],
+          });
+        }
       }
 
       const sDate = request.query.startDate || null;
@@ -633,7 +554,18 @@ export default async function dashboardRoutes(fastify, options) {
           pa.dp,
           pa.total_dibayar,
           pa.total_dibayar as effective_cash_in,
-          (pa.harga_total - pa.total_dibayar) as effective_piutang
+          (pa.harga_total - pa.total_dibayar) as effective_piutang,
+          pa.jatuh_tempo_kpr,
+          -- Menandai cicilan yang sudah lewat tenggat. Berlaku untuk kredit_kpr
+          -- maupun cash_cicil; 0 berarti belum jatuh tempo atau sudah lunas.
+          CASE
+            WHEN pa.tipe_pembayaran IN ('kredit_kpr', 'cash_cicil')
+             AND pa.jatuh_tempo_kpr IS NOT NULL
+             AND pa.total_dibayar < pa.harga_total
+             AND pa.jatuh_tempo_kpr::date < CURRENT_DATE
+            THEN (CURRENT_DATE - pa.jatuh_tempo_kpr::date)
+            ELSE 0
+          END AS hari_telat
         FROM property_assignments pa
         JOIN units u ON pa.unit_id = u.id
         JOIN clusters c ON u.cluster_id = c.id

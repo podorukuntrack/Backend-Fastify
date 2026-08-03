@@ -225,10 +225,24 @@ export const appleLoginHandler = async (request, reply) => {
   }
 };
 
+/**
+ * Penghapusan akun mandiri dari aplikasi mobile.
+ *
+ * Sebelumnya handler ini selalu membalas 403, sehingga tombol "Hapus Akun" di
+ * aplikasi tidak pernah berhasil — padahal seluruh alurnya sudah tersedia di
+ * service. Aturan bisnisnya tetap dijaga di sana: customer yang masih memegang
+ * unit aktif akan ditolak, dengan pesan yang menyebut unit penyebabnya.
+ *
+ * Data tidak benar-benar dihapus, melainkan dianonimkan (anonymizeUserAccount),
+ * sehingga riwayat assignment/pembayaran tetap utuh untuk kebutuhan bisnis.
+ */
 export const deleteAccountHandler = async (request, reply) => {
-  return reply.code(403).send({
-    success: false,
-    message: 'Penghapusan akun dari aplikasi tidak diizinkan. Silakan hubungi Admin untuk menghapus akun Anda.',
-    errors: []
+  await service.deleteUserAccount(request.user.sub);
+  await clearCachePattern('users:*');
+
+  return reply.code(200).send({
+    success: true,
+    message: 'Akun Anda telah dihapus. Terima kasih telah menggunakan Podorukun Track.',
+    data: {},
   });
 };

@@ -1,4 +1,5 @@
 import * as service from './banners.service.js';
+import { clearCachePattern } from '../../shared/utils/cache.js';
 
 export const getAllHandler = async (request, reply) => {
   try {

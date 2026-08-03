@@ -6,6 +6,7 @@ import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyHelmet from "@fastify/helmet";
 
 import authPlugin from "./plugins/auth.js";
+import validatorPlugin from "./plugins/validator.js";
 import swaggerPlugin from "./plugins/swagger.js";
 import redisPlugin from "./plugins/redis.js";
 
@@ -32,7 +33,16 @@ import { sql } from "drizzle-orm";
 import { getRedisClient } from "./shared/utils/cache.js";
 
 export async function buildApp() {
-  const isProduction = process.env.NODE_ENV === 'production';
+  /**
+   * Semua kelonggaran (Swagger UI, origin CORS bebas) diikat ke isDevelopment,
+   * bukan ke kebalikan isProduction.
+   *
+   * `.env` tidak menyetel NODE_ENV — nilainya datang dari PM2. Dengan pola lama
+   * (`!isProduction`), menjalankan server tanpa PM2 membuat NODE_ENV undefined
+   * dan seluruh kelonggaran itu aktif di server produksi. Sekarang defaultnya
+   * aman: longgar hanya bila NODE_ENV secara eksplisit bernilai 'development'.
+   */
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   const app = Fastify({
     bodyLimit: 10 * 1024 * 1024, // 10MB — cukup untuk JSON besar, file upload dibatasi terpisah oleh multipart plugin
@@ -61,7 +71,7 @@ export async function buildApp() {
         return cb(null, true);
       }
       // Di development, izinkan localhost dan ngrok untuk testing
-      if (!isProduction && (origin.startsWith("http://localhost:") || origin.endsWith(".ngrok-free.app") || origin.endsWith(".ngrok.io"))) {
+      if (isDevelopment && (origin.startsWith("http://localhost:") || origin.endsWith(".ngrok-free.app") || origin.endsWith(".ngrok.io"))) {
         return cb(null, true);
       }
       const err = new Error("Not allowed by CORS");
@@ -82,8 +92,15 @@ export async function buildApp() {
 
 
 
+  // Fallback "my-secret" dihapus — nilai itu ter-commit ke repositori, sehingga
+  // instalasi tanpa COOKIE_SECRET berjalan dengan rahasia yang diketahui publik.
+  const cookieSecret = process.env.COOKIE_SECRET || process.env.JWT_SECRET;
+  if (!cookieSecret) {
+    throw new Error('COOKIE_SECRET (atau JWT_SECRET) is missing in environment');
+  }
+
   await app.register(fastifyCookie, {
-    secret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || "my-secret",
+    secret: cookieSecret,
     hook: 'onRequest',
   });
 
@@ -110,8 +127,10 @@ export async function buildApp() {
   });
 
   await app.register(authPlugin);
+  // Selalu diregistrasi: aturan validasi harus identik di dev dan produksi
+  await app.register(validatorPlugin);
   // Swagger UI hanya aktif di development — mencegah recon di production
-  if (!isProduction) {
+  if (isDevelopment) {
     await app.register(swaggerPlugin);
   }
   await app.register(redisPlugin);

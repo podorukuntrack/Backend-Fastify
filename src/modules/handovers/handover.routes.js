@@ -9,6 +9,10 @@ export default async function handoverRoutes(fastify, options) {
 
   const readRoles = authorize('super_admin', 'owner', 'admin', 'direksi', 'customer');
   const writeRoles = authorize('admin');
+  // Merespons / mengonfirmasi jadwal adalah aksi customer di aplikasi mobile.
+  // Admin tetap diizinkan untuk mewakili customer yang datang langsung ke kantor.
+  // owner, direksi, dan super_admin bersifat view-only, jadi dikeluarkan.
+  const respondRoles = authorize('customer', 'admin');
 
   // GET - Dapatkan semua handover/serah terima
   fastify.get('/', {
@@ -173,7 +177,7 @@ export default async function handoverRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [readRoles, validate(schema.respondHandoverSchema)]
+    preHandler: [respondRoles, validate(schema.respondHandoverSchema)]
   }, controller.respondHandler);
 
   // PATCH - Customer konfirmasi selesai
@@ -190,6 +194,6 @@ export default async function handoverRoutes(fastify, options) {
       },
       security: [{ bearerAuth: [] }]
     },
-    preHandler: [readRoles, validate(schema.confirmHandoverSchema)]
+    preHandler: [respondRoles, validate(schema.confirmHandoverSchema)]
   }, controller.confirmHandler);
 }

@@ -152,12 +152,14 @@ export const addComplaint = async (retentionId, input, userContext) => {
 
 export const editComplaint = async (retentionId, complaintId, input, userContext) => {
   const retention = await getRetentionDetail(retentionId, userContext);
-  
+
   // Get old status to prevent duplicate/spam notifications
-  const oldComplaint = await repo.findComplaintById(complaintId);
+  const oldComplaint = await repo.findComplaintById(retentionId, complaintId);
+  if (!oldComplaint) throw new AppError('Data keluhan tidak ditemukan pada retensi ini.', 404);
   const oldStatus = oldComplaint?.status;
-  
-  const result = await repo.updateComplaint(complaintId, input);
+
+  const result = await repo.updateComplaint(retentionId, complaintId, input);
+  if (!result) throw new AppError('Data keluhan tidak ditemukan pada retensi ini.', 404);
 
   try {
     const unitId = retention.unitId ?? retention.unit_id;
@@ -185,5 +187,7 @@ export const editComplaint = async (retentionId, complaintId, input, userContext
 
 export const removeComplaint = async (retentionId, complaintId, userContext) => {
   await getRetentionDetail(retentionId, userContext);
-  return await repo.deleteComplaint(complaintId);
+  const deleted = await repo.deleteComplaint(retentionId, complaintId);
+  if (!deleted) throw new AppError('Data keluhan tidak ditemukan pada retensi ini.', 404);
+  return deleted;
 };

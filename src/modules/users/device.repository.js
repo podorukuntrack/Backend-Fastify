@@ -37,6 +37,10 @@ export const upsertDeviceToken = async (userId, fcmToken, deviceType) => {
   return result[0];
 };
 
-export const deleteDeviceToken = async (fcmToken) => {
-  await db.delete(userDevices).where(eq(userDevices.fcmToken, fcmToken));
+// Token hanya boleh dihapus oleh pemiliknya — tanpa filter userId, siapa pun yang
+// mengetahui token milik orang lain bisa mematikan notifikasi akun tersebut.
+export const deleteDeviceToken = async (userId, fcmToken) => {
+  await db
+    .delete(userDevices)
+    .where(and(eq(userDevices.fcmToken, fcmToken), eq(userDevices.userId, userId)));
 };

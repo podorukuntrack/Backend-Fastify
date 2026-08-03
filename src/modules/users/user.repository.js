@@ -17,8 +17,11 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
     conditionSql = sql`u.role != 'customer'`;
 
   } else if (['admin', 'direksi'].includes(userContext.role)) {
-    if (allCustomers) {
-      // Admin request all customers for assignment: return ALL users with role = 'customer'
+    // Hanya admin yang butuh daftar lengkap: customer tidak menyimpan company_id,
+    // afiliasinya baru terbentuk setelah unit di-assign, jadi picker penugasan
+    // tidak akan menemukan siapa pun kalau difilter per perusahaan.
+    // direksi bersifat view-only atas perusahaannya, jadi tidak berhak.
+    if (allCustomers && userContext.role === 'admin') {
       conditionSql = sql`u.role = 'customer'`;
     } else {
       // Normal admin view: hanya customer dari company yg sama, atau customer yg diassign ke company admin
@@ -55,7 +58,11 @@ export const findUsers = async (page, limit, userContext, filters = {}) => {
       u.role,
       u.status,
       u.created_at,
-      u.updated_at
+      u.updated_at,
+      -- dipakai UI untuk memperingatkan admin sebelum menonaktifkan customer
+      -- yang masih memegang unit aktif
+      (SELECT COUNT(*)::int FROM property_assignments pa
+        WHERE pa.user_id = u.id AND pa.status_kepemilikan = 'active') AS active_units
     FROM users u
     WHERE ${conditionSql}
       AND (${userContext.role} = 'super_admin' OR u.id != ${userContext.sub}::uuid)
@@ -215,8 +222,10 @@ export const deleteUser = async (id, userContext) => {
       const [{ hasPayments }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM payment_history WHERE assignment_id = ANY(${assignmentIdsArray}::uuid[])) AS "hasPayments"`);
       if (hasPayments) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Pembayaran untuk pengguna ini terlebih dahulu.', 400);
       
-      const [{ hasPaymentsMain }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM payments WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasPaymentsMain"`);
-      if (hasPaymentsMain) throw new AppError('Tidak dapat menghapus akun: Harap hapus data Pembayaran (Tagihan) untuk pengguna ini terlebih dahulu.', 400);
+      // Cek terhadap tabel `payments` dihapus: tabel itu tidak ada di database,
+      // sehingga query-nya selalu melempar "relation payments does not exist" dan
+      // admin menerima 500 tanpa penjelasan saat menghapus customer yang punya unit.
+      // Riwayat pembayaran sudah dicek lewat payment_history di atas.
 
       // 6. Cek Progress Pembangunan
       const [{ hasProgress }] = await db.execute(sql`SELECT EXISTS(SELECT 1 FROM progress WHERE unit_id = ANY(${unitIdsArray}::uuid[])) AS "hasProgress"`);

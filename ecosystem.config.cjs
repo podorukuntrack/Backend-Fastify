@@ -8,10 +8,13 @@ module.exports = {
       autorestart: true,
       watch: false,           // Matikan watch di production untuk menghemat CPU/RAM
       max_memory_restart: '800M', // Restart otomatis jika memakan memori terlalu besar (mencegah memory leak)
+      // REDIS_PASSWORD dihapus dari sini: nilainya ter-commit ke repositori, dan
+      // proses Node tidak pernah membacanya (koneksi Redis memakai REDIS_URL dari
+      // .env). Yang membutuhkannya adalah docker-compose.prod.yml, yang membaca
+      // environment shell / file .env — bukan env PM2.
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
-        REDIS_PASSWORD: 'podorukuntrack_redis_secret'
+        PORT: 3000
       },
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       error_file: './logs/error.log',

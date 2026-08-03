@@ -12,7 +12,7 @@ import {
   findUserByPhone,
   updateUserProfile,
   anonymizeUserAccount,
-  hasActiveAssignments,
+  findBlockingAssignments,
   updateUserAppleToken
 } from './auth.repository.js';
 import { verifyAppleToken, exchangeAppleToken, revokeAppleToken } from './apple-auth.service.js';
@@ -40,6 +40,20 @@ const isTestContact = (contact) => {
   return TEST_ACCOUNTS.includes(contact.toLowerCase()) || TEST_ACCOUNTS.includes(cleanContact);
 };
 
+/**
+ * Menolak akun yang dinonaktifkan admin.
+ * Dipanggil SETELAH kredensial terbukti benar agar tidak bisa dipakai
+ * untuk menebak akun mana yang terdaftar.
+ */
+const assertAccountActive = (status) => {
+  if (status && status !== 'active') {
+    throw new AppError(
+      'Akun Anda telah dinonaktifkan. Silakan hubungi Admin.',
+      403
+    );
+  }
+};
+
 export const loginUser = async (email, password, fastify) => {
   const user = await findUserByEmail(email);
 
@@ -55,6 +69,8 @@ export const loginUser = async (email, password, fastify) => {
   if (!isValidPassword) {
     throw new AppError('Email atau password salah.', 401);
   }
+
+  assertAccountActive(user.status);
 
   // JWT payload
   const payload = {
@@ -138,6 +154,11 @@ export const refreshTokenService = async (
     throw new AppError('Sesi tidak valid atau telah kedaluwarsa.', 401);
   }
 
+  // Tanpa cek ini, akun yang dinonaktifkan tetap hidup selamanya: refresh token
+  // berlaku 30 hari dan dirotasi setiap dipakai, jadi aplikasi mobile yang aktif
+  // tidak pernah terpaksa login ulang.
+  assertAccountActive(storedToken.status);
+
   const payload = {
     sub: storedToken.user_id,
     companyId: storedToken.company_id,
@@ -212,7 +233,7 @@ export const registerDeviceToken = async (userId, fcmToken, deviceType) => {
 };
 
 export const unregisterDeviceToken = async (userId, fcmToken) => {
-  return await deleteDeviceToken(fcmToken);
+  return await deleteDeviceToken(userId, fcmToken);
 };
 
 export const registerCustomer = async (data, fastify) => {
@@ -287,7 +308,12 @@ export const requestOtp = async (method, contact) => {
     }
     const message = `Halo ${user.nama},\n\nKode OTP Lupa Password Anda adalah: *${otp}*\n\nKode ini berlaku selama 5 menit. Jangan berikan kode ini kepada siapapun.`;
     const context = { role: user.role, companyId: user.company_id };
-    await sendWhatsAppMessage(user.nomor_telepon, message, context);
+    // sensitive: isi pesan tidak disimpan ke whatsapp_logs karena memuat kode OTP,
+    // dan log itu bisa dibaca lewat GET /whatsapp/logs.
+    await sendWhatsAppMessage(user.nomor_telepon, message, context, {
+      templateName: 'otp_lupa_password',
+      sensitive: true,
+    });
   } else if (method === 'email') {
     await sendOTPByEmail(user.email, otp);
   }
@@ -426,6 +452,8 @@ export const googleLoginUser = async (idToken, fastify) => {
     throw new AppError('Akses Ditolak: Akun Google ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.', 400);
   }
 
+  assertAccountActive(user.status);
+
   // 5. Generate JWT tokens
   const payload = {
     sub: user.id,
@@ -546,6 +574,8 @@ export const appleLoginUser = async (idToken, userFullName, authorizationCode, f
     throw new AppError('Akses Ditolak: Akun Apple ini terdaftar sebagai ' + user.role + '. Silakan gunakan akun customer.', 400);
   }
 
+  assertAccountActive(user.status);
+
   // 4.5. Tukarkan authorizationCode dengan Apple refresh token jika ada
   if (authorizationCode) {
     const appleRefreshToken = await exchangeAppleToken(authorizationCode);
@@ -597,9 +627,15 @@ export const appleLoginUser = async (idToken, userFullName, authorizationCode, f
 };
 
 export const deleteUserAccount = async (userId) => {
-  const hasActive = await hasActiveAssignments(userId);
-  if (hasActive) {
-    throw new AppError('Tidak dapat menghapus akun karena Anda masih memiliki unit properti yang aktif atau masa retensinya belum selesai.', 400);
+  const blockingUnits = await findBlockingAssignments(userId);
+  if (blockingUnits.length > 0) {
+    const daftar = blockingUnits.join(', ');
+    throw new AppError(
+      `Akun belum dapat dihapus karena Anda masih tercatat sebagai pemilik unit ${daftar}. ` +
+      `Penghapusan baru bisa dilakukan setelah kepemilikan dialihkan atau masa retensi selesai. ` +
+      `Silakan hubungi Admin untuk prosesnya.`,
+      400
+    );
   }
 
   // Apple App Store Requirement: Revoke token if exists

@@ -5,7 +5,7 @@ import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `companies:list:${request.user.sub}:${request.user.companyId || 'all'}`;
   const { data, source } = await withCache(cacheKey, async () => {
-    return await service.getCompanies();
+    return await service.getCompanies(request.user);
   }, 300);
   return reply.code(200).send({ success: true, message: 'Success', data, source });
 };
@@ -14,7 +14,7 @@ export const getByIdHandler = async (request, reply) => {
   try {
     const cacheKey = `companies:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
-      return await service.getCompany(request.params.id);
+      return await service.getCompany(request.params.id, request.user);
     }, 300);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {

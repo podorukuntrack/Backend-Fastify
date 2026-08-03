@@ -174,6 +174,13 @@ export const insertAssignment = async (data, userContext) => {
     reminderDatesJson = JSON.stringify(data.reminder_kpr_dates);
   }
 
+  // Divalidasi SEBELUM INSERT. Sebelumnya pemeriksaan ini berjalan setelah baris
+  // assignment tersimpan, sehingga penolakan meninggalkan assignment yatim
+  // tanpa payment_history pasangannya.
+  if (data.tipe_pembayaran === 'kredit_kpr' && Number(data.dp ?? 0) > Number(data.harga_total ?? 0)) {
+    throw new AppError("Down Payment (DP) tidak boleh melebihi Harga Total (NET).", 400);
+  }
+
   const rows = await db.execute(sql`
       INSERT INTO property_assignments (
         user_id,
@@ -200,7 +207,7 @@ export const insertAssignment = async (data, userContext) => {
         ${data.dp ?? 0},
         0,
         ${data.jatuh_tempo_kpr ?? null},
-        ${JSON.stringify(reminderDatesJson)},
+        ${reminderDatesJson},
         ${data.tenor_bulan ?? 0},
         ${data.keterangan_kpr ?? null},
         ${userContext.sub}
@@ -211,9 +218,6 @@ export const insertAssignment = async (data, userContext) => {
   const assignmentId = rows[0].id;
   
   if (data.tipe_pembayaran === 'kredit_kpr') {
-    if (Number(data.dp ?? 0) > Number(data.harga_total ?? 0)) {
-      throw new AppError("Down Payment (DP) tidak boleh melebihi Harga Total (NET).", 400);
-    }
     const kprAmount = Number(data.harga_total ?? 0) - Number(data.dp ?? 0);
     if (kprAmount > 0) {
       await db.execute(sql`
@@ -244,6 +248,38 @@ export const insertAssignment = async (data, userContext) => {
 export const updateAssignment = async (id, data, userContext) => {
   const existing = await findAssignmentById(id, userContext);
   if (!existing) return null;
+
+  const isTipeChanged =
+    !!data.tipe_pembayaran && data.tipe_pembayaran !== existing.pembayaran.tipe;
+
+  /**
+   * PENJAGA GANTI TIPE PEMBAYARAN
+   *
+   * Mengganti tipe pembayaran menghapus SELURUH payment_history assignment ini
+   * (lihat blok di bawah). Tanpa penjaga, satu salah klik bisa melenyapkan
+   * puluhan catatan pembayaran secara permanen — tidak ada soft delete maupun
+   * audit log untuk memulihkannya.
+   *
+   * Baris auto-injeksi KPR tidak dihitung karena dibuat sistem, bukan dicatat
+   * admin, sehingga assignment yang baru dibuat tetap bisa dikoreksi tipenya.
+   */
+  if (isTipeChanged) {
+    const [manual] = await db.execute(sql`
+      SELECT COUNT(*)::int AS jumlah
+      FROM payment_history
+      WHERE assignment_id = ${id}
+        AND COALESCE(is_auto_inject, false) = false
+    `);
+
+    if (Number(manual.jumlah) > 0) {
+      throw new AppError(
+        `Tidak dapat mengubah tipe pembayaran: sudah ada ${manual.jumlah} catatan pembayaran ` +
+        `pada penugasan ini. Hapus catatan pembayaran tersebut terlebih dahulu ` +
+        `jika tipe pembayaran memang perlu diubah.`,
+        400
+      );
+    }
+  }
 
   /**
    * DATA NORMALIZATION FOR PAYMENT TYPE CHANGES
@@ -295,10 +331,10 @@ export const updateAssignment = async (id, data, userContext) => {
     RETURNING id
   `);
 
-  if (data.tipe_pembayaran && data.tipe_pembayaran !== existing.pembayaran.tipe) {
-    // Delete payment history on payment method change
+  if (isTipeChanged) {
+    // Aman: penjaga di atas memastikan hanya baris auto-injeksi yang mungkin tersisa
     await db.execute(sql`DELETE FROM payment_history WHERE assignment_id = ${id}`);
-    
+
     // Auto-inject KPR if changing to KPR
     if (data.tipe_pembayaran === 'kredit_kpr') {
       const dpAmount = Number(data.dp ?? 0);

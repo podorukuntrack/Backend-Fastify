@@ -203,36 +203,14 @@ export const removeHandover = async (id, userContext) => {
   return result;
 };
 
-export const reportDefect = async (handoverId, data, userContext) => {
-  const handover = await repo.findHandoverById(handoverId, userContext);
-  if (!handover) throw new AppError('Data serah terima tidak ditemukan atau Anda tidak memiliki akses.', 404);
-  
-  data.handoverId = handoverId;
-  const result = await repo.insertDefect(data);
-
-  try {
-    const unit = await findUnitById(handover.unit_id ?? handover.unitId, userContext);
-    const adminUsers = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(
-        and(
-          eq(users.companyId, handover.company_id ?? handover.companyId),
-          inArray(users.role, ['admin'])
-        )
-      );
-    const adminIds = adminUsers.map(u => u.id);
-    if (adminIds.length > 0 && unit) {
-      await sendPushNotification(
-        adminIds,
-        `Laporan Defect Baru (Komplain Unit)`,
-        `Laporan komplain unit/defect baru diajukan untuk unit ${unit.nomor_unit ?? unit.nomorUnit}: ${data.description}.`,
-        { type: 'defect_reported', handoverId, unitId: handover.unit_id ?? handover.unitId }
-      );
-    }
-  } catch (e) {
-    console.error('Failed to trigger defect report push notification:', e.message);
-  }
-
-  return result;
-};
+/**
+ * reportDefect() DIHAPUS — fitur ini tidak pernah selesai:
+ *   - `repo.insertDefect` tidak pernah didefinisikan di handover.repository.js
+ *   - tabel `handover_defects` tidak ada di database
+ *   - tidak ada route yang memanggilnya
+ *   - lookup adminnya memakai `users.companyId`, padahal field Drizzle-nya
+ *     `company_id`, sehingga akan melempar sebelum sempat mengirim notifikasi
+ *
+ * Komplain unit selama masa retensi ditangani modul retentions
+ * (retention_complaints), yang sudah dipakai web maupun mobile.
+ */

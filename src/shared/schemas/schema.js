@@ -42,6 +42,9 @@ export const users = pgTable("users", {
   nomor_telepon: varchar("nomor_telepon", { length: 20 }),
   password_hash: text("password_hash").notNull(),
   role: varchar("role", { length: 50 }).notNull(),
+  // Kolom ini ada di database sejak awal tapi hilang dari definisi Drizzle, sehingga
+  // findUserByEmail/ById tidak pernah membawanya dan login tidak bisa mengeceknya.
+  status: varchar("status", { length: 20 }).notNull().default("active"),
   apple_refresh_token: text("apple_refresh_token"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
@@ -80,9 +83,10 @@ export const projects = pgTable("projects", {
   companyIdx: index("projects_company_idx").on(table.companyId),
 }));
 
+// Catatan: tabel `clusters` di database TIDAK punya kolom company_id.
+// Afiliasi perusahaannya diturunkan lewat projects.company_id.
 export const clusters = pgTable("clusters", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").references(() => companies.id).notNull(),
   projectId: uuid("project_id").references(() => projects.id).notNull(),
   namaCluster: varchar("nama_cluster", { length: 255 }).notNull(),
   jumlahUnit: integer("jumlah_unit").notNull().default(0),
@@ -98,7 +102,6 @@ export const clusters = pgTable("clusters", {
     .defaultNow()
     .notNull(),
 }, (table) => ({
-  companyIdx: index("clusters_company_idx").on(table.companyId),
   projectIdx: index("clusters_project_idx").on(table.projectId),
 }));
 
@@ -196,11 +199,10 @@ export const progress = pgTable("progress", {
   unitTahapIdx: index("progress_unit_tahap_idx").on(table.unitId, table.tahap),
 }));
 
+// Catatan: tabel `documentation` di database TIDAK punya kolom company_id.
+// Scoping tenant dilakukan lewat join unit -> cluster -> project.
 export const documentations = pgTable("documentation", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id")
-    .references(() => companies.id)
-    .notNull(), // Wajib untuk keamanan multi-tenant
   unitId: uuid("unit_id")
     .references(() => units.id)
     .notNull(),
@@ -217,16 +219,14 @@ export const documentations = pgTable("documentation", {
     .notNull(), // User/Admin yang mengupload
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
-  companyIdx: index("docs_company_idx").on(table.companyId),
   unitIdx: index("docs_unit_idx").on(table.unitId),
   progressIdx: index("docs_progress_idx").on(table.progressId),
 }));
 
+// Catatan: tabel `property_assignments` di database TIDAK punya kolom company_id.
+// Scoping tenant dilakukan lewat join unit -> cluster -> project.
 export const assignments = pgTable("property_assignments", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id")
-    .references(() => companies.id)
-    .notNull(),
   userId: uuid("user_id")
     .references(() => users.id)
     .notNull(),
@@ -246,32 +246,22 @@ export const assignments = pgTable("property_assignments", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
-  companyIdx: index("assignments_company_idx").on(table.companyId),
   userIdx: index("assignments_user_idx").on(table.userId),
   unitIdx: index("assignments_unit_idx").on(table.unitId),
   statusIdx: index("assignments_status_idx").on(table.statusKepemilikan),
 }));
 
-export const payments = pgTable("payment_history", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id")
-    .references(() => companies.id)
-    .notNull(),
-  assignmentId: uuid("assignment_id")
-    .references(() => assignments.id)
-    .notNull(),
-  jumlahBayar: decimal("jumlah_bayar", { precision: 15, scale: 2 }).notNull(),
-  tanggalBayar: timestamp("tanggal_bayar").notNull(),
-  method: varchar("method", { length: 50 }).notNull(), // transfer, cash, kpr
-  status: varchar("status", { length: 50 }).default("pending"), // pending, verified, failed
-  buktiPembayaran: text("bukti_pembayaran"),
-  isAutoInject: boolean("is_auto_inject").default(false).notNull(), // Flag untuk record auto-injeksi KPR
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-}, (table) => ({
-  companyIdx: index("payments_company_idx").on(table.companyId),
-  assignmentIdx: index("payments_assignment_idx").on(table.assignmentId),
-}));
+/**
+ * Tabel Drizzle `payments` DIHAPUS.
+ *
+ * Definisi lamanya memetakan tabel fisik `payment_history` dengan kolom yang tidak
+ * pernah ada di database (company_id, method, status, updated_at), sehingga setiap
+ * `db.select().from(payments)` gagal untuk semua role. Akses ke payment_history
+ * kini sepenuhnya lewat raw SQL di payment.repository.js dan
+ * assignment.repository.js, yang memang memakai nama kolom sebenarnya:
+ *   id, assignment_id, jumlah_bayar, tanggal_bayar, catatan,
+ *   bukti_pembayaran, is_auto_inject, created_by, created_at
+ */
 
 // src/shared/schemas/schema.js (Tambahan untuk Phase 3)
 

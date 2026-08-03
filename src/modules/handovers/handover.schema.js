@@ -27,15 +27,6 @@ export const updateHandoverSchema = {
   })
 };
 
-export const defectSchema = {
-  params: z.object({ id: z.string().uuid("Handover ID tidak valid") }),
-  body: z.object({
-    description: z.string().min(5),
-    imageUrl: z.string().url().optional(),
-    status: z.enum(['reported', 'fixing', 'resolved']).default('reported')
-  })
-};
-
 export const respondHandoverSchema = {
   params: z.object({ id: z.string().uuid() }),
   body: z.object({
