@@ -18,12 +18,31 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
 
           script: |
+            # set -e agar deploy BERHENTI saat ada langkah yang gagal.
+            # Tanpa ini, `git pull` yang gagal tetap dilanjutkan ke `pm2 restart`,
+            # sehingga server di-restart memakai kode lama dan deploy terlihat
+            # berhasil padahal tidak ada yang berubah.
+            set -e
             cd ~/Backend-Fastify
-            
+
+            # Bentuk `if`, bukan `[ ... ] && ...`, karena di bawah set -e sebuah
+            # AND-list yang gagal ikut menghentikan script saat nvm.sh tidak ada.
             export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              \. "$NVM_DIR/nvm.sh"
+            fi
+
+            # `npm install` di baris bawah menulis ulang package-lock.json, sehingga
+            # working tree VPS selalu kotor setelah deploy. Begitu ada commit yang
+            # menyentuh lockfile, `git pull` berhenti dengan
+            # "Your local changes would be overwritten by merge" dan deploy gagal
+            # diam-diam — pm2 restart tetap jalan memakai kode lama.
+            #
+            # Sengaja hanya menyasar package-lock.json, bukan `git reset --hard`,
+            # supaya perubahan lokal lain di VPS tidak ikut terhapus.
+            git checkout -- package-lock.json || true
+
             git pull origin main
-            
+
             npm install
             pm2 restart ecosystem.config.cjs

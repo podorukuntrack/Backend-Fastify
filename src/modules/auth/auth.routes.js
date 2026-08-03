@@ -2,9 +2,32 @@ import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyO
 import * as service from "./auth.service.js";
 
 export default async function authRoutes(fastify, options) {
+  /**
+   * Limit per-IP untuk endpoint kredensial.
+   *
+   * Sengaja LONGGAR. Operator seluler Indonesia memakai CGNAT, sehingga ribuan
+   * pelanggan bisa berbagi satu IP publik — limit ketat akan memblokir pengguna
+   * sah secara massal. Lapisan ini hanya menahan serangan naif dari satu sumber;
+   * pembatasan yang sesungguhnya dilakukan per email/kontak di auth.service.js.
+   *
+   * Tanpa ini, endpoint kredensial ikut memakai limit global 500 request/menit.
+   */
+  const ipLimit = (max, timeWindow) => ({
+    rateLimit: {
+      max,
+      timeWindow,
+      errorResponseBuilder: (_req, ctx) => ({
+        success: false,
+        message: `Terlalu banyak permintaan dari jaringan Anda. Silakan coba lagi dalam ${Math.ceil(ctx.ttl / 1000)} detik.`,
+        errors: [],
+      }),
+    },
+  });
+
   fastify.post(
     "/login",
     {
+      config: ipLimit(30, '5 minutes'),
       schema: {
         description: "Login user dengan email & password",
         tags: ["Auth"],
@@ -61,6 +84,7 @@ export default async function authRoutes(fastify, options) {
   fastify.post(
     "/register",
     {
+      config: ipLimit(10, '15 minutes'),
       schema: {
         description: "Registrasi customer baru (Mobile)",
         tags: ["Auth"],
@@ -83,6 +107,7 @@ export default async function authRoutes(fastify, options) {
   fastify.post(
     "/google-login",
     {
+      config: ipLimit(30, '5 minutes'),
       schema: {
         description: "Login/Register customer dengan Google ID Token",
         tags: ["Auth"],
@@ -101,6 +126,7 @@ export default async function authRoutes(fastify, options) {
   fastify.post(
     "/apple-login",
     {
+      config: ipLimit(30, '5 minutes'),
       schema: {
         description: "Login/Register customer dengan Apple ID Token",
         tags: ["Auth"],
@@ -221,6 +247,7 @@ export default async function authRoutes(fastify, options) {
   fastify.post(
     "/forgot-password/request-otp",
     {
+      config: ipLimit(15, '15 minutes'),
       schema: {
         description: "Minta OTP untuk Lupa Password (via WA/Email)",
         tags: ["Auth"],
@@ -240,6 +267,7 @@ export default async function authRoutes(fastify, options) {
   fastify.post(
     "/forgot-password/verify-otp",
     {
+      config: ipLimit(30, '5 minutes'),
       schema: {
         description: "Verifikasi OTP Lupa Password",
         tags: ["Auth"],
@@ -259,6 +287,7 @@ export default async function authRoutes(fastify, options) {
   fastify.post(
     "/forgot-password/reset",
     {
+      config: ipLimit(15, '15 minutes'),
       schema: {
         description: "Reset Password dengan Token",
         tags: ["Auth"],
@@ -279,6 +308,7 @@ export default async function authRoutes(fastify, options) {
   fastify.post(
     "/change-password",
     {
+      config: ipLimit(20, '15 minutes'),
       preValidation: [fastify.authenticate],
       schema: {
         description: "Ganti Password",

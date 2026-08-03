@@ -22,6 +22,20 @@ import { findCompanyById } from '../companies/company.repository.js';
 import { getRedisClient } from '../../shared/utils/cache.js';
 import { sendOTPByEmail } from './auth.email.js';
 import { AppError } from '../../shared/utils/AppError.js';
+import { hitAttempt, peekAttempt, clearAttempt, formatWait, throttleKeys } from '../../shared/utils/throttle.js';
+
+// Batas percobaan per identitas. Limit per-IP di auth.routes.js hanya menahan
+// serangan naif — CGNAT operator seluler membuat limit per-IP tidak bisa ketat.
+const LOGIN_MAX_FAILED = 10;      // per email, jendela 15 menit
+const LOGIN_WINDOW_SEC = 15 * 60;
+// 5, bukan 3: pesan WhatsApp kerap telat sehingga pengguna sah menekan "kirim
+// ulang" beberapa kali. Terkunci 15 menit saat reset password berujung ke admin,
+// dan itu lebih merugikan daripada selisih toleransi penyalahgunaannya
+// (20 vs 12 pesan per jam ke satu korban).
+const OTP_REQUEST_MAX = 5;        // per kontak, jendela 15 menit
+const OTP_REQUEST_WINDOW_SEC = 15 * 60;
+const OTP_VERIFY_MAX = 5;         // salah 5 kali -> OTP dihanguskan
+const OTP_VERIFY_WINDOW_SEC = 15 * 60;
 
 // ── Whitelist akun test untuk review Google Play Console dan App Store ──
 // Menggunakan exact-match agar tidak bisa di-exploit dengan substring (misal: "mytester@gmail.com")
@@ -55,9 +69,25 @@ const assertAccountActive = (status) => {
 };
 
 export const loginUser = async (email, password, fastify) => {
+  const throttleKey = throttleKeys.login(email);
+
+  // Dicek per email, bukan per IP, agar serangan yang tersebar di banyak IP tetap
+  // tertahan. Jendelanya kedaluwarsa sendiri (15 menit) sehingga tidak bisa
+  // dipakai mengunci akun orang lain secara permanen.
+  const locked = await peekAttempt(throttleKey, { max: LOGIN_MAX_FAILED });
+  if (locked.exceeded) {
+    throw new AppError(
+      `Terlalu banyak percobaan login yang gagal. Silakan coba lagi dalam ${formatWait(locked.retryAfterSec)}.`,
+      429
+    );
+  }
+
   const user = await findUserByEmail(email);
 
   if (!user) {
+    // Percobaan pada email yang tidak terdaftar tetap dihitung, supaya penyerang
+    // tidak bisa menebak email valid dengan mengamati mana yang di-throttle.
+    await hitAttempt(throttleKey, { max: LOGIN_MAX_FAILED, windowSec: LOGIN_WINDOW_SEC });
     throw new AppError('Email atau password salah.', 401);
   }
 
@@ -67,10 +97,15 @@ export const loginUser = async (email, password, fastify) => {
   );
 
   if (!isValidPassword) {
+    await hitAttempt(throttleKey, { max: LOGIN_MAX_FAILED, windowSec: LOGIN_WINDOW_SEC });
     throw new AppError('Email atau password salah.', 401);
   }
 
   assertAccountActive(user.status);
+
+  // Login berhasil menghapus penghitung agar pengguna sah yang sempat salah ketik
+  // tidak membawa sisa hitungan.
+  await clearAttempt(throttleKey);
 
   // JWT payload
   const payload = {
@@ -268,6 +303,22 @@ export const registerCustomer = async (data, fastify) => {
 };
 
 export const requestOtp = async (method, contact) => {
+  // Membatasi pengiriman OTP per kontak: tanpa ini, endpoint ini bisa dipakai
+  // membanjiri WhatsApp/email korban sekaligus membakar biaya pengiriman.
+  // Dicek sebelum pencarian user agar pembatasannya tidak membocorkan
+  // apakah kontak tersebut terdaftar.
+  const reqKey = throttleKeys.otpRequest(contact);
+  const reqCount = await hitAttempt(reqKey, {
+    max: OTP_REQUEST_MAX,
+    windowSec: OTP_REQUEST_WINDOW_SEC,
+  });
+  if (reqCount.exceeded) {
+    throw new AppError(
+      `Terlalu banyak permintaan kode OTP. Silakan coba lagi dalam ${formatWait(reqCount.retryAfterSec)}.`,
+      429
+    );
+  }
+
   let user;
   if (method === 'email') {
     user = await findUserByEmail(contact);
@@ -328,25 +379,65 @@ export const verifyOtp = async (contact, otp) => {
   // FIX H2: Gunakan exact-match whitelist, bukan substring
   const testAccount = isTestContact(contact);
 
+  /**
+   * Pembatasan tebakan OTP.
+   *
+   * OTP 6 digit berlaku 5 menit. Tanpa penghitung ini, satu-satunya penahan
+   * adalah limit global 500 request/menit, yang masih menyisakan ~2.500 tebakan
+   * per jendela OTP — cukup untuk menembusnya dengan pengulangan.
+   * Setelah 5 kali salah, OTP dihanguskan sehingga penyerang harus memicu
+   * permintaan baru, yang sendirinya sudah dibatasi.
+   */
+  const tryKey = throttleKeys.otpVerify(contact);
+  const attempt = await peekAttempt(tryKey, { max: OTP_VERIFY_MAX });
+  if (attempt.exceeded) {
+    throw new AppError(
+      `Terlalu banyak percobaan kode OTP. Silakan minta kode baru dalam ${formatWait(attempt.retryAfterSec)}.`,
+      429
+    );
+  }
+
   const storedOtp = await redisClient.get(`otp:${contact}`);
-  
-  // Accept static '123456' for test/review accounts
-  if (testAccount && (otp === '123456' || storedOtp === otp)) {
+
+  const finish = async () => {
     const resetToken = crypto.randomBytes(32).toString('hex');
     await redisClient.set(`reset_token:${contact}`, resetToken, 'EX', 900); // 15 mins
     await redisClient.del(`otp:${contact}`);
+    await clearAttempt(tryKey);
     return resetToken;
+  };
+
+  // Accept static '123456' for test/review accounts
+  if (testAccount && (otp === '123456' || storedOtp === otp)) {
+    return await finish();
   }
 
   if (!storedOtp || storedOtp !== otp) {
-    throw new AppError('OTP tidak valid atau sudah kedaluwarsa', 400);
+    const failed = await hitAttempt(tryKey, {
+      max: OTP_VERIFY_MAX,
+      windowSec: OTP_VERIFY_WINDOW_SEC,
+    });
+
+    // Hanguskan OTP begitu batas terlampaui agar tebakan berikutnya tidak lagi
+    // punya sasaran yang valid.
+    if (failed.exceeded) {
+      await redisClient.del(`otp:${contact}`);
+      throw new AppError(
+        'Terlalu banyak percobaan kode OTP. Kode ini dibatalkan, silakan minta kode baru.',
+        429
+      );
+    }
+
+    const sisa = OTP_VERIFY_MAX - failed.count;
+    throw new AppError(
+      sisa > 0
+        ? `OTP tidak valid atau sudah kedaluwarsa. Sisa percobaan: ${sisa}.`
+        : 'OTP tidak valid atau sudah kedaluwarsa',
+      400
+    );
   }
 
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  await redisClient.set(`reset_token:${contact}`, resetToken, 'EX', 900); // 15 mins
-  await redisClient.del(`otp:${contact}`);
-
-  return resetToken;
+  return await finish();
 };
 
 export const resetPassword = async (contact, resetToken, newPassword) => {
