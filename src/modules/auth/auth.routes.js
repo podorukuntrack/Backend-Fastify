@@ -1,5 +1,6 @@
 import { loginHandler, getMeHandler, registerHandler, requestOtpHandler, verifyOtpHandler, resetPasswordHandler, changePasswordHandler, googleLoginHandler, updateProfileHandler, appleLoginHandler, deleteAccountHandler } from "./auth.controller.js";
 import * as service from "./auth.service.js";
+import { AppError } from "../../shared/utils/AppError.js";
 
 export default async function authRoutes(fastify, options) {
   /**
@@ -16,11 +17,21 @@ export default async function authRoutes(fastify, options) {
     rateLimit: {
       max,
       timeWindow,
-      errorResponseBuilder: (_req, ctx) => ({
-        success: false,
-        message: `Terlalu banyak permintaan dari jaringan Anda. Silakan coba lagi dalam ${Math.ceil(ctx.ttl / 1000)} detik.`,
-        errors: [],
-      }),
+      /**
+       * WAJIB mengembalikan objek Error, bukan objek biasa: plugin melakukan
+       * `throw errorResponseBuilder(...)`, lalu globalErrorHandler membaca
+       * `error.statusCode`. Objek biasa tidak punya properti itu sehingga
+       * responsnya jadi 500 "Terjadi kesalahan pada server" — status yang salah,
+       * dan penanganan 429 di web maupun mobile tidak ikut terpicu.
+       *
+       * ctx.ttl dalam milidetik. ctx.statusCode dipakai apa adanya agar kasus
+       * ban (403) tetap terwakili.
+       */
+      errorResponseBuilder: (_req, ctx) =>
+        new AppError(
+          `Terlalu banyak permintaan dari jaringan Anda. Silakan coba lagi dalam ${Math.ceil(ctx.ttl / 1000)} detik.`,
+          ctx.statusCode
+        ),
     },
   });
 
