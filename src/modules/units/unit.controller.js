@@ -1,5 +1,6 @@
 import * as service from './unit.service.js';
 import { withCache, clearCachePattern, delCache } from '../../shared/utils/cache.js';
+import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `units:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
@@ -74,7 +75,17 @@ export const deleteHandler = async (request, reply) => {
   try {
     const deleted = await service.removeUnit(request.params.id, request.user);
     if (!deleted) {
-      return reply.code(404).send({ success: false, message: 'Unit tidak ditemukan', errors: [] });
+      
+    await recordAudit({
+      request,
+      action: AuditAction.UNIT_DELETED,
+      entity: 'unit',
+      entityId: request.params.id,
+      summary: `Menghapus unit ${request.params.id}`,
+      metadata: {},
+    });
+
+    return reply.code(404).send({ success: false, message: 'Unit tidak ditemukan', errors: [] });
     }
     
     await clearCachePattern('units:*');

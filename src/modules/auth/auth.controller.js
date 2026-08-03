@@ -45,6 +45,7 @@ export const loginHandler = async (request, reply) => {
 import { findUserById } from './auth.repository.js';
 import { findCompanyById } from '../companies/company.repository.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
 
 export const getMeHandler = async (request, reply) => {
   try {
@@ -239,6 +240,15 @@ export const appleLoginHandler = async (request, reply) => {
 export const deleteAccountHandler = async (request, reply) => {
   await service.deleteUserAccount(request.user.sub);
   await clearCachePattern('users:*');
+
+  await recordAudit({
+    request,
+    action: AuditAction.ACCOUNT_SELF_DELETED,
+    entity: 'user',
+    entityId: request.user.sub,
+    summary: `Customer menghapus akunnya sendiri dari aplikasi (data dianonimkan)`,
+    metadata: { email: request.user.email },
+  });
 
   return reply.code(200).send({
     success: true,

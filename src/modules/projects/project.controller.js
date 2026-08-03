@@ -1,5 +1,6 @@
 import * as service from './project.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `projects:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
@@ -47,7 +48,17 @@ export const deleteHandler = async (request, reply) => {
   try {
     const deleted = await service.removeProject(request.params.id, request.user);
     if (!deleted) {
-      return reply.code(404).send({ success: false, message: 'Project tidak ditemukan', errors: [] });
+      
+    await recordAudit({
+      request,
+      action: AuditAction.PROJECT_DELETED,
+      entity: 'project',
+      entityId: request.params.id,
+      summary: `Menghapus proyek ${request.params.id}`,
+      metadata: {},
+    });
+
+    return reply.code(404).send({ success: false, message: 'Project tidak ditemukan', errors: [] });
     }
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');

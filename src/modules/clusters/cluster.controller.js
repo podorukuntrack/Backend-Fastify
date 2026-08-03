@@ -1,5 +1,6 @@
 import * as service from './cluster.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `clusters:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
@@ -55,7 +56,17 @@ export const deleteHandler = async (request, reply) => {
   try {
     const deleted = await service.removeCluster(request.params.id, request.user);
     if (!deleted) {
-      return reply.code(404).send({ success: false, message: 'Cluster tidak ditemukan', errors: [] });
+      
+    await recordAudit({
+      request,
+      action: AuditAction.CLUSTER_DELETED,
+      entity: 'cluster',
+      entityId: request.params.id,
+      summary: `Menghapus cluster ${request.params.id}`,
+      metadata: {},
+    });
+
+    return reply.code(404).send({ success: false, message: 'Cluster tidak ditemukan', errors: [] });
     }
     await clearCachePattern('clusters:*');
     await clearCachePattern('dashboard:*');

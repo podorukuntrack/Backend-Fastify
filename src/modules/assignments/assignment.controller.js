@@ -1,5 +1,6 @@
 import * as service from './assignment.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `assignments:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
@@ -41,6 +42,21 @@ export const createHandler = async (request, reply) => {
     await clearCachePattern('users:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
+    
+    await recordAudit({
+      request,
+      action: AuditAction.ASSIGNMENT_CREATED,
+      entity: 'assignment',
+      entityId: data?.id,
+      summary: `Membuat penugasan unit ${data?.unit?.nomor_unit ?? '?'} untuk ${data?.user?.nama ?? '?'}`,
+      metadata: {
+        unit: data?.unit?.nomor_unit,
+        pembeli: data?.user?.nama,
+        tipe_pembayaran: data?.pembayaran?.tipe,
+        harga_total: data?.pembayaran?.harga_total,
+      },
+    });
+
     return reply.code(201).send({ success: true, message: 'Assignment created', data });
   } catch (error) {
     throw error;
@@ -55,6 +71,16 @@ export const updateHandler = async (request, reply) => {
     await clearCachePattern('users:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
+    
+    await recordAudit({
+      request,
+      action: AuditAction.ASSIGNMENT_UPDATED,
+      entity: 'assignment',
+      entityId: request.params.id,
+      summary: `Memperbarui penugasan unit ${data?.unit?.nomor_unit ?? request.params.id}`,
+      metadata: { kolom: Object.keys(request.body ?? {}) },
+    });
+
     return reply.code(200).send({ success: true, message: 'Assignment updated', data });
   } catch (error) {
     throw error;
@@ -81,6 +107,16 @@ export const createPaymentHandler = async (request, reply) => {
     await clearCachePattern('retentions:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
+    
+    await recordAudit({
+      request,
+      action: AuditAction.PAYMENT_CREATED,
+      entity: 'payment',
+      entityId: data?.id,
+      summary: `Mencatat pembayaran ${data?.jumlah_bayar ?? '?'} pada penugasan ${request.params.id}`,
+      metadata: { assignment_id: request.params.id, jumlah_bayar: data?.jumlah_bayar, catatan: data?.catatan },
+    });
+
     return reply.code(201).send({ success: true, message: 'Payment created', data });
   } catch (error) {
     throw error;
@@ -95,6 +131,16 @@ export const updatePaymentHandler = async (request, reply) => {
     await clearCachePattern('retentions:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
+    
+    await recordAudit({
+      request,
+      action: AuditAction.PAYMENT_UPDATED,
+      entity: 'payment',
+      entityId: request.params.paymentId,
+      summary: `Mengubah pembayaran ${request.params.paymentId} menjadi ${data?.jumlah_bayar ?? '?'}`,
+      metadata: { assignment_id: request.params.id, jumlah_bayar_baru: data?.jumlah_bayar },
+    });
+
     return reply.code(200).send({ success: true, message: 'Payment updated', data });
   } catch (error) {
     throw error;
@@ -109,6 +155,16 @@ export const deletePaymentHandler = async (request, reply) => {
     await clearCachePattern('retentions:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
+    
+    await recordAudit({
+      request,
+      action: AuditAction.PAYMENT_DELETED,
+      entity: 'payment',
+      entityId: request.params.paymentId,
+      summary: `Menghapus pembayaran ${request.params.paymentId} dari penugasan ${request.params.id}`,
+      metadata: { assignment_id: request.params.id },
+    });
+
     return reply.code(200).send({ success: true, message: 'Payment deleted', data });
   } catch (error) {
     throw error;
@@ -123,6 +179,16 @@ export const deleteHandler = async (request, reply) => {
     await clearCachePattern('users:*');
     await clearCachePattern('projects:*');
     await clearCachePattern('dashboard:*');
+    
+    await recordAudit({
+      request,
+      action: AuditAction.ASSIGNMENT_DELETED,
+      entity: 'assignment',
+      entityId: request.params.id,
+      summary: `Menghapus penugasan ${request.params.id}`,
+      metadata: {},
+    });
+
     return reply.code(200).send({ success: true, message: 'Assignment deleted', data: deleted });
   } catch (error) {
     throw error;

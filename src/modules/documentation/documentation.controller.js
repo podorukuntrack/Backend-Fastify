@@ -1,6 +1,7 @@
 // src/modules/documentation/documentation.controller.js
 import * as service from './documentation.service.js';
 import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { allowedExtensions as ALLOWED_UPLOAD_EXTENSIONS } from '../../shared/utils/fileTypes.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `documentations:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
@@ -32,8 +33,16 @@ export const uploadHandler = async (request, reply) => {
       return reply.code(400).send({ success: false, message: 'No file uploaded', errors: [] });
     }
 
-    if (!data.mimetype.startsWith('image/') && !data.mimetype.startsWith('application/')) {
-      return reply.code(400).send({ success: false, message: 'Hanya file gambar (image/*) atau dokumen (application/*) yang diperbolehkan!', errors: [] });
+    // Penyaringan sesungguhnya ada di uploadFileToR2 (whitelist ekstensi +
+    // pemeriksaan magic bytes), karena mimetype dan nama berkas dari klien
+    // sepenuhnya bisa dipalsukan. Pemeriksaan cepat di sini hanya untuk menolak
+    // lebih awal sebelum berkas dibaca seluruhnya ke memori.
+    if (!ALLOWED_UPLOAD_EXTENSIONS.some((e) => (data.filename || '').toLowerCase().endsWith(e))) {
+      return reply.code(400).send({
+        success: false,
+        message: `Tipe berkas tidak diizinkan. Format yang diterima: ${ALLOWED_UPLOAD_EXTENSIONS.join(', ')}.`,
+        errors: [],
+      });
     }
 
     console.log("[UPLOAD DEBUG] File received:", data.filename);

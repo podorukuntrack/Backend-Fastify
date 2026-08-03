@@ -1,9 +1,9 @@
 // src/shared/utils/storage.js
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import crypto from 'crypto';
-import path from 'path';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
+import { validateUpload } from './fileTypes.js';
 
 dotenv.config();
 
@@ -17,26 +17,30 @@ const s3Client = new S3Client({
 });
 
 export const uploadFileToR2 = async (fileBuffer, originalFilename, mimeType) => {
+  // Titik simpul tunggal untuk SEMUA unggahan (dokumentasi, banner, logo),
+  // sehingga validasinya cukup dipasang sekali di sini.
+  const { ext, mime, isImage } = validateUpload(fileBuffer, originalFilename, mimeType);
+
   // Generate random string agar nama file unik
   const randomStr = crypto.randomBytes(8).toString('hex');
-  const ext = path.extname(originalFilename).toLowerCase();
-  
-  // Compress if image
+
   let processedBuffer = fileBuffer;
-  let finalMimeType = mimeType;
+  let finalMimeType = mime;   // selalu dari whitelist, tidak pernah dari klien
   let finalExt = ext;
-  
-    if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext) || mimeType.startsWith('image/')) {
-      try {
-        processedBuffer = await sharp(fileBuffer)
-          .rotate() // Auto-orient based on EXIF
-          .resize({ width: 1920, withoutEnlargement: true }) // Max width 1920px
-          .webp({ quality: 80 }) // Compress and convert to webp
-          .toBuffer();
-        finalExt = '.webp';
-        finalMimeType = 'image/webp';
-      } catch (err) {
-      console.error('Image compression failed, proceeding with original buffer:', err);
+
+  if (isImage) {
+    try {
+      processedBuffer = await sharp(fileBuffer)
+        .rotate() // Auto-orient based on EXIF
+        .resize({ width: 1920, withoutEnlargement: true }) // Max width 1920px
+        .webp({ quality: 80 }) // Compress and convert to webp
+        .toBuffer();
+      finalExt = '.webp';
+      finalMimeType = 'image/webp';
+    } catch (err) {
+      // Isi berkas sudah dipastikan gambar sungguhan lewat magic bytes, jadi
+      // menyimpan buffer aslinya aman. Tipe kontennya tetap dari whitelist.
+      console.error('Image compression failed, proceeding with original buffer:', err.message);
     }
   }
 
@@ -47,6 +51,10 @@ export const uploadFileToR2 = async (fileBuffer, originalFilename, mimeType) => 
     Key: fileKey,
     Body: processedBuffer,
     ContentType: finalMimeType,
+    // Berkas non-gambar dipaksa terunduh, bukan dirender browser. Ini lapisan
+    // kedua setelah whitelist: seandainya ada tipe berbahaya yang lolos, ia
+    // tidak akan dieksekusi sebagai halaman pada domain aset kita.
+    ...(isImage ? {} : { ContentDisposition: 'attachment' }),
   });
 
   await s3Client.send(command);
