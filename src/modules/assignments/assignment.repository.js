@@ -289,9 +289,18 @@ export const updateAssignment = async (id, data, userContext) => {
    * dirty data rendering on the frontend (like showing DP for Cash Lunas).
    * 
    * Rules:
-   * - cash_lunas: No DP, No KPR details, No Tenor.
-   * - cash_cicil: No DP, No KPR details. (Cicil relies on payment_history instead).
+   * - cash_lunas: No DP, No jatuh tempo, No reminder, No Tenor.
+   * - cash_cicil: No DP, No Tenor. (Cicil relies on payment_history instead).
    * - kredit_kpr: No Tenor (bulan) used for Cash Cicil, but keeps DP and KPR details.
+   *
+   * keterangan_kpr TIDAK dibersihkan untuk tipe mana pun.
+   * Namanya warisan dari masa fitur ini khusus KPR, tetapi sejak lama ia adalah
+   * catatan umum: UI menampilkannya sebagai "Keterangan / Catatan", textarea-nya
+   * dirender untuk semua tipe pembayaran, dan tampilan detail menampilkannya apa
+   * adanya. Sebelumnya field ini di-null-kan saat tipe cash_lunas, sehingga admin
+   * yang menyunting keterangan pada penugasan cash_lunas menerima pesan
+   * "berhasil" tetapi isinya lenyap — UPDATE-nya memang sukses, hanya nilainya
+   * yang sudah ditimpa null sebelum disimpan.
    */
   const newTipe = data.tipe_pembayaran || existing.pembayaran.tipe;
   if (newTipe === 'cash_lunas') {
@@ -299,7 +308,6 @@ export const updateAssignment = async (id, data, userContext) => {
     data.jatuh_tempo_kpr = null;
     data.reminder_kpr_dates = [];
     data.tenor_bulan = null;
-    data.keterangan_kpr = null;
   } else if (newTipe === 'cash_cicil') {
     data.dp = null;
     data.tenor_bulan = null;
