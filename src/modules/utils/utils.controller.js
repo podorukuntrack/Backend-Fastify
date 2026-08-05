@@ -3,7 +3,7 @@ import { rotateFileInR2 } from '../../shared/utils/storage.js';
 import { AppError } from '../../shared/utils/AppError.js';
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
-import { clearCachePattern } from '../../shared/utils/cache.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const rotateImage = async (request, reply) => {
   const { fileUrl, degrees } = request.body;
@@ -96,14 +96,9 @@ export const rotateImage = async (request, reply) => {
     `).catch(() => {});
     
     // Clear Redis cache so frontend gets the new URL instead of the old one
-    await clearCachePattern('documentations:*').catch(() => {});
-    await clearCachePattern('units:*').catch(() => {});
-    await clearCachePattern('projects:*').catch(() => {});
-    await clearCachePattern('unit:*').catch(() => {});
-    await clearCachePattern('handovers:*').catch(() => {});
-    await clearCachePattern('retentions:*').catch(() => {});
-    await clearCachePattern('dashboard:*').catch(() => {});
-    await clearCachePattern('banners:*').catch(() => {});
+    // rotate menulis ulang URL berkas di banyak tabel sekaligus
+    await Promise.all(['documentation', 'unit', 'handover', 'retention', 'banner']
+      .map((e) => invalidateFor(e)));
 
     return {
       message: 'Image rotated successfully',

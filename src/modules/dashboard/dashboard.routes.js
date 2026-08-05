@@ -3,7 +3,7 @@ import { authorize } from "../../middleware/authorize.js";
 import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
 import { removeExamples } from "../../plugins/swagger.js";
-import { getCache, setCache } from "../../shared/utils/cache.js";
+import { getCache, setCache, CACHE_TTL } from "../../shared/utils/cache.js";
 
 export default async function dashboardRoutes(fastify, options) {
   fastify.addHook("preValidation", fastify.authenticate);
@@ -190,7 +190,7 @@ export default async function dashboardRoutes(fastify, options) {
       };
 
       // 2. Simpan ke Cache (TTL 5 menit)
-      await setCache(cacheKey, responseData, 300);
+      await setCache(cacheKey, responseData, CACHE_TTL);
 
       return {
         success: true,
@@ -285,7 +285,7 @@ export default async function dashboardRoutes(fastify, options) {
 `);
 
       const responseData = result[0];
-      await setCache(cacheKey, responseData, 300);
+      await setCache(cacheKey, responseData, CACHE_TTL);
 
       return {
         success: true,
@@ -465,7 +465,7 @@ export default async function dashboardRoutes(fastify, options) {
         leaderboard: leaderboard
       };
 
-      await setCache(cacheKey, responseData, 300);
+      await setCache(cacheKey, responseData, CACHE_TTL);
 
       return {
         success: true,
@@ -666,7 +666,7 @@ export default async function dashboardRoutes(fastify, options) {
         customers: customersResult
       };
 
-      await setCache(cacheKey, responseData, 600); 
+      await setCache(cacheKey, responseData, CACHE_TTL); 
 
       return {
         success: true,

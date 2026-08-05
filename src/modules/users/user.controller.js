@@ -1,6 +1,7 @@
 import * as service from './user.service.js';
-import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { withCache, CACHE_TTL } from '../../shared/utils/cache.js';
 import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const getAllHandler = async (request, reply) => {
   const { page, limit, search, role, all_customers } = request.query;
@@ -9,7 +10,7 @@ export const getAllHandler = async (request, reply) => {
   
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getUsers(page, limit, request.user, { search, role, all_customers });
-  }, 300);
+  }, CACHE_TTL);
   
   return reply.code(200).send({
     success: true,
@@ -25,7 +26,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `users:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getUser(request.params.id, request.user);
-    }, 300);
+    }, CACHE_TTL);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
     throw error;
@@ -35,8 +36,7 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   try {
     const data = await service.createUser(request.body, request.user);
-    await clearCachePattern('users:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('user');
 
     await recordAudit({
       request,
@@ -59,8 +59,7 @@ export const updateHandler = async (request, reply) => {
     const before = await service.getUser(request.params.id, request.user).catch(() => null);
 
     const data = await service.modifyUser(request.params.id, request.body, request.user);
-    await clearCachePattern('users:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('user');
 
     // Perubahan role dan status dicatat terpisah karena keduanya yang paling
     // berdampak: satu mengubah kewenangan, satu memutus akses.
@@ -111,8 +110,7 @@ export const deleteHandler = async (request, reply) => {
     const before = await service.getUser(request.params.id, request.user).catch(() => null);
 
     await service.removeUser(request.params.id, request.user);
-    await clearCachePattern('users:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('user');
 
     await recordAudit({
       request,

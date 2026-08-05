@@ -1,5 +1,5 @@
 import * as service from './banners.service.js';
-import { clearCachePattern } from '../../shared/utils/cache.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const getAllHandler = async (request, reply) => {
   try {
@@ -49,7 +49,7 @@ export const createHandler = async (request, reply) => {
       return reply.code(400).send({ success: false, message: 'Image file is required', errors: [] });
     }
     const data = await service.createBanner(fields, fileData);
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('banner');
     return reply.code(201).send({ success: true, message: 'Banner created', data });
   } catch (error) {
     throw error;
@@ -60,7 +60,7 @@ export const updateHandler = async (request, reply) => {
   try {
     const { fields, fileData } = await parseMultipart(request);
     const data = await service.updateBanner(request.params.id, fields, fileData);
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('banner');
     return reply.code(200).send({ success: true, message: 'Banner updated', data });
   } catch (error) {
     throw error;
@@ -70,6 +70,7 @@ export const updateHandler = async (request, reply) => {
 export const deleteHandler = async (request, reply) => {
   try {
     await service.deleteBanner(request.params.id);
+    await invalidateFor('banner');
     return reply.code(200).send({ success: true, message: 'Banner deleted', data: {} });
   } catch (error) {
     throw error;

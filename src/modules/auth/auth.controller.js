@@ -44,8 +44,9 @@ export const loginHandler = async (request, reply) => {
 
 import { findUserById } from './auth.repository.js';
 import { findCompanyById } from '../companies/company.repository.js';
-import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { withCache, CACHE_TTL } from '../../shared/utils/cache.js';
 import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const getMeHandler = async (request, reply) => {
   try {
@@ -74,7 +75,7 @@ export const getMeHandler = async (request, reply) => {
           themeColor: company.theme_color || '#4f46e5'
         } : null
       };
-    }, 300);
+    }, CACHE_TTL);
 
     return reply.code(200).send({
       success: true,
@@ -193,7 +194,7 @@ export const updateProfileHandler = async (request, reply) => {
     const { nama, nomorTelepon } = request.body;
 
     const updated = await service.updateProfile(userId, { nama, nomorTelepon });
-    await clearCachePattern('users:*');
+    await invalidateFor('user');
     
     return reply.code(200).send({
       success: true,
@@ -239,7 +240,7 @@ export const appleLoginHandler = async (request, reply) => {
  */
 export const deleteAccountHandler = async (request, reply) => {
   await service.deleteUserAccount(request.user.sub);
-  await clearCachePattern('users:*');
+  await invalidateFor('user');
 
   await recordAudit({
     request,

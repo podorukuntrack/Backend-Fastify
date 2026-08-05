@@ -1,11 +1,12 @@
 import * as service from './retention.service.js';
-import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { withCache, clearCachePattern, CACHE_TTL } from '../../shared/utils/cache.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `retentions:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getRetentionsList(request.user, request.query);
-  }, 300);
+  }, CACHE_TTL);
   return reply.code(200).send({ success: true, message: 'Retentions retrieved', data, source });
 };
 
@@ -14,7 +15,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `retentions:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getRetentionDetail(request.params.id, request.user);
-    }, 300);
+    }, CACHE_TTL);
     return reply.code(200).send({ success: true, message: 'Retention retrieved', data, source });
   } catch (error) {
     throw error;
@@ -24,11 +25,7 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   try {
     const data = await service.createRetention(request.body, request.user);
-    await clearCachePattern('retentions:*');
-    await clearCachePattern('assignments:*');
-    await clearCachePattern('units:*');
-    await clearCachePattern('projects:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('retention');
     return reply.code(201).send({ success: true, message: 'Retention recorded', data });
   } catch (error) {
     throw error;
@@ -38,11 +35,7 @@ export const createHandler = async (request, reply) => {
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyRetention(request.params.id, request.body, request.user);
-    await clearCachePattern('retentions:*');
-    await clearCachePattern('assignments:*');
-    await clearCachePattern('units:*');
-    await clearCachePattern('projects:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('retention');
     return reply.code(200).send({ success: true, message: 'Retention updated', data });
   } catch (error) {
     throw error;
@@ -52,11 +45,7 @@ export const updateHandler = async (request, reply) => {
 export const deleteHandler = async (request, reply) => {
   try {
     await service.removeRetention(request.params.id, request.user);
-    await clearCachePattern('retentions:*');
-    await clearCachePattern('assignments:*');
-    await clearCachePattern('units:*');
-    await clearCachePattern('projects:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('retention');
     return reply.code(200).send({ success: true, message: 'Retention deleted', data: {} });
   } catch (error) {
     throw error;
@@ -68,7 +57,6 @@ export const deleteHandler = async (request, reply) => {
 export const getComplaintsHandler = async (request, reply) => {
   try {
     const data = await service.getComplaints(request.params.id, request.user);
-    await clearCachePattern('dashboard:*');
     return reply.code(200).send({ success: true, message: 'Complaints retrieved', data });
   } catch (error) {
     throw error;
@@ -78,7 +66,7 @@ export const getComplaintsHandler = async (request, reply) => {
 export const createComplaintHandler = async (request, reply) => {
   try {
     const data = await service.addComplaint(request.params.id, request.body, request.user);
-    await clearCachePattern(`retentions:*`);
+    await invalidateFor('complaint');
     return reply.code(201).send({ success: true, message: 'Complaint recorded', data });
   } catch (error) {
     throw error;
@@ -88,7 +76,7 @@ export const createComplaintHandler = async (request, reply) => {
 export const updateComplaintHandler = async (request, reply) => {
   try {
     const data = await service.editComplaint(request.params.id, request.params.complaintId, request.body, request.user);
-    await clearCachePattern(`retentions:*`);
+    await invalidateFor('complaint');
     return reply.code(200).send({ success: true, message: 'Complaint updated', data });
   } catch (error) {
     throw error;
@@ -98,8 +86,7 @@ export const updateComplaintHandler = async (request, reply) => {
 export const deleteComplaintHandler = async (request, reply) => {
   try {
     await service.removeComplaint(request.params.id, request.params.complaintId, request.user);
-    await clearCachePattern(`retentions:*`);
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('complaint');
     return reply.code(200).send({ success: true, message: 'Complaint deleted', data: {} });
   } catch (error) {
     throw error;

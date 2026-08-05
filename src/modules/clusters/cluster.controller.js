@@ -1,12 +1,13 @@
 import * as service from './cluster.service.js';
-import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { withCache, CACHE_TTL } from '../../shared/utils/cache.js';
 import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `clusters:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
   const { data: result, source } = await withCache(cacheKey, async () => {
     return await service.getClusters(request.user, request.query);
-  }, 300);
+  }, CACHE_TTL);
   
   return reply.code(200).send({ success: true, message: 'Clusters retrieved', data: result.data, meta: { total: result.total }, source });
 };
@@ -17,7 +18,7 @@ export const getByProjectIdHandler = async (request, reply) => {
   const cacheKey = `clusters:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
   const { data: result, source } = await withCache(cacheKey, async () => {
     return await service.getClusters(request.user, request.query);
-  }, 300);
+  }, CACHE_TTL);
   
   return reply.code(200).send({ success: true, message: 'Clusters retrieved', data: result.data, meta: { total: result.total }, source });
 };
@@ -27,7 +28,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `clusters:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getCluster(request.params.id, request.user);
-    }, 300);
+    }, CACHE_TTL);
     return reply.code(200).send({ success: true, message: 'Cluster retrieved', data, source });
   } catch (error) {
     throw error;
@@ -36,16 +37,14 @@ export const getByIdHandler = async (request, reply) => {
 
 export const createHandler = async (request, reply) => {
   const data = await service.createCluster(request.body, request.user);
-  await clearCachePattern('clusters:*');
-  await clearCachePattern('dashboard:*');
+  await invalidateFor('cluster');
   return reply.code(201).send({ success: true, message: 'Cluster created', data });
 };
 
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyCluster(request.params.id, request.body, request.user);
-    await clearCachePattern('clusters:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('cluster');
     return reply.code(200).send({ success: true, message: 'Cluster updated', data });
   } catch (error) {
     throw error;
@@ -68,8 +67,7 @@ export const deleteHandler = async (request, reply) => {
 
     return reply.code(404).send({ success: false, message: 'Cluster tidak ditemukan', errors: [] });
     }
-    await clearCachePattern('clusters:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('cluster');
     return reply.code(200).send({ success: true, message: 'Cluster deleted', data: {} });
   } catch (error) {
     throw error;

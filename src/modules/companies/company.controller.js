@@ -1,13 +1,14 @@
 // src/modules/companies/company.controller.js
 import * as service from './company.service.js';
-import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { withCache, CACHE_TTL } from '../../shared/utils/cache.js';
 import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `companies:list:${request.user.sub}:${request.user.companyId || 'all'}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getCompanies(request.user);
-  }, 300);
+  }, CACHE_TTL);
   return reply.code(200).send({ success: true, message: 'Success', data, source });
 };
 
@@ -16,7 +17,7 @@ export const getByIdHandler = async (request, reply) => {
     const cacheKey = `companies:detail:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getCompany(request.params.id, request.user);
-    }, 300);
+    }, CACHE_TTL);
     return reply.code(200).send({ success: true, message: 'Success', data, source });
   } catch (error) {
     throw error;
@@ -25,8 +26,7 @@ export const getByIdHandler = async (request, reply) => {
 
 export const createHandler = async (request, reply) => {
   const data = await service.createCompany(request.body);
-  await clearCachePattern('companies:*');
-  await clearCachePattern('dashboard:*');
+  await invalidateFor('company');
   
     await recordAudit({
       request,
@@ -43,9 +43,7 @@ export const createHandler = async (request, reply) => {
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyCompany(request.params.id, request.body);
-    await clearCachePattern('companies:*');
-    await clearCachePattern('users:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('company');
     
     await recordAudit({
       request,
@@ -65,8 +63,7 @@ export const updateHandler = async (request, reply) => {
 export const deleteHandler = async (request, reply) => {
   try {
     await service.removeCompany(request.params.id);
-    await clearCachePattern('companies:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('company');
     
     await recordAudit({
       request,

@@ -1,13 +1,14 @@
 // src/modules/documentation/documentation.controller.js
 import * as service from './documentation.service.js';
-import { withCache, clearCachePattern } from '../../shared/utils/cache.js';
+import { withCache, CACHE_TTL } from '../../shared/utils/cache.js';
 import { allowedExtensions as ALLOWED_UPLOAD_EXTENSIONS } from '../../shared/utils/fileTypes.js';
+import { invalidateFor } from '../../shared/utils/cacheGraph.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `documentations:list:${request.user.sub}:${request.user.companyId || 'all'}:${JSON.stringify(request.query)}`;
   const { data, source } = await withCache(cacheKey, async () => {
     return await service.getDocs(request.query, request.user);
-  }, 300);
+  }, CACHE_TTL);
   return reply.code(200).send({ success: true, message: 'Documents retrieved', data, source });
 };
 
@@ -16,7 +17,7 @@ export const getByUnitHandler = async (request, reply) => {
     const cacheKey = `documentations:unit:${request.user.sub}:${request.user.companyId || 'all'}:${request.params.id}`;
     const { data, source } = await withCache(cacheKey, async () => {
       return await service.getUnitDocs(request.params.id, request.user);
-    }, 300);
+    }, CACHE_TTL);
     return reply.code(200).send({ success: true, message: 'Documents retrieved', data, source });
   } catch (error) {
     throw error;
@@ -60,9 +61,7 @@ export const uploadHandler = async (request, reply) => {
       request.user
     );
 
-    await clearCachePattern('documentations:*');
-    await clearCachePattern('units:*');
-    await clearCachePattern('projects:*');
+    await invalidateFor('documentation');
 
     return reply.code(201).send({ success: true, message: 'Document uploaded successfully', data: result });
   } catch (error) {
@@ -73,11 +72,7 @@ export const uploadHandler = async (request, reply) => {
 export const deleteHandler = async (request, reply) => {
   try {
     await service.removeDocument(request.params.id, request.user);
-    await clearCachePattern('documentations:*');
-    await clearCachePattern('units:*');
-    await clearCachePattern('projects:*');
-    await clearCachePattern('unit:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('documentation');
     return reply.code(200).send({ success: true, message: 'Document deleted successfully', data: {} });
   } catch (error) {
     throw error;
@@ -87,11 +82,7 @@ export const deleteHandler = async (request, reply) => {
 export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyDocument(request.params.id, request.body, request.user);
-    await clearCachePattern('documentations:*');
-    await clearCachePattern('units:*');
-    await clearCachePattern('projects:*');
-    await clearCachePattern('unit:*');
-    await clearCachePattern('dashboard:*');
+    await invalidateFor('documentation');
     return reply.code(200).send({ success: true, message: 'Document updated successfully', data });
   } catch (error) {
     throw error;

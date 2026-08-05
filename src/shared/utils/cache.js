@@ -3,6 +3,20 @@
 let redisClient = null;
 
 /**
+ * TTL baku untuk cache respons, dalam detik.
+ *
+ * Diturunkan dari 300 detik menjadi 60. Untuk panel admin dengan segelintir
+ * pengguna aktif, cache lima menit memberi manfaat kinerja yang kecil tetapi
+ * menciptakan seluruh kelas bug "data tidak berubah walau sudah di-refresh":
+ * yang basi ada di Redis, sehingga memuat ulang peramban tidak menolong.
+ *
+ * Enam puluh detik masih meredam ledakan permintaan berulang, sambil membatasi
+ * jendela salah-tampil ke rentang yang tidak terlalu mengganggu bila suatu saat
+ * ada invalidasi yang terlewat lagi.
+ */
+export const CACHE_TTL = 60;
+
+/**
  * Menginisialisasi Redis client untuk utility cache.
  * Dipanggil dari plugin Fastify (misal: src/plugins/redis.js).
  * @param {import('ioredis').Redis} client 
