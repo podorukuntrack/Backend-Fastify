@@ -1,5 +1,18 @@
 import * as service from './banners.service.js';
 import { invalidateFor } from '../../shared/utils/cacheGraph.js';
+import { sendPushNotification } from '../../shared/utils/notification.js';
+import { db } from '../../config/database.js';
+import { users } from '../../shared/schemas/schema.js';
+import { eq } from 'drizzle-orm';
+
+// Ambil semua user_id yang berstatus customer
+const getAllCustomerIds = async () => {
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.role, 'customer'));
+  return rows.map(r => r.id);
+};
 
 export const getAllHandler = async (request, reply) => {
   try {
@@ -50,6 +63,19 @@ export const createHandler = async (request, reply) => {
     }
     const data = await service.createBanner(fields, fileData);
     await invalidateFor('banner');
+
+    // Kirim notifikasi promo ke semua customer
+    const customerIds = await getAllCustomerIds();
+    if (customerIds.length > 0) {
+      const bannerName = fields.name || 'Promo Terbaru';
+      sendPushNotification(
+        customerIds,
+        '🎉 Promo Terbaru!',
+        `Ada promo baru untuk Anda: ${bannerName}. Buka aplikasi untuk melihat selengkapnya.`,
+        { type: 'promo', bannerId: data?.id?.toString() ?? '' }
+      ).catch(err => console.error('[Banner Notif] Failed:', err.message));
+    }
+
     return reply.code(201).send({ success: true, message: 'Banner created', data });
   } catch (error) {
     throw error;
@@ -61,6 +87,19 @@ export const updateHandler = async (request, reply) => {
     const { fields, fileData } = await parseMultipart(request);
     const data = await service.updateBanner(request.params.id, fields, fileData);
     await invalidateFor('banner');
+
+    // Kirim notifikasi promo ke semua customer
+    const customerIds = await getAllCustomerIds();
+    if (customerIds.length > 0) {
+      const bannerName = fields.name || 'Promo Terbaru';
+      sendPushNotification(
+        customerIds,
+        '🎉 Promo Diperbarui!',
+        `Promo "${bannerName}" baru saja diperbarui. Buka aplikasi untuk melihat selengkapnya.`,
+        { type: 'promo', bannerId: request.params.id }
+      ).catch(err => console.error('[Banner Notif] Failed:', err.message));
+    }
+
     return reply.code(200).send({ success: true, message: 'Banner updated', data });
   } catch (error) {
     throw error;
