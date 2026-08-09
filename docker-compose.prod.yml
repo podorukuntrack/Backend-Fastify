@@ -11,6 +11,12 @@ services:
     # dengan pesan jelas bila variabelnya belum diisi — lebih baik gagal daripada
     # berjalan dengan kredensial yang diketahui umum.
     command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD wajib diisi di .env}
+    ports:
+      # Prefix 127.0.0.1 wajib. Backend jalan di host lewat PM2, jadi port perlu
+      # dipublish — tapi tanpa prefix ini Docker menulis aturan DNAT di chain
+      # DOCKER yang diproses sebelum ufw, sehingga port terbuka ke internet
+      # walau firewall menampilkan deny.
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data_prod:/data
     healthcheck:
@@ -27,7 +33,9 @@ services:
     container_name: podorukuntrack_uptime_kuma
     restart: always
     ports:
-      - "3001:3001"
+      # Dashboard internal. Akses lewat SSH tunnel:
+      #   ssh -L 3001:127.0.0.1:3001 podorukuntrack@<IP-VPS>
+      - "127.0.0.1:3001:3001"
     volumes:
       - uptime_kuma_data_prod:/app/data
     networks:
@@ -39,7 +47,10 @@ services:
     container_name: podorukuntrack_whatsapp_prod
     restart: always
     ports:
-      - "2785:3000"
+      # Backend memanggil WAHA lewat localhost. Tidak boleh terbuka ke internet:
+      # siapa pun yang menjangkaunya bisa kirim pesan atas nama nomor bisnis dan
+      # membaca riwayat chat.
+      - "127.0.0.1:2785:3000"
     volumes:
       - whatsapp_data_prod:/app/.wwebjs_auth
     environment:

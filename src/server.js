@@ -34,12 +34,18 @@ const start = async () => {
     // Ambil PORT dari env, default ke 3000 kalau kosong
     const port = parseInt(process.env.PORT, 10) || 3000;
 
+    // Default loopback: nginx yang memegang 80/443 dan mem-proxy ke sini. Bind
+    // ke 0.0.0.0 membuat port ini bisa dihit langsung dari internet, melewati
+    // TLS, security header, dan rate limit di nginx. Set HOST=0.0.0.0 hanya
+    // bila prosesnya jalan di dalam container.
+    const host = process.env.HOST || '127.0.0.1';
+
     await app.listen({
       port,
-      host: '0.0.0.0',
+      host,
     });
 
-    console.log(`🚀 Server running on port ${port}`);
+    console.log(`🚀 Server running on ${host}:${port}`);
 
     // ── Graceful Shutdown ──────────────────────────────────────
     const gracefulShutdown = async (signal) => {

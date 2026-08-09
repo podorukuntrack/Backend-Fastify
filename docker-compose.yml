@@ -9,10 +9,14 @@ services:
     environment:
       POSTGRES_DB:       ${POSTGRES_DB:-podorukuntrack}
       POSTGRES_USER:     ${POSTGRES_USER:-podorukuntrack_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-podorukuntrack_secret}
+      # Nilai cadangan dihapus: password yang ter-commit adalah password publik.
+      # Sintaks `:?` menghentikan `docker compose up` dengan pesan jelas bila
+      # variabelnya belum diisi — lebih baik gagal daripada berjalan dengan
+      # kredensial yang diketahui umum.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD wajib diisi di .env}
       PGDATA:            /var/lib/postgresql/data/pgdata
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
@@ -31,12 +35,16 @@ services:
     image: redis:7-alpine
     container_name: podorukuntrack_redis
     restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD wajib diisi di .env}
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      # Terikat loopback. Versi sebelumnya memakai "${REDIS_PORT:-6379}:6379"
+      # tanpa password — Redis terbuka ke seluruh internet dan dipakai penyerang
+      # lewat SLAVEOF untuk menjadikan instance ini replica read-only.
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD wajib diisi di .env}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
