@@ -1,5 +1,6 @@
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { notTestCompany } from '../../shared/utils/testCompany.js';
 
 /**
  * Riwayat pembayaran satu unit.
@@ -11,7 +12,8 @@ import { sql } from 'drizzle-orm';
  * mobile tidak berubah.
  */
 export const findPaymentsByUnitId = async (unitId, userContext) => {
-  let scopeCondition = sql`true`;
+  // Default (super_admin/owner): lintas perusahaan, kecuali perusahaan tester.
+  let scopeCondition = notTestCompany(sql`proj.company_id`, userContext.companyId);
   if (userContext.role === 'customer') {
     scopeCondition = sql`pa.user_id = ${userContext.sub}::uuid`;
   } else if (!['super_admin', 'owner'].includes(userContext.role)) {

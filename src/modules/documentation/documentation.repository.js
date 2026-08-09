@@ -1,6 +1,7 @@
 import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
 import { AppError } from '../../shared/utils/AppError.js';
+import { notTestCompany } from '../../shared/utils/testCompany.js';
 
 const mapDocRow = (row) => ({
   id: row.id,
@@ -36,7 +37,8 @@ export const findAllDocs = async (userContext, filters = {}) => {
 
   let scopeCondition;
   if (['super_admin', 'owner'].includes(userContext.role)) {
-    scopeCondition = sql`true`;
+    // Lintas perusahaan, kecuali perusahaan tester.
+    scopeCondition = notTestCompany(sql`p.company_id`, userContext.companyId);
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`d.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
   } else {
@@ -74,7 +76,8 @@ export const findAllDocs = async (userContext, filters = {}) => {
 export const findDocsByUnitId = async (unitId, userContext) => {
   let scopeCondition;
   if (['super_admin', 'owner'].includes(userContext.role)) {
-    scopeCondition = sql`true`;
+    // Lintas perusahaan, kecuali perusahaan tester.
+    scopeCondition = notTestCompany(sql`p.company_id`, userContext.companyId);
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`d.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
   } else {
@@ -111,7 +114,8 @@ export const findDocsByUnitId = async (unitId, userContext) => {
 export const findDocById = async (id, userContext) => {
   let scopeCondition;
   if (['super_admin', 'owner'].includes(userContext.role)) {
-    scopeCondition = sql`true`;
+    // Lintas perusahaan, kecuali perusahaan tester.
+    scopeCondition = notTestCompany(sql`p.company_id`, userContext.companyId);
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`d.unit_id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
   } else {

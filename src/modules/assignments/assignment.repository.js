@@ -2,6 +2,7 @@ import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
 import { clearDashboardCache } from "../../shared/utils/cache.js";
 import { AppError } from '../../shared/utils/AppError.js';
+import { notTestCompany } from '../../shared/utils/testCompany.js';
 
 const mapAssignmentRow = (row) => ({
   id: row.id,
@@ -58,6 +59,8 @@ const normalizeOwnershipStatus = (status) => {
 export const findAllAssignments = async (userContext, filters = {}) => {
   const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
+  // Lintas perusahaan untuk super_admin/owner, tapi tetap tanpa perusahaan tester.
+  const scopeCompany = sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
   const clusterId = filters.cluster_id ?? filters.clusterId ?? null;
   const limit = Number(filters.limit ?? 20);
   const page = Number(filters.page ?? 1);
@@ -94,7 +97,7 @@ export const findAllAssignments = async (userContext, filters = {}) => {
     JOIN units u ON u.id = pa.unit_id
     JOIN clusters c ON c.id = u.cluster_id
     JOIN projects p ON p.id = c.project_id
-    WHERE (${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid)
+    WHERE ${scopeCompany}
       AND (${userId}::uuid IS NULL OR pa.user_id = ${userId}::uuid)
       AND (${filters.unitId ?? null}::uuid IS NULL OR pa.unit_id = ${filters.unitId ?? null}::uuid)
       AND (${clusterId}::uuid IS NULL OR u.cluster_id = ${clusterId}::uuid)
@@ -109,6 +112,8 @@ export const findAllAssignments = async (userContext, filters = {}) => {
 export const countAssignments = async (filters, userContext) => {
   const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
+  // Lintas perusahaan untuk super_admin/owner, tapi tetap tanpa perusahaan tester.
+  const scopeCompany = sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
 
   const rows = await db.execute(sql`
     SELECT COUNT(*)::int AS count
@@ -116,7 +121,7 @@ export const countAssignments = async (filters, userContext) => {
     JOIN units u ON u.id = pa.unit_id
     JOIN clusters c ON c.id = u.cluster_id
     JOIN projects p ON p.id = c.project_id
-    WHERE (${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid)
+    WHERE ${scopeCompany}
       AND (${userId}::uuid IS NULL OR pa.user_id = ${userId}::uuid)
       AND (${filters.unitId ?? null}::uuid IS NULL OR pa.unit_id = ${filters.unitId ?? null}::uuid)
   `);
@@ -127,6 +132,8 @@ export const countAssignments = async (filters, userContext) => {
 export const findAssignmentById = async (id, userContext) => {
   const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
+  // Lintas perusahaan untuk super_admin/owner, tapi tetap tanpa perusahaan tester.
+  const scopeCompany = sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
 
   const rows = await db.execute(sql`
     SELECT
@@ -160,7 +167,7 @@ export const findAssignmentById = async (id, userContext) => {
     JOIN clusters c ON c.id = u.cluster_id
     JOIN projects p ON p.id = c.project_id
     WHERE pa.id = ${id}
-      AND (${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid)
+      AND ${scopeCompany}
       AND (${userId}::uuid IS NULL OR pa.user_id = ${userId}::uuid)
     LIMIT 1
   `);

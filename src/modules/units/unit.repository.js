@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { units } from '../../shared/schemas/schema.js';
 import { clearDashboardCache } from '../../shared/utils/cache.js';
 import { AppError } from '../../shared/utils/AppError.js';
+import { notTestCompany } from '../../shared/utils/testCompany.js';
 
 const mapUnitRow = (row) => ({
   id: row.id,
@@ -54,7 +55,8 @@ export const findAllUnits = async (userContext, filters = {}) => {
 
   let scopeCondition;
   if (['super_admin', 'owner'].includes(userContext.role)) {
-    scopeCondition = sql`true`;
+    // Lintas perusahaan, kecuali perusahaan tester.
+    scopeCondition = notTestCompany(sql`p.company_id`, userContext.companyId);
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`u.id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
   } else {
@@ -99,7 +101,8 @@ export const findUnitById = async (id, userContext) => {
   if (!id) return null;
   let scopeCondition;
   if (['super_admin', 'owner'].includes(userContext.role)) {
-    scopeCondition = sql`true`;
+    // Lintas perusahaan, kecuali perusahaan tester.
+    scopeCondition = notTestCompany(sql`p.company_id`, userContext.companyId);
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`u.id IN (SELECT unit_id FROM property_assignments WHERE user_id = ${userContext.sub}::uuid)`;
   } else {

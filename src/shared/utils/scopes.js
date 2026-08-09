@@ -1,6 +1,7 @@
 // src/shared/utils/scopes.js
 
 import { eq, sql } from 'drizzle-orm';
+import { notTestCompany } from './testCompany.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -22,7 +23,13 @@ export const getTenantScope = (
   if (
     user.role === 'super_admin' || user.role === 'owner'
   ) {
-    return undefined;
+    // Lintas perusahaan, kecuali perusahaan tester. Kalau tabelnya tidak punya
+    // kolom company_id, tidak ada yang bisa disaring di level ini — penyaringan
+    // dilakukan repository yang bersangkutan lewat join ke projects.
+    const companyCol = table.companyId || table.company_id;
+    if (!companyCol) return undefined;
+
+    return notTestCompany(companyCol, user.companyId || user.company_id);
   }
 
   // CUSTOMER

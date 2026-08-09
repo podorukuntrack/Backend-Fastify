@@ -3,6 +3,7 @@ import * as service from './company.service.js';
 import { withCache, CACHE_TTL } from '../../shared/utils/cache.js';
 import { recordAudit, AuditAction } from '../../shared/utils/audit.js';
 import { invalidateFor } from '../../shared/utils/cacheGraph.js';
+import { clearTestCompanyCache } from '../../shared/utils/testCompany.js';
 
 export const getAllHandler = async (request, reply) => {
   const cacheKey = `companies:list:${request.user.sub}:${request.user.companyId || 'all'}`;
@@ -27,7 +28,9 @@ export const getByIdHandler = async (request, reply) => {
 export const createHandler = async (request, reply) => {
   const data = await service.createCompany(request.body);
   await invalidateFor('company');
-  
+  // Nama PT menentukan status "tester", jadi daftarnya ikut disegarkan.
+  clearTestCompanyCache();
+
     await recordAudit({
       request,
       action: AuditAction.COMPANY_CREATED,
@@ -44,6 +47,8 @@ export const updateHandler = async (request, reply) => {
   try {
     const data = await service.modifyCompany(request.params.id, request.body);
     await invalidateFor('company');
+    // Nama PT menentukan status "tester", jadi daftarnya ikut disegarkan.
+    clearTestCompanyCache();
     
     await recordAudit({
       request,
@@ -64,6 +69,8 @@ export const deleteHandler = async (request, reply) => {
   try {
     await service.removeCompany(request.params.id);
     await invalidateFor('company');
+    // Nama PT menentukan status "tester", jadi daftarnya ikut disegarkan.
+    clearTestCompanyCache();
     
     await recordAudit({
       request,

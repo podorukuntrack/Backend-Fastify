@@ -1,6 +1,7 @@
 // src/shared/utils/audit.js
 import { db } from '../../config/database.js';
 import { sql } from 'drizzle-orm';
+import { notTestCompany } from './testCompany.js';
 
 /**
  * Jejak audit tindakan admin yang sensitif.
@@ -106,7 +107,8 @@ export const findAuditLogs = async (userContext, filters = {}) => {
   const offset = (page - 1) * limit;
 
   const scope = ['super_admin', 'owner'].includes(userContext.role)
-    ? sql`true`
+    // Lintas perusahaan, kecuali perusahaan tester — jejaknya cuma bising demo.
+    ? notTestCompany(sql`al.company_id`, userContext.companyId)
     : sql`al.company_id = ${asUuid(userContext.companyId)}::uuid`;
 
   const action = filters.action ?? null;

@@ -1,6 +1,7 @@
 import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
 import { AppError } from '../../shared/utils/AppError.js';
+import { notTestCompany } from '../../shared/utils/testCompany.js';
 
 const mapClusterRow = (row) => ({
   id: row.id,
@@ -26,7 +27,8 @@ export const findAllClusters = async (userContext, filters = {}) => {
 
   let scopeCondition;
   if (['super_admin', 'owner'].includes(userContext.role)) {
-    scopeCondition = sql`true`;
+    // Lintas perusahaan, kecuali perusahaan tester.
+    scopeCondition = notTestCompany(sql`p.company_id`, userContext.companyId);
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`c.id IN (
       SELECT un.cluster_id 
@@ -73,7 +75,8 @@ export const findAllClusters = async (userContext, filters = {}) => {
 export const findClusterById = async (id, userContext) => {
   let scopeCondition;
   if (['super_admin', 'owner'].includes(userContext.role)) {
-    scopeCondition = sql`true`;
+    // Lintas perusahaan, kecuali perusahaan tester.
+    scopeCondition = notTestCompany(sql`p.company_id`, userContext.companyId);
   } else if (userContext.role === 'customer') {
     scopeCondition = sql`c.id IN (
       SELECT un.cluster_id 

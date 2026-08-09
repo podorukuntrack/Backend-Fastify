@@ -4,6 +4,13 @@ import { db } from "../../config/database.js";
 import { sql } from "drizzle-orm";
 import { removeExamples } from "../../plugins/swagger.js";
 import { getCache, setCache, CACHE_TTL } from "../../shared/utils/cache.js";
+import {
+  getTestCompanyIds,
+  isTestCompanyId,
+  andNotTestCompany,
+  notTestCompany,
+  testScopeTag,
+} from "../../shared/utils/testCompany.js";
 
 export default async function dashboardRoutes(fastify, options) {
   fastify.addHook("preValidation", fastify.authenticate);
@@ -51,7 +58,13 @@ export default async function dashboardRoutes(fastify, options) {
         });
       }
 
-      const cacheKey = `dashboard:stats:${cid || "global"}`;
+      // Data perusahaan tester tidak boleh ikut ke agregat lintas perusahaan.
+      const testCompanyIds = await getTestCompanyIds();
+      const viewerIsTester = isTestCompanyId(testCompanyIds, cid);
+      const scopeProject = sql`((${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)${andNotTestCompany(sql`p.company_id`, cid)})`;
+      const scopeUser = sql`((${cid}::uuid IS NULL OR u.company_id = ${cid}::uuid)${andNotTestCompany(sql`u.company_id`, cid)})`;
+
+      const cacheKey = `dashboard:stats:v2:${cid || "global"}:${testScopeTag(viewerIsTester)}`;
 
       // 1. Cek Cache
       const cachedData = await getCache(cacheKey);
@@ -67,66 +80,66 @@ export default async function dashboardRoutes(fastify, options) {
         SELECT
           (SELECT COUNT(*)::int
              FROM projects p
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS projects_total,
+            WHERE ${scopeProject}) AS projects_total,
           (SELECT COUNT(*)::int
              FROM projects p
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND p.status = 'active') AS projects_active,
           (SELECT COUNT(*)::int
              FROM projects p
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND p.status = 'completed') AS projects_completed,
           (SELECT COUNT(*)::int
              FROM projects p
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND p.status = 'on_hold') AS projects_on_hold,
 
           (SELECT COUNT(*)::int
              FROM units u
              JOIN clusters c ON c.id = u.cluster_id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS units_total,
+            WHERE ${scopeProject}) AS units_total,
           (SELECT COUNT(*)::int
              FROM units u
              JOIN clusters c ON c.id = u.cluster_id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND u.status_pembangunan = 'selesai') AS units_selesai,
           (SELECT COUNT(*)::int
              FROM units u
              JOIN clusters c ON c.id = u.cluster_id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND u.status_pembangunan = 'dalam_pembangunan') AS units_dalam_pembangunan,
           (SELECT COUNT(*)::int
              FROM units u
              JOIN clusters c ON c.id = u.cluster_id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND u.status_pembangunan = 'belum_mulai') AS units_belum_mulai,
 
           (SELECT COUNT(*)::int
              FROM users u
             WHERE u.role = 'customer'
-              AND (${cid}::uuid IS NULL OR u.company_id = ${cid}::uuid)) AS customers_total,
+              AND ${scopeUser}) AS customers_total,
           (SELECT COUNT(*)::int
              FROM users u
             WHERE u.role = 'customer'
               AND u.status = 'active'
-              AND (${cid}::uuid IS NULL OR u.company_id = ${cid}::uuid)) AS customers_active,
+              AND ${scopeUser}) AS customers_active,
 
           (SELECT COUNT(*)::int
              FROM property_assignments pa
              JOIN units u ON u.id = pa.unit_id
              JOIN clusters c ON c.id = u.cluster_id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS assignments_total,
+            WHERE ${scopeProject}) AS assignments_total,
           (SELECT COUNT(*)::int
              FROM property_assignments pa
              JOIN units u ON u.id = pa.unit_id
              JOIN clusters c ON c.id = u.cluster_id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND pa.status_kepemilikan = 'active') AS assignments_active,
 
           (SELECT COALESCE(SUM(pa.total_dibayar), 0)
@@ -134,7 +147,7 @@ export default async function dashboardRoutes(fastify, options) {
              JOIN units u ON pa.unit_id = u.id
              JOIN clusters c ON u.cluster_id = c.id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) AS total_revenue,
+            WHERE ${scopeProject}) AS total_revenue,
 
           (SELECT COALESCE(SUM(ph.jumlah_bayar), 0)
              FROM payment_history ph
@@ -142,7 +155,7 @@ export default async function dashboardRoutes(fastify, options) {
              JOIN units u ON pa.unit_id = u.id
              JOIN clusters c ON u.cluster_id = c.id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND EXTRACT(MONTH FROM ph.tanggal_bayar) = EXTRACT(MONTH FROM CURRENT_DATE)
               AND EXTRACT(YEAR FROM ph.tanggal_bayar) = EXTRACT(YEAR FROM CURRENT_DATE)
           ) AS revenue_this_month,
@@ -153,7 +166,7 @@ export default async function dashboardRoutes(fastify, options) {
              JOIN units u ON r.unit_id = u.id
              JOIN clusters c ON u.cluster_id = c.id
              JOIN projects p ON p.id = c.project_id
-            WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+            WHERE ${scopeProject}
               AND rc.status = 'pending') AS open_tickets
       `);
 
@@ -341,8 +354,23 @@ export default async function dashboardRoutes(fastify, options) {
         });
       }
 
+      const viewerCompanyId = request.user.companyId ?? null;
+      const testCompanyIds = await getTestCompanyIds();
+      const viewerIsTester = isTestCompanyId(testCompanyIds, viewerCompanyId);
+
+      // Owner/super_admin tidak boleh menembus ke perusahaan tester lewat ?companyId.
+      if (!viewerIsTester && isTestCompanyId(testCompanyIds, cid)) {
+        return reply.code(403).send({
+          success: false,
+          message: 'Perusahaan ini tidak tersedia pada dashboard.',
+          errors: [],
+        });
+      }
+
+      const scopeProject = sql`((${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)${andNotTestCompany(sql`p.company_id`, viewerCompanyId)})`;
+
       const { startDate, endDate } = request.query;
-      const cacheKey = `dashboard:executive:v3:${cid || "global"}:${startDate || "all"}:${endDate || "all"}`;
+      const cacheKey = `dashboard:executive:v4:${cid || "global"}:${startDate || "all"}:${endDate || "all"}:${testScopeTag(viewerIsTester)}`;
 
       const cachedData = await getCache(cacheKey);
       if (cachedData) {
@@ -361,7 +389,7 @@ export default async function dashboardRoutes(fastify, options) {
            JOIN units u ON pa.unit_id = u.id
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON p.id = c.project_id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+           WHERE ${scopeProject}
              AND pa.status_kepemilikan = 'active'
              ${dateFilter}) as total_revenue_target,
              
@@ -371,7 +399,7 @@ export default async function dashboardRoutes(fastify, options) {
            JOIN units u ON pa.unit_id = u.id
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON p.id = c.project_id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+           WHERE ${scopeProject}
              ${startDate && endDate ? sql` AND ph.tanggal_bayar >= ${startDate}::date AND ph.tanggal_bayar <= ${endDate}::date ` : sql``}) as total_cash_in,
              
           (SELECT COALESCE(SUM(
@@ -381,7 +409,7 @@ export default async function dashboardRoutes(fastify, options) {
            JOIN units u ON pa.unit_id = u.id
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON p.id = c.project_id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+           WHERE ${scopeProject}
              AND pa.status_kepemilikan = 'active'
              ${dateFilter}) as total_piutang
       `);
@@ -399,7 +427,7 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN units u ON pa.unit_id = u.id
         JOIN clusters c ON u.cluster_id = c.id
         JOIN projects p ON p.id = c.project_id
-        WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)
+        WHERE ${scopeProject}
         ${paymentDateFilter}
         GROUP BY DATE(ph.tanggal_bayar)
         ORDER BY date ASC
@@ -411,18 +439,18 @@ export default async function dashboardRoutes(fastify, options) {
           (SELECT COUNT(*) FROM units u
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON p.id = c.project_id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid)) as total_units,
+           WHERE ${scopeProject}) as total_units,
           (SELECT COUNT(*) FROM property_assignments pa
            JOIN units u ON pa.unit_id = u.id
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON p.id = c.project_id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid) AND pa.status_kepemilikan = 'active'
+           WHERE ${scopeProject} AND pa.status_kepemilikan = 'active'
            ${dateFilter}) as units_sold,
           (SELECT COUNT(DISTINCT pa.user_id) FROM property_assignments pa
            JOIN units u ON pa.unit_id = u.id
            JOIN clusters c ON u.cluster_id = c.id
            JOIN projects p ON c.project_id = p.id
-           WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid) AND pa.status_kepemilikan = 'active'
+           WHERE ${scopeProject} AND pa.status_kepemilikan = 'active'
            ${dateFilter}) as total_customers
       `);
 
@@ -433,7 +461,7 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN units u ON pa.unit_id = u.id
         JOIN clusters c ON u.cluster_id = c.id
         JOIN projects p ON p.id = c.project_id
-        WHERE (${cid}::uuid IS NULL OR p.company_id = ${cid}::uuid) AND pa.status_kepemilikan = 'active'
+        WHERE ${scopeProject} AND pa.status_kepemilikan = 'active'
         GROUP BY pa.tipe_pembayaran
       `);
 
@@ -451,6 +479,7 @@ export default async function dashboardRoutes(fastify, options) {
           LEFT JOIN clusters c ON c.project_id = p.id
           LEFT JOIN units u ON u.cluster_id = c.id
           LEFT JOIN property_assignments pa ON pa.unit_id = u.id AND pa.status_kepemilikan = 'active' ${dateFilter}
+          WHERE ${notTestCompany(sql`comp.id`, viewerCompanyId)}
           GROUP BY comp.id, comp.nama_pt
           ORDER BY total_revenue DESC
         `);
@@ -526,10 +555,24 @@ export default async function dashboardRoutes(fastify, options) {
         }
       }
 
+      const viewerCompanyId = user.companyId ?? null;
+      const testCompanyIds = await getTestCompanyIds();
+      const viewerIsTester = isTestCompanyId(testCompanyIds, viewerCompanyId);
+
+      if (!viewerIsTester && isTestCompanyId(testCompanyIds, filterCid)) {
+        return reply.code(403).send({
+          success: false,
+          message: 'Perusahaan ini tidak tersedia pada dashboard.',
+          errors: [],
+        });
+      }
+
+      const scopeProject = sql`((${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)${andNotTestCompany(sql`p.company_id`, viewerCompanyId)})`;
+
       const sDate = request.query.startDate || null;
       const eDate = request.query.endDate || null;
 
-      const cacheKey = `dashboard:drilldown:v2:${filterCid || "global"}:${sDate || "all"}:${eDate || "all"}`;
+      const cacheKey = `dashboard:drilldown:v3:${filterCid || "global"}:${sDate || "all"}:${eDate || "all"}:${testScopeTag(viewerIsTester)}`;
       const cached = await getCache(cacheKey);
       if (cached) {
         return { success: true, source: "cache", data: cached };
@@ -573,7 +616,7 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN companies comp ON p.company_id = comp.id
         JOIN users buyer ON pa.user_id = buyer.id
         WHERE pa.status_kepemilikan = 'active'
-          AND (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
+          AND ${scopeProject}
           AND (${sDate}::date IS NULL OR pa.tanggal_pembelian >= ${sDate}::date)
           AND (${eDate}::date IS NULL OR pa.tanggal_pembelian <= ${eDate}::date)
         ORDER BY pa.tanggal_pembelian DESC
@@ -604,7 +647,7 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN projects p ON p.id = c.project_id
         JOIN companies comp ON p.company_id = comp.id
         JOIN users buyer ON pa.user_id = buyer.id
-        WHERE (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
+        WHERE ${scopeProject}
           AND (${sDate}::date IS NULL OR ph.tanggal_bayar >= ${sDate}::date)
           AND (${eDate}::date IS NULL OR ph.tanggal_bayar <= ${eDate}::date)
         GROUP BY pa.id, u.id, u.nomor_unit, c.id, c.nama_cluster, p.id, p.nama_proyek, p.company_id, comp.nama_pt, buyer.nama, pa.tanggal_pembelian, pa.tipe_pembayaran
@@ -626,7 +669,7 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN companies comp ON p.company_id = comp.id
         LEFT JOIN property_assignments pa ON pa.unit_id = u.id AND pa.status_kepemilikan = 'active'
         LEFT JOIN users buyer ON pa.user_id = buyer.id
-        WHERE (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
+        WHERE ${scopeProject}
           AND (
             (${sDate}::date IS NULL AND ${eDate}::date IS NULL)
             OR (pa.tanggal_pembelian >= ${sDate}::date AND pa.tanggal_pembelian <= ${eDate}::date)
@@ -650,7 +693,7 @@ export default async function dashboardRoutes(fastify, options) {
         JOIN clusters c ON u.cluster_id = c.id
         JOIN projects p ON c.project_id = p.id
         JOIN companies comp ON p.company_id = comp.id
-        WHERE (${filterCid}::uuid IS NULL OR p.company_id = ${filterCid}::uuid)
+        WHERE ${scopeProject}
           AND pa.status_kepemilikan = 'active'
           AND (${sDate}::date IS NULL OR pa.tanggal_pembelian >= ${sDate}::date)
           AND (${eDate}::date IS NULL OR pa.tanggal_pembelian <= ${eDate}::date)
