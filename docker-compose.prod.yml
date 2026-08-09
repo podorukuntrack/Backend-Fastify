@@ -52,7 +52,12 @@ services:
       # membaca riwayat chat.
       - "127.0.0.1:2785:3000"
     volumes:
-      - whatsapp_data_prod:/app/.wwebjs_auth
+      # WAHA menyimpan sesi di /app/.sessions (lihat --user-data-dir pada proses
+      # Chromium-nya). Path lama /app/.wwebjs_auth adalah default whatsapp-web.js
+      # yang tidak dipakai WAHA, sehingga volume-nya kosong dan sesi sebenarnya
+      # tertinggal di writable layer container — hilang setiap kali container
+      # dibuat ulang.
+      - whatsapp_data_prod:/app/.sessions
     environment:
       # Kunci API dan kata sandi dashboard tidak boleh punya nilai cadangan di file
       # yang ter-commit. WAHA_API_KEY harus sama dengan OPENWA_API_KEY di .env
