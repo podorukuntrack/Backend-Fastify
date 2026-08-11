@@ -60,7 +60,9 @@ export const findAllAssignments = async (userContext, filters = {}) => {
   const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
   // Lintas perusahaan untuk super_admin/owner, tapi tetap tanpa perusahaan tester.
-  const scopeCompany = sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
+  const scopeCompany = userContext.role === "customer"
+    ? sql`1=1`
+    : sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
   const clusterId = filters.cluster_id ?? filters.clusterId ?? null;
   const limit = Number(filters.limit ?? 20);
   const page = Number(filters.page ?? 1);
@@ -113,7 +115,9 @@ export const countAssignments = async (filters, userContext) => {
   const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
   // Lintas perusahaan untuk super_admin/owner, tapi tetap tanpa perusahaan tester.
-  const scopeCompany = sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
+  const scopeCompany = userContext.role === "customer"
+    ? sql`1=1`
+    : sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
 
   const rows = await db.execute(sql`
     SELECT COUNT(*)::int AS count
@@ -133,7 +137,9 @@ export const findAssignmentById = async (id, userContext) => {
   const companyId = ["super_admin", "owner"].includes(userContext.role) ? null : userContext.companyId;
   const userId = userContext.role === "customer" ? userContext.sub : null;
   // Lintas perusahaan untuk super_admin/owner, tapi tetap tanpa perusahaan tester.
-  const scopeCompany = sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
+  const scopeCompany = userContext.role === "customer"
+    ? sql`1=1`
+    : sql`((${companyId}::uuid IS NULL OR p.company_id = ${companyId}::uuid) AND ${notTestCompany(sql`p.company_id`, userContext.companyId)})`;
 
   const rows = await db.execute(sql`
     SELECT
