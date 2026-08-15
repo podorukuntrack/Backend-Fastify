@@ -20,11 +20,14 @@ langkah di sini yang mengganggu pengguna.
 
 ### 0.1 Kumpulkan tiga connection string dari dashboard penyedia baru
 
-| Keperluan | Mode koneksi | Dipakai oleh |
-|---|---|---|
-| Runtime aplikasi | Transaction pooler | `DATABASE_URL` |
-| Migrasi & restore | Session pooler | `MIGRATION_DATABASE_URL`, `pg_restore` |
-| Backup harian | Session pooler | Secret `BACKUP_DATABASE_URL` di GitHub |
+| Keperluan | Mode koneksi | Port di Sumopod | Dipakai oleh |
+|---|---|---|---|
+| Runtime aplikasi | Transaction pooler | 6432 | `DATABASE_URL` |
+| Migrasi & restore | Session pooler | 6433 | `MIGRATION_DATABASE_URL`, `psql` |
+| Backup harian | Session pooler | 6433 | Secret `BACKUP_DATABASE_URL` di GitHub |
+
+Nomor port berbeda antar penyedia. Periksa dashboard, jangan menyalin dari
+tabel di atas bila penyedianya berganti lagi.
 
 Password yang mengandung `@ : / ? #` wajib di-URL-encode.
 
@@ -218,10 +221,10 @@ Sunting `.env` di VPS:
 # Runtime — transaction pooler.
 # Tambahkan ?sslmode=require hanya bila langkah 0.1 membuktikan penyedia
 # melayani TLS. Bila tidak, sambungan justru gagal.
-DATABASE_URL=postgres://user:password@host:6543/dbname
+DATABASE_URL=postgres://user:password@host:6432/dbname
 
 # drizzle-kit dan pg_dump/psql — session pooler
-MIGRATION_DATABASE_URL=postgres://user:password@host:5432/dbname
+MIGRATION_DATABASE_URL=postgres://user:password@host:6433/dbname
 
 # Total koneksi = nilai ini × jumlah instance PM2 (satu per vCPU).
 # Di 2 vCPU: 2 × 10 = 20 dari kuota 50.
@@ -274,6 +277,12 @@ trafik normal, turunkan `DB_POOL_MAX` lalu `pm2 restart --update-env`.
 Lakukan satu operasi tulis nyata dari frontend — misal menambah catatan
 progress. Ini yang membuktikan transaksi berjalan lewat transaction pooler,
 sesuatu yang tidak tercakup oleh health check yang hanya membaca.
+
+Perilaku pooler pada port 6432 sudah diuji terpisah sebelum migrasi:
+`txid_current()` bernilai sama di awal dan akhir blok transaksi, artinya satu
+koneksi server dipegang dari `BEGIN` sampai `COMMIT`. Kedelapan pemanggilan
+`db.transaction()` di repository karena itu aman. Langkah ini memastikan
+perilaku yang sama muncul lewat jalur aplikasi yang sebenarnya.
 
 ---
 
