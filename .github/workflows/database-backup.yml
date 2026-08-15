@@ -23,10 +23,12 @@ jobs:
         # dan menjaga state sesi sepanjang proses dump — keduanya tidak bertahan
         # di transaction pooler, yang memindahkan koneksi antar transaksi.
         BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
-        # Samakan dengan versi mayor server database. Atur lewat repository
-        # variable PG_MAJOR (Settings > Secrets and variables > Actions >
-        # Variables) bila penyedia database memakai versi selain di bawah ini.
-        PG_MAJOR: ${{ vars.PG_MAJOR || '18' }}
+        # Wajib sama dengan versi mayor server database. pg_dump yang lebih tua
+        # dari server menolak jalan; yang lebih baru menghasilkan berkas yang
+        # tidak dapat dipulihkan kembali ke server itu sendiri. Atur lewat
+        # repository variable PG_MAJOR (Settings > Secrets and variables >
+        # Actions > Variables) setiap kali versi server berubah.
+        PG_MAJOR: ${{ vars.PG_MAJOR || '16' }}
       run: |
         if [ -z "$BACKUP_DATABASE_URL" ]; then
           echo "::error::Secret BACKUP_DATABASE_URL belum diisi."

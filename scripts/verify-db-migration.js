@@ -142,7 +142,11 @@ function reportHealth(health) {
 }
 
 async function main() {
+  // problems memblokir peralihan; warnings hanya perlu diketahui. Perbedaan
+  // versi mayor masuk kategori kedua: menurunkan versi adalah keputusan sadar,
+  // dan bukti bahwa datanya tetap utuh justru dihasilkan langkah 2–4 di bawah.
   const problems = [];
+  const warnings = [];
   let source;
   let target;
 
@@ -167,10 +171,11 @@ async function main() {
     const sourceMajor = Math.floor(Number(sourceHealth.version_num) / 10000);
     const targetMajor = Math.floor(Number(targetHealth.version_num) / 10000);
     if (targetMajor < sourceMajor) {
-      problems.push(
+      warnings.push(
         `Database tujuan (PostgreSQL ${targetMajor}) lebih lama dari sumber ` +
-        `(PostgreSQL ${sourceMajor}). Dump dari versi lebih baru bisa memakai ` +
-        'sintaks yang tidak dikenali.'
+        `(PostgreSQL ${sourceMajor}). Dump format custom tidak dapat dipakai — ` +
+        'gunakan dump SQL polos lalu psql, sesuai DB_MIGRATION_RUNBOOK.md. ' +
+        'Perbandingan di bawah ini yang menentukan apakah hasilnya utuh.'
       );
     }
   } catch (error) {
@@ -300,6 +305,13 @@ async function main() {
   }
 
   console.log(`\n${'─'.repeat(64)}`);
+
+  if (warnings.length) {
+    console.log(`\n⚠️  ${warnings.length} catatan (tidak memblokir):\n`);
+    warnings.forEach((w, i) => console.log(`   ${i + 1}. ${w}`));
+    console.log('');
+  }
+
   if (problems.length === 0) {
     console.log('🎉 Kedua database identik. Aman untuk mengalihkan DATABASE_URL.');
     process.exit(0);

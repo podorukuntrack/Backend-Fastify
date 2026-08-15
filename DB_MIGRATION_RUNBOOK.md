@@ -26,23 +26,53 @@ langkah di sini yang mengganggu pengguna.
 | Migrasi & restore | Session pooler | `MIGRATION_DATABASE_URL`, `pg_restore` |
 | Backup harian | Session pooler | Secret `BACKUP_DATABASE_URL` di GitHub |
 
-Password yang mengandung `@ : / ? #` wajib di-URL-encode. Sertakan
-`?sslmode=require` bila penyedia mewajibkan TLS.
+Password yang mengandung `@ : / ? #` wajib di-URL-encode.
 
-### 0.2 Catat versi PostgreSQL server baru
+Sertakan `?sslmode=require` **hanya** bila penyedia benar-benar melayani TLS.
+Bila tidak, sambungan gagal dengan pesan yang menyesatkan — `SSL routines:
+tls_validate_record_header:wrong version number`, yang sebenarnya berarti server
+menjawab handshake TLS dengan protokol polos. Uji dulu:
 
 ```bash
-psql "<SESSION_POOLER_URL>" -Atc "SHOW server_version"
+psql "<URL>?sslmode=require" -Atc "SELECT 1"   # berhasil? pakai sslmode=require
+psql "<URL>" -Atc "SELECT 1"                   # hanya ini yang berhasil? jangan pakai
 ```
 
-Angka mayornya dipakai di dua tempat: tag image pada perintah `pg_dump` di
-bawah, dan repository variable `PG_MAJOR` di GitHub Actions. Bila versi server
-baru **lebih rendah** dari server lama, hentikan prosedur dan minta versi yang
-sama ke penyedia — dump dari versi lebih baru dapat memuat sintaks yang tidak
-dikenali versi lama.
+Kedua penyedia bisa berbeda sikap, dan seringkali memang berbeda: satu menolak
+sambungan polos, satunya lagi tidak melayani TLS sama sekali. Uji masing-masing
+secara terpisah — jangan menyalin `sslmode` dari URL lama ke URL baru.
 
-Versi juga harus 13 ke atas. Di bawah itu, `gen_random_uuid()` yang menjadi
-DEFAULT hampir semua primary key tidak tersedia.
+> **Peringatan keamanan.** Tanpa TLS, password autentikasi dan seluruh isi
+> tabel melintasi jaringan tanpa enkripsi. Hal ini dapat diterima bila VPS dan
+> database berada pada jaringan privat yang sama. Bila lalu lintasnya melewati
+> internet publik, mintalah endpoint TLS ke penyedia sebelum melanjutkan.
+
+### 0.2 Catat versi PostgreSQL kedua server
+
+```bash
+psql "<URL_DATABASE_LAMA>"   -Atc "SHOW server_version"
+psql "<SESSION_POOLER_URL>"  -Atc "SHOW server_version"
+```
+
+Versi server tujuan harus 13 ke atas. Di bawah itu, `gen_random_uuid()` yang
+menjadi DEFAULT hampir semua primary key tidak tersedia dan setiap INSERT gagal.
+
+Selanjutnya bandingkan keduanya, karena inilah yang menentukan bentuk perintah
+di langkah 1.2 dan 1.3:
+
+- **Versi tujuan sama atau lebih baru.** Pakai dump format custom: ganti
+  `--format=plain` menjadi `-Fc` di langkah 1.2, dan `psql` menjadi
+  `pg_restore -d "$NEW_URL" --no-owner --no-acl` di langkah 1.3. Format custom
+  lebih tahan banting karena `pg_restore` mengatur sendiri urutan pembuatan
+  objek.
+- **Versi tujuan lebih tua.** Ikuti perintah di bawah apa adanya. Format custom
+  tidak bisa dipakai: `pg_restore` versi lama menolak arsip yang dibuat
+  `pg_dump` versi baru karena nomor format arsipnya tidak dikenali. SQL polos
+  tidak punya batasan itu, dengan satu penyesuaian yang dijelaskan di 1.3.
+
+Turun versi mayor tidak dijamin mulus. Yang membuatnya layak ditempuh adalah
+langkah 1.4: bila ada yang tidak ikut berpindah, checksum per tabel
+menangkapnya sebelum `DATABASE_URL` dialihkan.
 
 ### 0.3 Uji sambungan dari VPS
 
@@ -85,48 +115,82 @@ dump diambil, dan tulisan itu akan hilang.
 
 ```bash
 docker run --rm -e OLD_URL="<URL_DATABASE_LAMA>" -v "$PWD:/out" postgres:18 \
-  pg_dump "$OLD_URL" -Fc -O -x -f /out/pre-migration.dump
+  pg_dump "$OLD_URL" --format=plain -O -x -f /out/pre-migration.sql
 ```
 
-Ganti `postgres:18` bila versi server lama berbeda. Flag `-Fc` menghasilkan
-format custom (dapat di-`pg_restore` sebagian), `-O` membuang kepemilikan objek,
-`-x` membuang GRANT — dua hal terakhir wajib karena penyedia terkelola tidak
-memberi peran superuser.
+Tag image **wajib sama dengan versi server lama**, bukan versi server baru.
+`pg_dump` yang lebih tua dari server yang di-dump tidak didukung.
+
+`-O` membuang kepemilikan objek dan `-x` membuang GRANT; keduanya wajib karena
+penyedia terkelola tidak memberi peran superuser.
 
 Periksa hasilnya tidak kosong:
 
 ```bash
-ls -lh pre-migration.dump
+ls -lh pre-migration.sql
+head -n 5 pre-migration.sql
 ```
 
-File di bawah 50 KB berarti dump gagal. Jangan lanjut.
+Baris pertama harus memuat `-- PostgreSQL database dump`. Berkas di bawah 100 KB
+berarti dump gagal. Jangan lanjut.
 
 Simpan salinannya di luar VPS sebelum menyentuh apa pun:
 
 ```bash
-aws s3 cp pre-migration.dump s3://$R2_BUCKET_NAME/database-backups/pre-migration.dump \
+gzip -c pre-migration.sql > pre-migration.sql.gz
+aws s3 cp pre-migration.sql.gz s3://$R2_BUCKET_NAME/database-backups/pre-migration.sql.gz \
   --endpoint-url https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com
 ```
 
 ### 1.3 Restore ke database baru
 
+**Hanya bila versi tujuan lebih tua:** buang pengaturan yang belum dikenal
+server lama.
+
 ```bash
-docker run --rm -e NEW_URL="<SESSION_POOLER_URL>" -v "$PWD:/in" postgres:18 \
-  pg_restore -d "$NEW_URL" --no-owner --no-acl /in/pre-migration.dump
+sed -i -E "/^SET (transaction_timeout|default_toast_compression) = /d" pre-migration.sql
 ```
 
-Gunakan **session pooler**, bukan transaction pooler — `pg_restore` menjaga
-state sesi sepanjang proses.
+`pg_dump` versi 17 ke atas menuliskan `SET transaction_timeout = 0;` di bagian
+awal berkas. Parameter itu baru ada sejak PostgreSQL 17, sehingga server 16
+menolaknya dengan `unrecognized configuration parameter` dan — karena
+`ON_ERROR_STOP` di bawah — restore berhenti di baris pertama.
+
+Pastikan hasilnya bersih sebelum lanjut:
+
+```bash
+grep -c "^SET transaction_timeout" pre-migration.sql   # harus 0
+```
+
+Sekarang jalankan restore:
+
+```bash
+docker run --rm -e NEW_URL="<SESSION_POOLER_URL>" -v "$PWD:/in" postgres:16 \
+  psql "$NEW_URL" -v ON_ERROR_STOP=1 -f /in/pre-migration.sql
+```
+
+Dua hal yang menentukan di sini:
+
+- **Session pooler, bukan transaction pooler.** `psql` menjaga state sesi
+  sepanjang berkas dijalankan.
+- **`ON_ERROR_STOP=1` wajib.** Tanpa itu `psql` melewati pernyataan yang gagal
+  dan tetap keluar dengan kode 0 — restore setengah jadi yang tampak berhasil.
+
+Tag image di sini mengikuti versi server **baru**, karena `psql` di sini
+bertindak sebagai klien terhadapnya.
 
 Dump penuh ini sudah membawa skema, data, indeks, constraint, dan tabel
 pencatat migrasi Drizzle sekaligus. **Jangan jalankan `drizzle-kit migrate`
 setelahnya** — Drizzle akan membaca tabel pencatat yang ikut ter-restore dan
 mengetahui keempat migrasi di folder `drizzle/` sudah teraplikasi.
 
-Beberapa peringatan `WARNING: errors ignored on restore` yang menyebut
-`EXTENSION` atau kepemilikan objek adalah hal normal di penyedia terkelola dan
-boleh diabaikan. Yang tidak boleh diabaikan: pesan yang menyebut `relation` atau
-`constraint` gagal dibuat.
+Bila restore berhenti di tengah, database tujuan tinggal dikosongkan lalu
+diulang — tidak ada yang perlu dipulihkan, karena database lama tidak tersentuh:
+
+```bash
+docker run --rm -e NEW_URL="<SESSION_POOLER_URL>" postgres:16 \
+  psql "$NEW_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+```
 
 ### 1.4 Buktikan datanya identik
 
@@ -151,11 +215,13 @@ ada perbedaan, jadi aman dipakai di dalam skrip lain.
 Sunting `.env` di VPS:
 
 ```bash
-# Runtime — transaction pooler
-DATABASE_URL=postgres://user:password@host:6543/dbname?sslmode=require
+# Runtime — transaction pooler.
+# Tambahkan ?sslmode=require hanya bila langkah 0.1 membuktikan penyedia
+# melayani TLS. Bila tidak, sambungan justru gagal.
+DATABASE_URL=postgres://user:password@host:6543/dbname
 
-# drizzle-kit dan pg_dump/pg_restore — session pooler
-MIGRATION_DATABASE_URL=postgres://user:password@host:5432/dbname?sslmode=require
+# drizzle-kit dan pg_dump/psql — session pooler
+MIGRATION_DATABASE_URL=postgres://user:password@host:5432/dbname
 
 # Total koneksi = nilai ini × jumlah instance PM2 (satu per vCPU).
 # Di 2 vCPU: 2 × 10 = 20 dari kuota 50.
@@ -218,7 +284,10 @@ sesuatu yang tidak tercakup oleh health check yang hanya membaca.
 Di GitHub repo → Settings → Secrets and variables → Actions:
 
 1. Buat secret baru `BACKUP_DATABASE_URL` berisi session pooler URL.
-2. Buat repository variable `PG_MAJOR` bila versi server baru bukan 18.
+2. Setel repository variable `PG_MAJOR` ke versi mayor server **baru**. Salah
+   di sini berakibat fatal secara diam-diam: `pg_dump` yang lebih tua dari
+   server akan menolak jalan, sedangkan yang lebih baru menghasilkan berkas yang
+   tidak dapat dipulihkan kembali ke server itu sendiri.
 3. Hapus secret lama `NEON_DATABASE_URL` **setelah** langkah berikutnya lulus.
 
 Jalankan `Database Daily Backup` secara manual lewat tombol Run workflow, lalu

@@ -124,11 +124,13 @@ FRONTEND_URL=https://podorukuntrack.pages.dev,https://podorukuntrack.com
 # Bila penyedia database menawarkan beberapa mode koneksi, pakai transaction
 # pooler di sini — koneksi server dipakai bergantian antar transaksi, sehingga
 # kuota koneksi tidak habis oleh proses PM2 cluster.
-DATABASE_URL=postgres://USER:PASSWORD@HOST:6543/DB_NAME?sslmode=require
+# Tambahkan ?sslmode=require hanya bila penyedia melayani TLS; bila tidak,
+# sambungan justru gagal dengan pesan "SSL routines: wrong version number".
+DATABASE_URL=postgres://USER:PASSWORD@HOST:6543/DB_NAME
 
-# Khusus drizzle-kit dan pg_dump/pg_restore. Wajib session pooler atau direct
+# Khusus drizzle-kit dan pg_dump/psql. Wajib session pooler atau direct
 # connection: DDL dan prepared statement gagal lewat transaction pooler.
-MIGRATION_DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DB_NAME?sslmode=require
+MIGRATION_DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DB_NAME
 
 # Koneksi pool per proses Node. Total ke database = nilai ini x jumlah instance
 # PM2 (satu per vCPU). Jaga hasil kalinya di bawah kuota koneksi paket Anda.
