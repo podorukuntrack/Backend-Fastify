@@ -28,6 +28,8 @@ import dashboardRoutes from "./modules/dashboard/dashboard.routes.js";
 import bannersRoutes from "./modules/banners/banners.routes.js";
 import utilsRoutes from "./modules/utils/utils.routes.js";
 import auditRoutes from "./modules/audit/audit.routes.js";
+import syncRoutes from "./modules/sync/sync.routes.js";
+import { isSyncReadEnabled } from "./modules/sync/sync.config.js";
 import { globalErrorHandler } from "./shared/utils/errorHandler.js";
 import { db } from "./config/database.js";
 import { sql } from "drizzle-orm";
@@ -184,6 +186,11 @@ export async function buildApp() {
   await app.register(bannersRoutes, { prefix: "/api/v1/banners" });
   await app.register(utilsRoutes, { prefix: "/api/v1/utils" });
   await app.register(auditRoutes, { prefix: "/api/v1/audit-logs" });
+
+  // Integrasi read-only sengaja opt-in dan tidak pernah aktif di production.
+  if (isSyncReadEnabled()) {
+    await app.register(syncRoutes, { prefix: "/sync/v1" });
+  }
 
   app.get("/", async (_request, reply) => {
     return reply.code(404).type("text/plain").send("");
