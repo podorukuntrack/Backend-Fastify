@@ -44,5 +44,16 @@ export function createSyncRepository(db) {
         FROM ${db('public.' + name)} t WHERE ${entity} <> 'customers' OR to_jsonb(t)->>'role' = 'customer'`;
       return result;
     },
+    async getChecksumV2({ entity }) {
+      const name = table(entity);
+      return db.begin('isolation level repeatable read read only', async tx => {
+        const [{ watermark }] = await tx`SELECT pg_snapshot_xmin(pg_current_snapshot())::text AS watermark`;
+        const [result] = await tx`SELECT count(*)::int AS count,
+          coalesce(md5(string_agg(id::text || ':' || sync_version::text, ',' ORDER BY id::text COLLATE "C")), md5('')) AS hash,
+          public.sync_content_hash(${entity}) AS content_hash
+          FROM ${tx('public.' + name)} t WHERE ${entity} <> 'customers' OR to_jsonb(t)->>'role' = 'customer'`;
+        return { ...result, watermark };
+      });
+    },
   };
 }

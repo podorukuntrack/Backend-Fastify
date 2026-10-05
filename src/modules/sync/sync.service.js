@@ -68,6 +68,7 @@ export function createSyncService({ repository } = {}) {
         has_more: rows.length > limit, max_seq: safeNumber(max_seq) };
     },
     async getChecksum({ entity }) { assertEntity(entity); return repository.getChecksum({ entity }); },
+    async getChecksumV2({ entity }) { assertEntity(entity); return repository.getChecksumV2({ entity }); },
   };
 }
 export function bearerTokenMatches(request, expectedToken) {

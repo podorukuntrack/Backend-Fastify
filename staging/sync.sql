@@ -87,3 +87,47 @@ LANGUAGE sql AS $$
  SELECT count(*) FROM gone;
 $$;
 REVOKE ALL ON FUNCTION public.sync_prune_outbox(interval) FROM PUBLIC;
+
+-- Shared content checksum contract. Field order is significant; never sort keys.
+CREATE OR REPLACE FUNCTION public.sync_content_row_hash(entity text, r jsonb) RETURNS text
+LANGUAGE plpgsql STABLE SET search_path = pg_catalog, public SET timezone = 'UTC' AS $$
+DECLARE fields text[]; k text; v text; serialized text := r->>'id';
+BEGIN
+ fields := CASE entity
+ WHEN 'companies' THEN ARRAY['nama_pt','kode_pt','alamat']
+ WHEN 'projects' THEN ARRAY['company_id','nama_proyek','status']
+ WHEN 'clusters' THEN ARRAY['project_id','nama_cluster']
+ WHEN 'units' THEN ARRAY['cluster_id','nomor_unit','tipe_rumah','luas_tanah','luas_bangunan','status_pembangunan']
+ WHEN 'customers' THEN ARRAY['nama','email','nomor_telepon']
+ WHEN 'assignments' THEN ARRAY['user_id','unit_id','tipe_pembayaran','harga_total','dp','status_kepemilikan','tanggal_pembelian']
+ WHEN 'payments' THEN ARRAY['assignment_id','jumlah_bayar','tanggal_bayar','catatan','bukti_pembayaran','is_auto_inject','created_at','jenis','status_verifikasi','rekening_tujuan','diverifikasi_oleh','diverifikasi_pada']
+ ELSE NULL END;
+ IF fields IS NULL THEN RAISE EXCEPTION 'Unknown entity'; END IF;
+ FOREACH k IN ARRAY fields LOOP
+  v := r->>k;
+  IF v IS NULL THEN v := E'\\N';
+  ELSIF k IN ('luas_tanah','luas_bangunan','harga_total','dp','jumlah_bayar') OR jsonb_typeof(r->k) = 'number' THEN
+   v := trim_scale(v::numeric)::text;
+  ELSIF k IN ('created_at','diverifikasi_pada') THEN
+   v := to_char(v::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
+  ELSIF k IN ('tanggal_pembelian','tanggal_bayar') THEN v := to_char(v::date, 'YYYY-MM-DD');
+  ELSIF k = 'is_auto_inject' OR jsonb_typeof(r->k) = 'boolean' THEN v := (v::boolean)::text;
+  ELSIF jsonb_typeof(r->k) IN ('array','object') THEN v := (r->k)::text;
+  END IF;
+  serialized := serialized || '|' || v;
+ END LOOP;
+ RETURN md5(serialized);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.sync_content_hash(entity text) RETURNS text
+LANGUAGE plpgsql STABLE SET search_path = pg_catalog, public SET timezone = 'UTC' AS $$
+DECLARE tbl text; result text;
+BEGIN
+ tbl := CASE entity WHEN 'companies' THEN 'companies' WHEN 'projects' THEN 'projects'
+ WHEN 'clusters' THEN 'clusters' WHEN 'units' THEN 'units' WHEN 'customers' THEN 'users'
+ WHEN 'assignments' THEN 'property_assignments' WHEN 'payments' THEN 'payment_history' END;
+ IF tbl IS NULL THEN RAISE EXCEPTION 'Unknown entity'; END IF;
+ EXECUTE format('SELECT coalesce(md5(string_agg(id::text || '':'' || public.sync_content_row_hash($1, to_jsonb(t)), '','' ORDER BY id::text COLLATE "C")), md5('''')) FROM public.%I t WHERE ($1 <> ''customers'' OR to_jsonb(t)->>''role'' = ''customer'')', tbl)
+ INTO result USING entity;
+ RETURN result;
+END $$;

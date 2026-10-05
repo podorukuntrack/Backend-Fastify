@@ -32,5 +32,9 @@ export function createSyncController(service) {
       assertEntity(request.params.entity);
       return reply.code(200).send(await service.getChecksum({ entity: request.params.entity }));
     },
+    checksumV2: async (request, reply) => {
+      assertEntity(request.params.entity);
+      return reply.code(200).send(await service.getChecksumV2({ entity: request.params.entity }));
+    },
   };
 }
