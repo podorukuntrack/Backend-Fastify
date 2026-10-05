@@ -1,5 +1,22 @@
 # PRTrack staging pilot → PRSI
 
+## Pembaruan checksum isi, 5 Oktober 2026
+
+Branch `codex/staging-content-checksum` menambahkan checksum isi dan token monitor. Status ini menggantikan keterangan loopback-only dan runtime.env 0640 pada catatan provisioning historis di bawah. Production, Neon, workflow deploy, dan layanan/database PRSI tidak diubah.
+
+- API kini bind **dua alamat eksplisit**: `127.0.0.1:3201` dan `10.11.26.196:3201`. Tidak ada bind wildcard. Allowlist aplikasi: `127.0.0.1`, `::1`, `10.11.20.216`; `trustProxy=false`. Unit systemd menolak semua alamat selain localhost dan `10.11.20.216/32`.
+- `GET /sync/v2/checksum/{entity}`: `{ count, hash, content_hash, watermark }`. `hash` tetap MD5 id:versi. `content_hash` mengikuti spesifikasi bersama; `watermark` adalah string desimal xmin. Semuanya dibaca dalam satu transaksi `REPEATABLE READ READ ONLY`. v1 tetap `{ count, hash }`.
+- Fungsi `public.sync_content_hash(entity text)` dan helper `public.sync_content_row_hash(entity text, r jsonb)` memakai whitelist berurutan. Null/missing menjadi `\N`, numeric memakai `trim_scale`, boolean lowercase, timestamp UTC enam digit mikrodetik, date ISO, JSON memakai `jsonb::text`, teks dipertahankan. Timestamp tanpa zona ditafsirkan UTC agar tidak bergantung pada timezone sesi. Baris customer hanya role customer.
+- `TRACK_MONITOR_TOKEN` hanya mengizinkan GET health dan checksum v2. Events, snapshot, start, checksum v1, dan semua metode tulis ditolak. Token baca tetap bisa membaca semua endpoint sync; nilainya telah dirotasi.
+- `/etc/prtrack-staging/read-token`, `/etc/prtrack-staging/monitor-token`, dan `/etc/prtrack-staging/runtime.env` kini root:root **0600**. systemd membaca EnvironmentFile sebagai root; proses API tetap user non-root. Jangan menjalankan ulang langkah chmod 0640 dari skrip aktivasi historis.
+- Token monitor sudah disalurkan lewat SSH ke `/etc/prtrack-monitoring/track-staging-token` pada VPS monitoring, root-only 0600. Tidak ada secret dalam argumen CLI, hasil tes, atau repo.
+- 21 vektor sintetis ada di `sync-tests/fixtures/content-hash-vectors.json`; salinan identik ada pada path relatif yang sama di backend PRSI. SHA-256: `474c7a7a23997417bf7df93ce5a1ba107e848707927207218fdc048a822f5ea2`.
+- Backup sebelum perubahan: `/var/backups/prtrack-staging/checksum-20261005-191726/{files.tar.gz,database.dump}`. Arsip dan daftar restore DB berhasil dibaca. Backup berisi secret lama dan harus tetap root-only.
+
+Lihat [CHECKSUM-HANDOFF.md](CHECKSUM-HANDOFF.md) untuk hasil, tujuh hash, akses monitoring, batas interpretasi, dan daftar cutover yang belum dijalankan. Bukti nonsecret disimpan di `staging/evidence/checksum-*`.
+
+Rotasi berikutnya hanya setelah backup baru: jalankan `sudo node staging/rotate-checksum-tokens.js` di direktori aplikasi staging. Skrip membaca file root-only, memverifikasi identitas staging, mengganti kedua token, restart hanya API staging, dan memverifikasi token lama 401. Setelah rotasi, distribusikan token baru melalui kanal secret ke konsumen pengujian; jangan menjalankan skrip untuk sekadar pemeriksaan kesehatan.
+
 Status 5 Oktober 2026: backend staging aktif di VPS `43.173.11.71`. Tidak ada merge/push/deploy ke production; frontend tidak dipasang. Branch lokal: `codex/prsi-sync-staging`. Workflow production hanya dipicu push `main`.
 
 **Batas penting:** API siap untuk pengujian terkontrol. E2E dengan worker/database PRSI pengujian belum dijalankan. Dua risiko kehilangan event pada kontrak saat ini berhasil direproduksi; jangan menganggap incremental sync lossless atau mengaktifkan worker production. Lihat `CONTRACT-RISKS.md`.

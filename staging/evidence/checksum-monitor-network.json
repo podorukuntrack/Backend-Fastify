@@ -1,0 +1,59 @@
+{
+  "checked_at": "2026-10-05T15:58:20.732727+00:00",
+  "source": "10.11.20.216",
+  "target": "10.11.26.196:3201",
+  "checksums": {
+    "companies": {
+      "count": 4,
+      "hash": "d134e4dd132eefa83a6d95721396cc95",
+      "content_hash": "ac5d04ba4e009fc6130b8a60b1ac97d8",
+      "watermark": "889"
+    },
+    "projects": {
+      "count": 17,
+      "hash": "a85cbbd3f34aadaaeb2a81d3428e2c1e",
+      "content_hash": "90208ed8d9e06e88d895251b601a8492",
+      "watermark": "889"
+    },
+    "clusters": {
+      "count": 55,
+      "hash": "2a1778bb0e6533cb2ec12ea4783fef1f",
+      "content_hash": "3c7c03dac445673a3f7254a81b2ad76f",
+      "watermark": "889"
+    },
+    "units": {
+      "count": 467,
+      "hash": "9f0fb109fef11dca406c50be9181503e",
+      "content_hash": "c185252caa0e8b20dea1eaea8e0e07b2",
+      "watermark": "889"
+    },
+    "customers": {
+      "count": 512,
+      "hash": "6e7bf8e9c3ff7f059dcefd5c9529befb",
+      "content_hash": "b7a931deaf8cb7f16f4d71d7692803f0",
+      "watermark": "889"
+    },
+    "assignments": {
+      "count": 281,
+      "hash": "349ab44ff5f1cf5a1522b89493b36b46",
+      "content_hash": "298a14f2a8da3df025da31b5904d1409",
+      "watermark": "889"
+    },
+    "payments": {
+      "count": 1283,
+      "hash": "6204da766ab0469801a1cbe0c815b2d7",
+      "content_hash": "3cb1a10bb557f9576dc8f6a51d939e93",
+      "watermark": "889"
+    }
+  },
+  "denied": {
+    "GET /sync/v1/events": 403,
+    "GET /sync/v2/events": 403,
+    "GET /sync/v1/snapshot/companies": 403,
+    "GET /sync/v2/snapshot/companies": 403,
+    "GET /sync/v2/start": 403,
+    "PUT /sync/v2/checksum/companies": 403,
+    "PUT /sync/v1/schedules/test": 403
+  },
+  "public_port": "unreachable: TimeoutError"
+}

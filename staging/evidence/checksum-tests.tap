@@ -1,0 +1,101 @@
+Staging sync migration applied
+TAP version 13
+# Subtest: shared synthetic vectors match PostgreSQL canonical row hashes, including missing values
+ok 1 - shared synthetic vectors match PostgreSQL canonical row hashes, including missing values
+  ---
+  duration_ms: 94.427345
+  type: 'test'
+  ...
+# Subtest: v2 checksum adds content hash and watermark while v1 stays unchanged
+ok 2 - v2 checksum adds content hash and watermark while v1 stays unchanged
+  ---
+  duration_ms: 206.116331
+  type: 'test'
+  ...
+# Subtest: v2 checksum keeps the watermark snapshot when a writer commits between its queries
+ok 3 - v2 checksum keeps the watermark snapshot when a writer commits between its queries
+  ---
+  duration_ms: 30.191909
+  type: 'test'
+  ...
+# Subtest: content detects whitelist drift with frozen version, ignores outside fields, rollback restores triggers
+ok 4 - content detects whitelist drift with frozen version, ignores outside fields, rollback restores triggers
+  ---
+  duration_ms: 12.460782
+  type: 'test'
+  ...
+# Subtest: monitor can only GET health and v2 checksums; source allowlist ignores forwarded headers
+ok 5 - monitor can only GET health and v2 checksums; source allowlist ignores forwarded headers
+  ---
+  duration_ms: 305.206925
+  type: 'test'
+  ...
+# Subtest: guard rejects URL mismatch, production env, wrong identity and unsafe role
+ok 6 - guard rejects URL mismatch, production env, wrong identity and unsafe role
+  ---
+  duration_ms: 38.875763
+  type: 'test'
+  ...
+# Subtest: health, authentication, input errors, no write or login routes, no secrets
+ok 7 - health, authentication, input errors, no write or login routes, no secrets
+  ---
+  duration_ms: 11.361929
+  type: 'test'
+  ...
+# Subtest: all seven snapshots paginate completely with matching C-order MD5 checksums
+ok 8 - all seven snapshots paginate completely with matching C-order MD5 checksums
+  ---
+  duration_ms: 342.837578
+  type: 'test'
+  ...
+# Subtest: raw SQL I/U/D, role changes, delete/reinsert monotone versions, rollback, cascades
+ok 9 - raw SQL I/U/D, role changes, delete/reinsert monotone versions, rollback, cascades
+  ---
+  duration_ms: 28.412482
+  type: 'test'
+  ...
+# Subtest: contract risk reproduced: long transaction commits behind advanced cursor; replay is stable; rollback gap exists
+ok 10 - contract risk reproduced: long transaction commits behind advanced cursor; replay is stable; rollback gap exists
+  ---
+  duration_ms: 5226.654699
+  type: 'test'
+  ...
+# Subtest: contract risk reproduced: insert behind snapshot page cursor is missed while max_seq advances
+ok 11 - contract risk reproduced: insert behind snapshot page cursor is missed while max_seq advances
+  ---
+  duration_ms: 11.185644
+  type: 'test'
+  ...
+# Subtest: v2 closes risk 1: a transaction holding a lower seq that commits late is still delivered
+ok 12 - v2 closes risk 1: a transaction holding a lower seq that commits late is still delivered
+  ---
+  duration_ms: 27.212122
+  type: 'test'
+  ...
+# Subtest: v2 reports held_by_open_transaction while an older writer is open, and never returns events past the watermark
+ok 13 - v2 reports held_by_open_transaction while an older writer is open, and never returns events past the watermark
+  ---
+  duration_ms: 11.845277
+  type: 'test'
+  ...
+# Subtest: v2 closes risk 2: insert behind the snapshot page cursor is replayed from the start cursor
+ok 14 - v2 closes risk 2: insert behind the snapshot page cursor is replayed from the start cursor
+  ---
+  duration_ms: 12.164131
+  type: 'test'
+  ...
+# Subtest: v2 cursor validation and v1 transition cursor 0:<seq>
+ok 15 - v2 cursor validation and v1 transition cursor 0:<seq>
+  ---
+  duration_ms: 21.701132
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6541.440386

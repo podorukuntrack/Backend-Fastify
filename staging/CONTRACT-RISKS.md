@@ -44,3 +44,16 @@ Keterbatasan:
 - xmin berlaku untuk seluruh cluster. DDL panjang atau transaksi di database lain pada compute yang sama ikut menahan.
 
 Production Track **belum** diubah. Penerapan menunggu cutover yang disetujui pemilik.
+
+## Checksum isi dan monitoring, 5 Oktober 2026
+
+Checksum v2 kini menambah `content_hash` dan `watermark` dalam satu snapshot repeatable-read read-only. v1 tidak berubah. Tes membuktikan perubahan whitelist terdeteksi walaupun trigger versi dinonaktifkan dalam transaksi yang kemudian rollback; kolom di luar whitelist tidak memengaruhi hash. Token monitor hanya dapat mengakses health dan checksum v2. Bukti dan handoff ada di `CHECKSUM-HANDOFF.md`.
+
+Batas spesifikasi bersama yang tetap dipertahankan:
+
+- Hash cocok adalah bukti rekonsiliasi menurut representasi kanonik ini, **bukan pembuktian matematis kesamaan semua data**. MD5 dapat bertabrakan. Pemisah `|` tidak di-escape: pasangan teks `a|b`, `c` dan `a`, `b|c` menghasilkan serialisasi sama. Teks literal `\N` juga sama dengan sentinel null. Jangan mengubah format sepihak; perubahan encoding/hash perlu kontrak bersama baru.
+- Hanya kolom whitelist yang dicakup; kolom lain dan metadata versi tidak termasuk content hash. Numeric mengabaikan skala; timestamp dibandingkan sebagai waktu UTC; JSON mengikuti representasi PostgreSQL jsonb.
+- `watermark` adalah xmin cluster Track, bukan ID snapshot lintas server, dan tidak bisa dibandingkan langsung dengan xmin cluster PRSI. Bandingkan sesudah worker PRSI mengejar perubahan dan data stabil. Hash tujuh entitas dari tujuh request bukan satu snapshot global.
+- Salinan fixture ke PRSI tidak berarti fungsi hash PRSI telah diimplementasikan atau E2E isi telah dibuktikan. Sesi ini tidak mengubah DB atau layanan PRSI.
+- HTTP privat staging bergantung pada isolasi jaringan privat; belum memberikan TLS. Listener privat juga tidak sendirian membuktikan port publik tertutup karena NAT cloud mungkin memetakan ke alamat privat. Bukti eksternal saat pengujian menunjukkan port publik timeout; pertahankan pembatasan jaringan dan ulangi pemeriksaan saat konfigurasi berubah.
+- Rotasi token baca mengharuskan konsumen staging mengambil token baru dari kanal secret. Konfigurasi PRSI aktif tidak diubah oleh sesi ini.
