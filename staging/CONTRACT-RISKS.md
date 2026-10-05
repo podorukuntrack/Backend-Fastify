@@ -27,3 +27,20 @@ Usulan: koordinasikan snapshot session/epoch dengan watermark awal yang aman, at
 ## Batas penggunaan pilot
 
 Untuk pilot terkontrol sekarang, lakukan snapshot saat tidak ada mutasi, rekonsiliasi setelah data stabil, dan mutasi satu transaksi selesai pada satu waktu. Ini batas operasional untuk eksperimen, bukan jaminan kontrak umum. Jangan gunakan ini untuk production atau menyatakan uji E2E/reliabilitas lulus. Simpan hasil reproduksi di handoff PRSI; worker SI pengujian belum diaktifkan oleh pekerjaan ini.
+
+## Status 5 Oktober 2026: kontrak v2 (staging)
+
+Kedua risiko di atas ditutup oleh `/sync/v2` tanpa mengubah v1:
+
+- `sync_outbox.txid xid8` diisi `pg_current_xact_id()`.
+- `/sync/v2/events?after=<txid>:<seq>` hanya mengembalikan event dengan `txid < pg_snapshot_xmin(pg_current_snapshot())`, diurutkan menurut `(txid, seq)`. Transaksi yang commit terlambat selalu mendapat posisi di depan cursor. Tidak ada lubang yang ditunggu dan tidak ada filter 5 detik.
+- `/sync/v2/start` memberi cursor awal sebelum halaman snapshot pertama, sehingga INSERT di belakang halaman diputar ulang sebagai event.
+- `sync_prune_outbox()` untuk retensi 30 hari (khusus role pemilik).
+
+Bukti: `sync-tests/sync.test.js` lulus 10/10 di staging VPS (test v2 risk 1, held, risk 2, dan peralihan `0:<seq>`). Dua test v1 tetap mendokumentasikan risiko lama.
+
+Keterbatasan:
+- Transaksi Track yang menggantung menahan event sesudahnya. Event tidak hilang, tetapi tertunda dan ditandai `held_by_open_transaction`. Pasang `idle_in_transaction_session_timeout` dan alert.
+- xmin berlaku untuk seluruh cluster. DDL panjang atau transaksi di database lain pada compute yang sama ikut menahan.
+
+Production Track **belum** diubah. Penerapan menunggu cutover yang disetujui pemilik.
