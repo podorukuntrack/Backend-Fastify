@@ -1,0 +1,20 @@
+{
+  "audit_logs": "452",
+  "banners": "3",
+  "clusters": "55",
+  "companies": "4",
+  "documentation": "1481",
+  "handovers": "14",
+  "payment_history": "1283",
+  "progress": "366",
+  "projects": "17",
+  "property_assignments": "281",
+  "refresh_tokens": "0",
+  "retention_complaints": "15",
+  "retentions": "10",
+  "timelines": "421",
+  "units": "467",
+  "user_devices": "0",
+  "users": "530",
+  "whatsapp_logs": "88"
+}

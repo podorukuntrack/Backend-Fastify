@@ -1,0 +1,944 @@
+[
+  {
+    "table_name": "audit_logs",
+    "conname": "audit_logs_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "audit_logs",
+    "conname": "audit_logs_action_not_null",
+    "definition": "NOT NULL action",
+    "convalidated": true
+  },
+  {
+    "table_name": "audit_logs",
+    "conname": "audit_logs_entity_not_null",
+    "definition": "NOT NULL entity",
+    "convalidated": true
+  },
+  {
+    "table_name": "audit_logs",
+    "conname": "audit_logs_metadata_not_null",
+    "definition": "NOT NULL metadata",
+    "convalidated": true
+  },
+  {
+    "table_name": "audit_logs",
+    "conname": "audit_logs_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "banners",
+    "conname": "banners_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "banners",
+    "conname": "banners_name_not_null",
+    "definition": "NOT NULL name",
+    "convalidated": true
+  },
+  {
+    "table_name": "banners",
+    "conname": "banners_image_url_not_null",
+    "definition": "NOT NULL image_url",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_jumlah_unit_check",
+    "definition": "CHECK ((jumlah_unit >= 0))",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_project_id_not_null",
+    "definition": "NOT NULL project_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_nama_cluster_not_null",
+    "definition": "NOT NULL nama_cluster",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_jumlah_unit_not_null",
+    "definition": "NOT NULL jumlah_unit",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_updated_at_not_null",
+    "definition": "NOT NULL updated_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "companies",
+    "conname": "companies_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "companies",
+    "conname": "companies_nama_pt_not_null",
+    "definition": "NOT NULL nama_pt",
+    "convalidated": true
+  },
+  {
+    "table_name": "companies",
+    "conname": "companies_kode_pt_not_null",
+    "definition": "NOT NULL kode_pt",
+    "convalidated": true
+  },
+  {
+    "table_name": "companies",
+    "conname": "companies_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "companies",
+    "conname": "companies_updated_at_not_null",
+    "definition": "NOT NULL updated_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_unit_id_not_null",
+    "definition": "NOT NULL unit_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_jenis_not_null",
+    "definition": "NOT NULL jenis",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_url_not_null",
+    "definition": "NOT NULL url",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "handovers",
+    "conname": "handovers_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "handovers",
+    "conname": "handovers_company_id_not_null",
+    "definition": "NOT NULL company_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "handovers",
+    "conname": "handovers_unit_id_not_null",
+    "definition": "NOT NULL unit_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "handovers",
+    "conname": "handovers_scheduled_date_not_null",
+    "definition": "NOT NULL scheduled_date",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_assignment_id_not_null",
+    "definition": "NOT NULL assignment_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_jumlah_bayar_not_null",
+    "definition": "NOT NULL jumlah_bayar",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_tanggal_bayar_not_null",
+    "definition": "NOT NULL tanggal_bayar",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_is_auto_inject_not_null",
+    "definition": "NOT NULL is_auto_inject",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_progress_percentage_check",
+    "definition": "CHECK (((progress_percentage >= 0) AND (progress_percentage <= 100)))",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_unit_id_not_null",
+    "definition": "NOT NULL unit_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_tahap_not_null",
+    "definition": "NOT NULL tahap",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_progress_percentage_not_null",
+    "definition": "NOT NULL progress_percentage",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_tanggal_update_not_null",
+    "definition": "NOT NULL tanggal_update",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_updated_at_not_null",
+    "definition": "NOT NULL updated_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_company_id_not_null",
+    "definition": "NOT NULL company_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_nama_proyek_not_null",
+    "definition": "NOT NULL nama_proyek",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_lokasi_not_null",
+    "definition": "NOT NULL lokasi",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_status_not_null",
+    "definition": "NOT NULL status",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_updated_at_not_null",
+    "definition": "NOT NULL updated_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_check",
+    "definition": "CHECK (((total_dibayar >= (0)::numeric) AND (total_dibayar <= harga_total)))",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_harga_total_check",
+    "definition": "CHECK ((harga_total >= (0)::numeric))",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_status_kepemilikan_check",
+    "definition": "CHECK ((status_kepemilikan = ANY (ARRAY['active'::text, 'inactive'::text])))",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_user_id_not_null",
+    "definition": "NOT NULL user_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_unit_id_not_null",
+    "definition": "NOT NULL unit_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_tanggal_pembelian_not_null",
+    "definition": "NOT NULL tanggal_pembelian",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_status_kepemilikan_not_null",
+    "definition": "NOT NULL status_kepemilikan",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_tipe_pembayaran_not_null",
+    "definition": "NOT NULL tipe_pembayaran",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_harga_total_not_null",
+    "definition": "NOT NULL harga_total",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_total_dibayar_not_null",
+    "definition": "NOT NULL total_dibayar",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_updated_at_not_null",
+    "definition": "NOT NULL updated_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_user_id_not_null",
+    "definition": "NOT NULL user_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_token_hash_not_null",
+    "definition": "NOT NULL token_hash",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_expires_at_not_null",
+    "definition": "NOT NULL expires_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_revoked_not_null",
+    "definition": "NOT NULL revoked",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "retention_complaints",
+    "conname": "retention_complaints_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "retention_complaints",
+    "conname": "retention_complaints_retention_id_not_null",
+    "definition": "NOT NULL retention_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "retentions",
+    "conname": "retentions_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "retentions",
+    "conname": "retentions_company_id_not_null",
+    "definition": "NOT NULL company_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "retentions",
+    "conname": "retentions_unit_id_not_null",
+    "definition": "NOT NULL unit_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "retentions",
+    "conname": "retentions_due_date_not_null",
+    "definition": "NOT NULL due_date",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_company_id_not_null",
+    "definition": "NOT NULL company_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_project_id_not_null",
+    "definition": "NOT NULL project_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_unit_id_not_null",
+    "definition": "NOT NULL unit_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_task_name_not_null",
+    "definition": "NOT NULL task_name",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_start_date_not_null",
+    "definition": "NOT NULL start_date",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_end_date_not_null",
+    "definition": "NOT NULL end_date",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_luas_bangunan_check",
+    "definition": "CHECK ((luas_bangunan > (0)::numeric))",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_luas_tanah_check",
+    "definition": "CHECK ((luas_tanah > (0)::numeric))",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_progress_percentage_check",
+    "definition": "CHECK (((progress_percentage >= 0) AND (progress_percentage <= 100)))",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_cluster_id_not_null",
+    "definition": "NOT NULL cluster_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_nomor_unit_not_null",
+    "definition": "NOT NULL nomor_unit",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_status_pembangunan_not_null",
+    "definition": "NOT NULL status_pembangunan",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_progress_percentage_not_null",
+    "definition": "NOT NULL progress_percentage",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_updated_at_not_null",
+    "definition": "NOT NULL updated_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "user_devices",
+    "conname": "user_devices_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "user_devices",
+    "conname": "user_devices_user_id_not_null",
+    "definition": "NOT NULL user_id",
+    "convalidated": true
+  },
+  {
+    "table_name": "user_devices",
+    "conname": "user_devices_fcm_token_not_null",
+    "definition": "NOT NULL fcm_token",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_nama_not_null",
+    "definition": "NOT NULL nama",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_email_not_null",
+    "definition": "NOT NULL email",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_password_hash_not_null",
+    "definition": "NOT NULL password_hash",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_role_not_null",
+    "definition": "NOT NULL role",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_status_not_null",
+    "definition": "NOT NULL status",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_wa_notifications_enabled_not_null",
+    "definition": "NOT NULL wa_notifications_enabled",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_updated_at_not_null",
+    "definition": "NOT NULL updated_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_status_check",
+    "definition": "CHECK ((status = ANY (ARRAY['queued'::text, 'sent'::text, 'delivered'::text, 'read'::text, 'failed'::text])))",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_id_not_null",
+    "definition": "NOT NULL id",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_nomor_tujuan_not_null",
+    "definition": "NOT NULL nomor_tujuan",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_status_not_null",
+    "definition": "NOT NULL status",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_created_at_not_null",
+    "definition": "NOT NULL created_at",
+    "convalidated": true
+  },
+  {
+    "table_name": "audit_logs",
+    "conname": "audit_logs_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "banners",
+    "conname": "banners_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "companies",
+    "conname": "companies_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "handovers",
+    "conname": "handovers_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "retention_complaints",
+    "conname": "retention_complaints_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "retentions",
+    "conname": "retentions_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "user_devices",
+    "conname": "user_devices_fcm_token_key",
+    "definition": "UNIQUE (fcm_token)",
+    "convalidated": true
+  },
+  {
+    "table_name": "user_devices",
+    "conname": "user_devices_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_email_unique",
+    "definition": "UNIQUE (email)",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_pkey",
+    "definition": "PRIMARY KEY (id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "audit_logs",
+    "conname": "audit_logs_actor_id_fkey",
+    "definition": "FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "clusters",
+    "conname": "clusters_project_id_fkey",
+    "definition": "FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_created_by_fkey",
+    "definition": "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_progress_id_fkey",
+    "definition": "FOREIGN KEY (progress_id) REFERENCES progress(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "documentation",
+    "conname": "documentation_unit_id_fkey",
+    "definition": "FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "handovers",
+    "conname": "handovers_company_id_fkey",
+    "definition": "FOREIGN KEY (company_id) REFERENCES companies(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "handovers",
+    "conname": "handovers_unit_id_fkey",
+    "definition": "FOREIGN KEY (unit_id) REFERENCES units(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_assignment_id_fkey",
+    "definition": "FOREIGN KEY (assignment_id) REFERENCES property_assignments(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "payment_history",
+    "conname": "payment_history_created_by_fkey",
+    "definition": "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_created_by_fkey",
+    "definition": "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "progress",
+    "conname": "progress_unit_id_fkey",
+    "definition": "FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_company_id_fkey",
+    "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT",
+    "convalidated": true
+  },
+  {
+    "table_name": "projects",
+    "conname": "projects_created_by_fkey",
+    "definition": "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_created_by_fkey",
+    "definition": "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_unit_id_fkey",
+    "definition": "FOREIGN KEY (unit_id) REFERENCES units(id) ON DELETE RESTRICT",
+    "convalidated": true
+  },
+  {
+    "table_name": "property_assignments",
+    "conname": "property_assignments_user_id_fkey",
+    "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT",
+    "convalidated": true
+  },
+  {
+    "table_name": "refresh_tokens",
+    "conname": "refresh_tokens_user_id_fkey",
+    "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "retention_complaints",
+    "conname": "retention_complaints_retention_id_fkey",
+    "definition": "FOREIGN KEY (retention_id) REFERENCES retentions(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "retentions",
+    "conname": "retentions_company_id_fkey",
+    "definition": "FOREIGN KEY (company_id) REFERENCES companies(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "retentions",
+    "conname": "retentions_unit_id_fkey",
+    "definition": "FOREIGN KEY (unit_id) REFERENCES units(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_company_id_fkey",
+    "definition": "FOREIGN KEY (company_id) REFERENCES companies(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_project_id_fkey",
+    "definition": "FOREIGN KEY (project_id) REFERENCES projects(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "timelines",
+    "conname": "timelines_unit_id_fkey",
+    "definition": "FOREIGN KEY (unit_id) REFERENCES units(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "units",
+    "conname": "units_cluster_id_fkey",
+    "definition": "FOREIGN KEY (cluster_id) REFERENCES clusters(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "user_devices",
+    "conname": "user_devices_user_id_fkey",
+    "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE",
+    "convalidated": true
+  },
+  {
+    "table_name": "users",
+    "conname": "users_company_id_fkey",
+    "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_company_id_fkey",
+    "definition": "FOREIGN KEY (company_id) REFERENCES companies(id)",
+    "convalidated": true
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "conname": "whatsapp_logs_user_id_fkey",
+    "definition": "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL",
+    "convalidated": true
+  }
+]

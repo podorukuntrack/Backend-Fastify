@@ -1,0 +1,11 @@
+{
+  "sourceColumnsPreserved": true,
+  "sourceConstraintsPreserved": true,
+  "sequencesSafe": true,
+  "relations": {
+    "outside_customer_scope": 0
+  },
+  "payments": {
+    "incorrectly_verified": 0
+  }
+}

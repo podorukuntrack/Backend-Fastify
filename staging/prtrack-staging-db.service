@@ -1,0 +1,25 @@
+[Unit]
+Description=PRTrack isolated staging database
+After=network.target
+[Service]
+Type=simple
+User=prtrack-staging-db
+Group=prtrack-staging-db
+ExecStart=/opt/prtrack-staging/pg16/usr/lib/postgresql/16/bin/postgres -D /var/lib/prtrack-staging-db/data
+Restart=on-failure
+CPUQuota=50%
+MemoryMax=320M
+TasksMax=64
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+InaccessiblePaths=-/opt/podorukun-si -/etc/podorukun-si -/var/lib/podorukun-si
+ReadWritePaths=/var/lib/prtrack-staging-db
+LogNamespace=prtrack-staging
+StandardOutput=journal
+StandardError=journal
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=100
+[Install]
+WantedBy=multi-user.target

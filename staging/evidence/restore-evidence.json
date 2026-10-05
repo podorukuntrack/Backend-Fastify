@@ -1,0 +1,31 @@
+{
+  "instance": "b250172a-4dff-4439-b42e-5e8222c2e1f0",
+  "counts": {
+    "audit_logs": "452",
+    "banners": "3",
+    "clusters": "55",
+    "companies": "4",
+    "documentation": "1481",
+    "handovers": "14",
+    "payment_history": "1283",
+    "progress": "366",
+    "projects": "17",
+    "property_assignments": "281",
+    "refresh_tokens": "0",
+    "retention_complaints": "15",
+    "retentions": "10",
+    "timelines": "421",
+    "units": "467",
+    "user_devices": "0",
+    "users": "530",
+    "whatsapp_logs": "88"
+  },
+  "constraintsValidated": true,
+  "sanitization": {
+    "sessions": 0,
+    "devices": 0,
+    "unsafe_users": 0,
+    "attachments": 0
+  },
+  "restoredAt": "2026-10-05T07:44:07.931Z"
+}

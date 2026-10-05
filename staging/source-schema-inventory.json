@@ -1,0 +1,1458 @@
+[
+  {
+    "table_name": "audit_logs",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "actor_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "actor_role",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "actor_email",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "action",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "entity",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "entity_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "summary",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "metadata",
+    "data_type": "jsonb",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "ip",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "audit_logs",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "banners",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "banners",
+    "column_name": "name",
+    "data_type": "character varying",
+    "is_nullable": "NO",
+    "character_maximum_length": 255
+  },
+  {
+    "table_name": "banners",
+    "column_name": "image_url",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "banners",
+    "column_name": "link_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "banners",
+    "column_name": "is_active",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 20
+  },
+  {
+    "table_name": "banners",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "banners",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "banners",
+    "column_name": "target_companies",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "banners",
+    "column_name": "r2_key",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "project_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "nama_cluster",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "jumlah_unit",
+    "data_type": "integer",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "clusters",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "nama_pt",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "kode_pt",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "alamat",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "logo_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "companies",
+    "column_name": "theme_color",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 50
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "progress_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "jenis",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "url",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "r2_key",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "nama_file",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "ukuran_bytes",
+    "data_type": "bigint",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "created_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "documentation",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "scheduled_date",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "actual_date",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "status",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 50
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "notes",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "updated_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "proposed_date",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "image_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "document_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "reminder_24h_sent",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "handovers",
+    "column_name": "reminder_2h_sent",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "assignment_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "jumlah_bayar",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "tanggal_bayar",
+    "data_type": "date",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "catatan",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "created_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "bukti_pembayaran",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "payment_history",
+    "column_name": "is_auto_inject",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "tahap",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "progress_percentage",
+    "data_type": "smallint",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "tanggal_update",
+    "data_type": "date",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "catatan",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "created_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "progress",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "nama_proyek",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "lokasi",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "deskripsi",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "status",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "created_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "logo_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "projects",
+    "column_name": "theme_color",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 50
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "tanggal_pembelian",
+    "data_type": "date",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "status_kepemilikan",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "tipe_pembayaran",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "harga_total",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "total_dibayar",
+    "data_type": "numeric",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "keterangan_kpr",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "created_by",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "dp",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "jatuh_tempo_kpr",
+    "data_type": "date",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "tenor_bulan",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "property_assignments",
+    "column_name": "reminder_kpr_dates",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "refresh_tokens",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "refresh_tokens",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "refresh_tokens",
+    "column_name": "token_hash",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "refresh_tokens",
+    "column_name": "expires_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "refresh_tokens",
+    "column_name": "revoked",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "refresh_tokens",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "retention_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "description",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "status",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 50
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "photo_before_urls",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retention_complaints",
+    "column_name": "photo_after_urls",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "due_date",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "status",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 50
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "notes",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "updated_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "link_foto_360",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "photo_before_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "retentions",
+    "column_name": "photo_after_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "project_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "task_name",
+    "data_type": "character varying",
+    "is_nullable": "NO",
+    "character_maximum_length": 255
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "start_date",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "end_date",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "status",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 50
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "timelines",
+    "column_name": "updated_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "cluster_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "nomor_unit",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "tipe_rumah",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "luas_tanah",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "luas_bangunan",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "status_pembangunan",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "progress_percentage",
+    "data_type": "smallint",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "units",
+    "column_name": "image_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "user_devices",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "user_devices",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "user_devices",
+    "column_name": "fcm_token",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "user_devices",
+    "column_name": "device_type",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "character_maximum_length": 20
+  },
+  {
+    "table_name": "user_devices",
+    "column_name": "created_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "user_devices",
+    "column_name": "updated_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "nama",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "email",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "password_hash",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "nomor_telepon",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "role",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "status",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "wa_notifications_enabled",
+    "data_type": "boolean",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "last_login_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "users",
+    "column_name": "apple_refresh_token",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "assignment_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "tanggal_pembelian",
+    "data_type": "date",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "tipe_pembayaran",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "harga_total",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "total_dibayar",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "persentase_dibayar",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "nomor_unit",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "progress_pembangunan",
+    "data_type": "smallint",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "nama_cluster",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "nama_proyek",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "customer_nama",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "customer_email",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_assignment_detail",
+    "column_name": "nama_pt",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "unit_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "nomor_unit",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "tipe_rumah",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "luas_tanah",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "luas_bangunan",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "status_pembangunan",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "progress_percentage",
+    "data_type": "smallint",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "cluster_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "nama_cluster",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "project_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "nama_proyek",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "project_lokasi",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "nama_pt",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "v_unit_detail",
+    "column_name": "kode_pt",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "nomor_tujuan",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "template_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "message_body",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "status",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "provider_message_id",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "response_payload",
+    "data_type": "jsonb",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "NO",
+    "character_maximum_length": null
+  },
+  {
+    "table_name": "whatsapp_logs",
+    "column_name": "company_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null
+  }
+]

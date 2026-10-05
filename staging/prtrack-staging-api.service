@@ -1,0 +1,36 @@
+[Unit]
+Description=PRTrack staging read-only sync API
+After=network.target prtrack-staging-db.service
+Requires=prtrack-staging-db.service
+[Service]
+Type=simple
+User=prtrack-staging
+Group=prtrack-staging
+WorkingDirectory=/opt/prtrack-staging/app
+EnvironmentFile=/etc/prtrack-staging/runtime.env
+ExecStart=/usr/bin/node staging/server.js
+Restart=on-failure
+RestartSec=5
+CPUQuota=40%
+MemoryMax=192M
+TasksMax=32
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+InaccessiblePaths=-/opt/podorukun-si -/etc/podorukun-si -/var/lib/podorukun-si
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+LogNamespace=prtrack-staging
+StandardOutput=journal
+StandardError=journal
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=100
+[Install]
+WantedBy=multi-user.target
