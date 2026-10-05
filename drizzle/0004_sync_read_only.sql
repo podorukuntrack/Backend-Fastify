@@ -1,4 +1,6 @@
 -- Read-only PR Track -> PodorukunSI sync support.
+-- Superseded by staging/sync.sql. Never run this incompatible migration.
+DO $$ BEGIN RAISE EXCEPTION 'Use the guarded staging/migrate.js on a sanitized copy'; END $$;
 --
 -- SAFETY: run only against a separately verified staging/development database.
 -- This migration is intentionally not executed by this change.

@@ -1,0 +1,55 @@
+{
+  "time": "2026-10-05T08:03:04.655Z",
+  "base": "http://127.0.0.1:3201",
+  "entities": {
+    "companies": {
+      "count": 4,
+      "hash": "d134e4dd132eefa83a6d95721396cc95"
+    },
+    "projects": {
+      "count": 17,
+      "hash": "a85cbbd3f34aadaaeb2a81d3428e2c1e"
+    },
+    "clusters": {
+      "count": 55,
+      "hash": "2a1778bb0e6533cb2ec12ea4783fef1f"
+    },
+    "units": {
+      "count": 467,
+      "hash": "9f0fb109fef11dca406c50be9181503e"
+    },
+    "customers": {
+      "count": 512,
+      "hash": "6e7bf8e9c3ff7f059dcefd5c9529befb"
+    },
+    "assignments": {
+      "count": 281,
+      "hash": "349ab44ff5f1cf5a1522b89493b36b46"
+    },
+    "payments": {
+      "count": 1283,
+      "hash": "6204da766ab0469801a1cbe0c815b2d7"
+    }
+  },
+  "health": {
+    "status": "ok"
+  },
+  "eventEnvelope": true,
+  "invalidTokenStatus": 401,
+  "writeStatuses": [
+    404,
+    404
+  ],
+  "runtimeWriteDenied": true,
+  "database": {
+    "db": "prtrack_staging",
+    "role": "prtrack_sync_reader",
+    "server": "127.0.0.1/32",
+    "port": 55440
+  },
+  "identity": {
+    "instance_id": "b250172a-4dff-4439-b42e-5e8222c2e1f0",
+    "database_oid": "16386",
+    "sanitized": true
+  }
+}

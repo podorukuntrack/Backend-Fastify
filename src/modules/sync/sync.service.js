@@ -1,112 +1,54 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import { BUSINESS_FIELDS, assertEntity } from './sync.config.js';
-
-let repositoryPromise;
-
-async function getRepository(repository) {
-  if (repository) return repository;
-  repositoryPromise ??= import('./sync.repository.js');
-  return repositoryPromise;
-}
-
 export function pickBusinessFields(entity, row) {
   assertEntity(entity);
-  const source = row && typeof row === 'object' ? row : {};
-  return Object.fromEntries(
-    BUSINESS_FIELDS[entity]
-      .filter((field) => Object.prototype.hasOwnProperty.call(source, field))
-      .map((field) => [field, source[field]])
-  );
+  return Object.fromEntries(BUSINESS_FIELDS[entity].filter(k => Object.hasOwn(row ?? {}, k)).map(k => [k, row[k]]));
 }
-
-function stableValue(value) {
-  if (Array.isArray(value)) return value.map(stableValue);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.keys(value).sort().map((key) => [key, stableValue(value[key])])
-    );
-  }
-  return value;
+function integer(value, fallback, max, name) {
+  if (value === undefined) return fallback;
+  if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) > max)
+    throw Object.assign(new Error(`${name} tidak valid`), { statusCode: 400 });
+  return Number(value);
 }
-
-function parseIntValue(value, fallback, { max, name }) {
-  if (value === undefined || value === null || value === '') return fallback;
-  if (!/^\d+$/.test(String(value))) {
-    const error = new Error(`${name} must be a non-negative integer`);
-    error.statusCode = 400;
-    throw error;
-  }
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed > max) {
-    const error = new Error(`${name} is out of range`);
-    error.statusCode = 400;
-    throw error;
-  }
-  return parsed;
-}
-
 export function parseLimit(value) {
-  return parseIntValue(value, 500, { max: 1000, name: 'limit' }) || 1;
+  const n = integer(value, 500, 1000, 'limit');
+  if (!n) throw Object.assign(new Error('limit tidak valid'), { statusCode: 400 });
+  return n;
 }
-
-export function parseAfterSeq(value) {
-  return parseIntValue(value, 0, { max: Number.MAX_SAFE_INTEGER, name: 'after_seq' });
-}
-
+export const parseAfterSeq = value => integer(value, 0, Number.MAX_SAFE_INTEGER, 'after_seq');
 export function parsePageAfterId(value) {
-  if (value === undefined || value === null || value === '') return null;
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value))) {
-    const error = new Error('page_after_id must be a UUID');
-    error.statusCode = 400;
-    throw error;
-  }
-  return String(value);
+  if (value === undefined) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value)))
+    throw Object.assign(new Error('page_after_id tidak valid'), { statusCode: 400 });
+  return value.toLowerCase();
 }
-
+function safeNumber(value) {
+  const n = Number(value);
+  if (!Number.isSafeInteger(n) || n < 0) throw new Error('Sync integer outside supported range');
+  return n;
+}
 export function createSyncService({ repository } = {}) {
+  if (!repository) throw new Error('Guarded staging repository required');
   return {
     async listEvents({ afterSeq, limit }) {
-      const repo = await getRepository(repository);
-      const rows = await repo.listEvents({ afterSeq, limit });
-      return rows.map((event) => ({
-        seq: Number(event.seq),
-        entity: event.entity,
-        entity_id: event.entity_id,
-        operation: event.operation,
-        occurred_at: event.occurred_at,
-        data: pickBusinessFields(event.entity, event.payload),
-      }));
+      const rows = await repository.listEvents({ afterSeq, limit: limit + 1 });
+      const events = rows.slice(0, limit).map(e => ({ seq: safeNumber(e.seq), entity: e.entity,
+        entity_id: e.entity_id, op: e.op, row_version: safeNumber(e.row_version),
+        payload: e.op === 'D' ? null : pickBusinessFields(e.entity, e.payload), created_at: e.created_at }));
+      return { events, next_after_seq: events.at(-1)?.seq ?? afterSeq, has_more: rows.length > limit, server_time: new Date().toISOString() };
     },
-
     async getSnapshot({ entity, pageAfterId, limit }) {
       assertEntity(entity);
-      const repo = await getRepository(repository);
-      const maxSeq = Number(await repo.getMaxSeq());
-      const rows = await repo.getSnapshotRows({ entity, pageAfterId, limit: limit + 1 });
-      const hasMore = rows.length > limit;
-      return {
-        rows: rows.slice(0, limit).map((row) => pickBusinessFields(entity, row)),
-        has_more: hasMore,
-        max_seq: maxSeq,
-      };
+      const { rows, max_seq } = await repository.getSnapshot({ entity, pageAfterId, limit: limit + 1 });
+      return { rows: rows.slice(0, limit).map(r => ({ ...pickBusinessFields(entity, r), row_version: safeNumber(r.row_version) })),
+        has_more: rows.length > limit, max_seq: safeNumber(max_seq) };
     },
-
-    async getChecksum({ entity }) {
-      assertEntity(entity);
-      const repo = await getRepository(repository);
-      const rows = await repo.getSnapshotRows({ entity, pageAfterId: null, limit: null });
-      const canonical = rows.map((row) => stableValue(pickBusinessFields(entity, row)));
-      const hash = createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
-      return { count: rows.length, hash };
-    },
+    async getChecksum({ entity }) { assertEntity(entity); return repository.getChecksum({ entity }); },
   };
 }
-
 export function bearerTokenMatches(request, expectedToken) {
-  const header = request.headers.authorization;
-  const match = typeof header === 'string' ? header.match(/^Bearer\s+(.+)$/i) : null;
+  const match = request.headers.authorization?.match(/^Bearer\s+(.+)$/i);
   if (!match || !expectedToken) return false;
-  const provided = Buffer.from(match[1]);
-  const expected = Buffer.from(expectedToken);
-  return provided.length === expected.length && timingSafeEqual(provided, expected);
+  const a = Buffer.from(match[1]), b = Buffer.from(expectedToken);
+  return a.length === b.length && timingSafeEqual(a, b);
 }

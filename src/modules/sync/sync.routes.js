@@ -6,8 +6,8 @@ export default async function syncRoutes(fastify, options = {}) {
   const controller = createSyncController(service);
 
   fastify.addHook('onRequest', async (request, reply) => {
-    if (!bearerTokenMatches(request, process.env.SYNC_READ_TOKEN)) {
-      return reply.code(401).send({ success: false, message: 'Unauthorized' });
+    if (!bearerTokenMatches(request, options.token)) {
+      return reply.code(401).send({ message: 'Unauthorized' });
     }
   });
 

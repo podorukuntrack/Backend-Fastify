@@ -1,0 +1,25 @@
+{
+  "sourceHost": "ep-wispy-sky-aoogi4me-pooler.c-2.ap-southeast-1.aws.neon.tech",
+  "database": "neondb",
+  "capturedAt": "2026-10-05T07:22:28.973Z",
+  "counts": {
+    "audit_logs": "452",
+    "banners": "3",
+    "clusters": "55",
+    "companies": "4",
+    "documentation": "1481",
+    "handovers": "14",
+    "payment_history": "1283",
+    "progress": "366",
+    "projects": "17",
+    "property_assignments": "281",
+    "refresh_tokens": "3221",
+    "retention_complaints": "15",
+    "retentions": "10",
+    "timelines": "421",
+    "units": "467",
+    "user_devices": "155",
+    "users": "529",
+    "whatsapp_logs": "88"
+  }
+}

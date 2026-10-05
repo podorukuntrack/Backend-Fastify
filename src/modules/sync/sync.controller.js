@@ -6,8 +6,7 @@ export function createSyncController(service) {
     listEvents: async (request, reply) => {
       const afterSeq = parseAfterSeq(request.query?.after_seq);
       const limit = parseLimit(request.query?.limit);
-      const events = await service.listEvents({ afterSeq, limit });
-      return reply.code(200).send({ events, next_after_seq: events.at(-1)?.seq ?? afterSeq });
+      return reply.code(200).send(await service.listEvents({ afterSeq, limit }));
     },
 
     snapshot: async (request, reply) => {
