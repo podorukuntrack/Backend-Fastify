@@ -7,6 +7,24 @@ export function createSyncRepository(db) {
       return db`SELECT seq, entity, entity_id, op, row_version, payload, created_at FROM public.sync_outbox
         WHERE seq > ${afterSeq} AND created_at < now() - interval '5 seconds' ORDER BY seq LIMIT ${limit}`;
     },
+    // v2: one repeatable-read snapshot supplies both the rows and the watermark.
+    // Every txid below xmin belongs to a finished transaction, so nothing can commit behind the cursor later.
+    async listEventsV2({ afterTxid, afterSeq, limit }) {
+      return db.begin('isolation level repeatable read read only', async tx => {
+        const [{ xmin }] = await tx`SELECT pg_snapshot_xmin(pg_current_snapshot())::text AS xmin`;
+        const rows = await tx`SELECT seq, txid::text AS txid, entity, entity_id, op, row_version, payload, created_at
+          FROM public.sync_outbox
+          WHERE (txid, seq) > (${String(afterTxid)}::text::xid8, ${afterSeq}::bigint) AND txid < ${xmin}::text::xid8
+          ORDER BY txid, seq LIMIT ${limit}`;
+        const [{ held }] = await tx`SELECT EXISTS (SELECT 1 FROM public.sync_outbox
+          WHERE txid >= ${xmin}::text::xid8 AND (txid, seq) > (${String(afterTxid)}::text::xid8, ${afterSeq}::bigint)) AS held`;
+        return { rows, xmin, held };
+      });
+    },
+    async startCursorV2() {
+      const [{ xmin }] = await db`SELECT pg_snapshot_xmin(pg_current_snapshot())::text AS xmin`;
+      return { xmin };
+    },
     async getSnapshot({ entity, pageAfterId, limit }) {
       const name = table(entity);
       return db.begin('isolation level repeatable read read only', async tx => {
@@ -28,4 +46,3 @@ export function createSyncRepository(db) {
     },
   };
 }
-

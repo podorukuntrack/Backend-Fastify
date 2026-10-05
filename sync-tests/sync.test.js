@@ -115,4 +115,66 @@ test('contract risk reproduced: insert behind snapshot page cursor is missed whi
   assert.ok(!next.rows.some(r=>r.id===id));assert.ok(next.max_seq>first.max_seq);
  }finally{await db`DELETE FROM companies WHERE id=${id}`;}
 });
-
+// Contract v2: commit-order cursor. These are the two v1 risks above, now required to be closed.
+async function drainV2(after){const out=[];let cur=after;for(;;){const p=await get('/sync/v2/events?limit=1000&after='+cur);out.push(...p.events);cur=p.next_after;if(!p.has_more)return {events:out,cursor:cur,held:p.held_by_open_transaction};}}
+test('v2 closes risk 1: a transaction holding a lower seq that commits late is still delivered',async()=>{
+ const a=randomUUID(),b=randomUUID();let release,inserted,releaseB,bReady;
+ const hold=new Promise(r=>release=r),ready=new Promise(r=>inserted=r);
+ const holdB=new Promise(r=>releaseB=r),readyB=new Promise(r=>bReady=r);
+ const start=(await get('/sync/v2/start')).after;
+ // B takes its transaction id first, A writes first (lower seq), B writes and commits while A stays open.
+ const txB=db.begin(async tx=>{await tx`SELECT pg_current_xact_id()`;bReady();await holdB;await tx`INSERT INTO companies(id,nama_pt,kode_pt) VALUES(${b},'short',${b})`;});
+ await readyB;
+ const long=db.begin(async tx=>{await tx`INSERT INTO companies(id,nama_pt,kode_pt) VALUES(${a},'long',${a})`;const [r]=await tx`SELECT seq FROM sync_outbox WHERE entity_id=${a}`;inserted(r);await hold;});
+ try{
+  const sa=await ready;releaseB();await txB;
+  const [sb]=await db`SELECT seq FROM sync_outbox WHERE entity_id=${b}`;
+  assert.ok(Number(sa.seq)<Number(sb.seq),'A owns the lower seq');
+  const first=await drainV2(start);
+  assert.ok(first.events.some(e=>e.entity_id===b),'B (older txid, committed) is delivered');
+  assert.ok(!first.events.some(e=>e.entity_id===a),'A is still open');
+  release();await long;
+  const second=await drainV2(first.cursor);
+  assert.ok(second.events.some(e=>e.entity_id===a),'late commit lands after the cursor, not behind it');
+  const replay=await drainV2(start),again=await drainV2(start);assert.deepEqual(replay.events,again.events);
+ }finally{release();releaseB();await long.catch(()=>{});await txB.catch(()=>{});await db`DELETE FROM companies WHERE id IN (${a},${b})`;}
+});
+test('v2 reports held_by_open_transaction while an older writer is open, and never returns events past the watermark',async()=>{
+ const a=randomUUID(),b=randomUUID();let release,inserted;const hold=new Promise(r=>release=r),ready=new Promise(r=>inserted=r);
+ const start=(await get('/sync/v2/start')).after;
+ const long=db.begin(async tx=>{await tx`INSERT INTO companies(id,nama_pt,kode_pt) VALUES(${a},'long',${a})`;inserted();await hold;});
+ try{
+  await ready;await db`INSERT INTO companies(id,nama_pt,kode_pt) VALUES(${b},'short',${b})`;
+  const page=await drainV2(start);
+  assert.ok(!page.events.some(e=>e.entity_id===b),'B waits behind the older open writer');
+  assert.equal(page.held,true);
+  release();await long;
+  const after=await drainV2(page.cursor);
+  assert.deepEqual(after.events.filter(e=>[a,b].includes(e.entity_id)).map(e=>e.entity_id),[a,b]);
+  assert.equal(after.held,false);
+ }finally{release();await long.catch(()=>{});await db`DELETE FROM companies WHERE id IN (${a},${b})`;}
+});
+test('v2 closes risk 2: insert behind the snapshot page cursor is replayed from the start cursor',async()=>{
+ const id='00000000-0000-4000-8000-000000000002';
+ const start=(await get('/sync/v2/start')).after;
+ const first=await get('/sync/v2/snapshot/companies?limit=1');assert.ok(first.rows[0].id>id);
+ await db`INSERT INTO companies(id,nama_pt,kode_pt) VALUES(${id},'between pages',${id})`;
+ try{
+  const next=await get('/sync/v2/snapshot/companies?limit=1000&page_after_id='+first.rows[0].id);
+  assert.ok(!next.rows.some(r=>r.id===id));
+  const replay=await drainV2(start);
+  assert.ok(replay.events.some(e=>e.entity_id===id&&e.op==='I'),'missed snapshot row arrives as an event');
+ }finally{await db`DELETE FROM companies WHERE id=${id}`;}
+});
+test('v2 cursor validation and v1 transition cursor 0:<seq>',async()=>{
+ for(const after of ['x','1','1:','-1:0','1:2:3','99999999999999999:0']){
+  const r=await app.inject({url:'/sync/v2/events?after='+after,headers});assert.equal(r.statusCode,400);
+ }
+ assert.equal((await app.inject('/sync/v2/events')).statusCode,401);
+ const [{max}]=await db`SELECT coalesce(max(seq) FILTER (WHERE txid='0'::xid8),0)::int AS max FROM sync_outbox`;
+ const all=await drainV2('0:0');
+ const legacy=all.events.filter(e=>e.cursor.startsWith('0:'));
+ assert.ok(legacy.every((e,i)=>!i||e.seq>legacy[i-1].seq),'legacy rows keep seq order');
+ const tail=await drainV2('0:'+max);
+ assert.ok(!tail.events.some(e=>e.cursor.startsWith('0:')),'cursor 0:<last v1 seq> skips delivered legacy rows');
+});

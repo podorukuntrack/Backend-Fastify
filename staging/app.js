@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import syncRoutes from '../src/modules/sync/sync.routes.js';
+import syncRoutes, { syncRoutesV2 } from '../src/modules/sync/sync.routes.js';
 import { createSyncService } from '../src/modules/sync/sync.service.js';
 import { createSyncRepository } from '../src/modules/sync/sync.repository.js';
 export async function buildStagingApp(db, token, allowedIPs = ['127.0.0.1', '::1']) {
@@ -14,6 +14,8 @@ export async function buildStagingApp(db, token, allowedIPs = ['127.0.0.1', '::1
     if (!allowedIPs.includes(request.ip)) return reply.code(403).send({ message: 'Forbidden' });
   });
   app.get('/health', async () => { await db`SELECT 1`; return { status: 'ok' }; });
-  await app.register(syncRoutes, { prefix: '/sync/v1', token, service: createSyncService({ repository: createSyncRepository(db) }) });
+  const service = createSyncService({ repository: createSyncRepository(db) });
+  await app.register(syncRoutes, { prefix: '/sync/v1', token, service });
+  await app.register(syncRoutesV2, { prefix: '/sync/v2', token, service });
   return app;
 }

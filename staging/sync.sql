@@ -68,3 +68,22 @@ DO $$ DECLARE r record; BEGIN
   EXECUTE format('CREATE TRIGGER sync_enqueue_%I AFTER INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.sync_enqueue_event(%L)',r.t,r.t,r.e);
  END LOOP;
 END $$;
+-- Contract v2: commit-order cursor. Every event records the top-level transaction
+-- id of its writer. /sync/v2/events only returns events whose txid is below the
+-- reader snapshot xmin, so every event it returns belongs to a finished
+-- transaction and every transaction still running gets a txid at or above the
+-- watermark. Ordered by (txid, seq), a late commit can never land behind the
+-- reader cursor. Additive: v1 readers keep using seq.
+ALTER TABLE public.sync_outbox ADD COLUMN IF NOT EXISTS txid xid8;
+UPDATE public.sync_outbox SET txid = '0'::xid8 WHERE txid IS NULL; -- pre-v2 rows sort first, by seq
+ALTER TABLE public.sync_outbox ALTER COLUMN txid SET DEFAULT pg_current_xact_id();
+ALTER TABLE public.sync_outbox ALTER COLUMN txid SET NOT NULL;
+CREATE INDEX IF NOT EXISTS sync_outbox_txid_seq_idx ON public.sync_outbox (txid, seq);
+-- Retention (contract: events older than 30 days may be removed). Run by the
+-- owner role from a scheduled job; the read-only runtime role cannot call it.
+CREATE OR REPLACE FUNCTION public.sync_prune_outbox(keep interval DEFAULT interval '30 days') RETURNS bigint
+LANGUAGE sql AS $$
+ WITH gone AS (DELETE FROM public.sync_outbox WHERE created_at < now() - greatest(keep, interval '7 days') RETURNING 1)
+ SELECT count(*) FROM gone;
+$$;
+REVOKE ALL ON FUNCTION public.sync_prune_outbox(interval) FROM PUBLIC;
