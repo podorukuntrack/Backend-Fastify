@@ -2,6 +2,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { createSyncRepository } from '../src/modules/sync/sync.repository.js';
 import { connectStaging, validateTarget, assertDatabaseIdentity } from '../staging/guard.js';
 import { buildStagingApp } from '../staging/app.js';
 import { SYNC_ENTITIES, BUSINESS_FIELDS } from '../src/modules/sync/sync.config.js';
@@ -38,6 +39,31 @@ test('v2 checksum adds content hash and watermark while v1 stays unchanged',asyn
   const [{hash}]=await db`SELECT public.sync_content_hash(${entity}) AS hash`;
   assert.equal(v2.content_hash,hash);
  }
+});
+
+test('v2 checksum keeps the watermark snapshot when a writer commits between its queries',async()=>{
+ const id=randomUUID();
+ await db`INSERT INTO companies(id,nama_pt,kode_pt) VALUES(${id},'snapshot before',${id})`;
+ try {
+  const before=await get('/sync/v2/checksum/companies');
+  let changed=false;
+  const repository=createSyncRepository({begin:async(options,callback)=>{
+   assert.equal(options,'isolation level repeatable read read only');
+   return db.begin(options,async tx=>callback(new Proxy(tx,{
+    apply(target,thisArg,args){
+     const query=Reflect.apply(target,thisArg,args);
+     if(Array.isArray(args[0]) && args[0][0].includes('pg_snapshot_xmin')) return Promise.resolve(query).then(async rows=>{
+      await db`UPDATE companies SET nama_pt='snapshot after' WHERE id=${id}`;
+      changed=true;return rows;
+     });
+     return query;
+    }
+   })));
+  }});
+  const result=await repository.getChecksumV2({entity:'companies'});
+  assert.equal(changed,true);assert.equal(result.content_hash,before.content_hash);assert.equal(result.hash,before.hash);
+  assert.notEqual((await get('/sync/v2/checksum/companies')).content_hash,result.content_hash);
+ } finally {await db`DELETE FROM companies WHERE id=${id}`;}
 });
 
 test('content detects whitelist drift with frozen version, ignores outside fields, rollback restores triggers',async()=>{
