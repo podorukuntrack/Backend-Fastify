@@ -4,7 +4,9 @@ import { createSyncService, bearerTokenMatches } from './sync.service.js';
 function setup(fastify, options) {
   const controller = createSyncController(options.service || createSyncService());
   fastify.addHook('onRequest', async (request, reply) => {
-    if (!bearerTokenMatches(request, options.token)) {
+    const monitorChecksum = request.method === 'GET' && request.routeOptions.config.monitorChecksum === true
+      && bearerTokenMatches(request, options.monitorToken);
+    if (!bearerTokenMatches(request, options.token) && !monitorChecksum) {
       return reply.code(401).send({ message: 'Unauthorized' });
     }
   });
@@ -18,11 +20,11 @@ export default async function syncRoutes(fastify, options = {}) {
   fastify.get('/checksum/:entity', controller.checksum);
 }
 
-// v2 changes only the event cursor (commit order). Snapshot and checksum are identical to v1.
+// v2 adds content checksum and snapshot watermark; v1 remains unchanged.
 export async function syncRoutesV2(fastify, options = {}) {
   const controller = setup(fastify, options);
   fastify.get('/events', controller.listEventsV2);
   fastify.get('/start', controller.startV2);
   fastify.get('/snapshot/:entity', controller.snapshot);
-  fastify.get('/checksum/:entity', controller.checksum);
+  fastify.get('/checksum/:entity', { config: { monitorChecksum: true } }, controller.checksumV2);
 }

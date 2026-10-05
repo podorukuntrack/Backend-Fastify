@@ -1,15 +1,80 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { connectStaging, validateTarget, assertDatabaseIdentity } from '../staging/guard.js';
 import { buildStagingApp } from '../staging/app.js';
 import { SYNC_ENTITIES, BUSINESS_FIELDS } from '../src/modules/sync/sync.config.js';
 let db, app;
 const token='a'.repeat(64);
+const monitorToken='b'.repeat(64);
 const headers={authorization:`Bearer ${token}`};
 before(async()=>{
  if(process.env.STAGING_TEST_CONFIRM!==process.env.STAGING_INSTANCE_ID) throw new Error('Explicit test target confirmation required');
- db=await connectStaging(); app=await buildStagingApp(db,token);
+ db=await connectStaging(); app=await buildStagingApp(db,token,undefined,monitorToken);
+});
+
+test('shared synthetic vectors match PostgreSQL canonical row hashes, including missing values',async()=>{
+ const {vectors}=JSON.parse(await readFile(new URL('./fixtures/content-hash-vectors.json',import.meta.url),'utf8'));
+ for(const v of vectors){
+  assert.deepEqual(Object.keys(v.row),BUSINESS_FIELDS[v.entity]);
+  assert.equal(createHash('md5').update(v.serialized).digest('hex'),v.row_hash);
+  const [{hash}]=await db`SELECT public.sync_content_row_hash(${v.entity},${db.json(v.row)}) AS hash`;
+  assert.equal(hash,v.row_hash,`${v.entity}: ${v.row.id}`);
+  if(v.normalized.every(n=>n==='\\N')){
+   const [{hash:missing}]=await db`SELECT public.sync_content_row_hash(${v.entity},${db.json({id:v.row.id})}) AS hash`;
+   assert.equal(missing,v.row_hash);
+  }
+ }
+});
+
+test('v2 checksum adds content hash and watermark while v1 stays unchanged',async()=>{
+ for(const entity of SYNC_ENTITIES){
+  const v1=await get('/sync/v1/checksum/'+entity),v2=await get('/sync/v2/checksum/'+entity);
+  assert.deepEqual(Object.keys(v1).sort(),['count','hash']);
+  assert.deepEqual(Object.keys(v2).sort(),['content_hash','count','hash','watermark']);
+  assert.equal(v1.count,v2.count);assert.equal(v1.hash,v2.hash);
+  assert.match(v2.content_hash,/^[a-f0-9]{32}$/);assert.match(v2.watermark,/^\d+$/);
+  const [{hash}]=await db`SELECT public.sync_content_hash(${entity}) AS hash`;
+  assert.equal(v2.content_hash,hash);
+ }
+});
+
+test('content detects whitelist drift with frozen version, ignores outside fields, rollback restores triggers',async()=>{
+ const rollback=new Error('intentional rollback');
+ const before=await get('/sync/v2/checksum/companies');
+ await assert.rejects(db.begin(async tx=>{
+  const [{id}]=await tx`SELECT id FROM companies LIMIT 1`;
+  const [{sync_version:version}]=await tx`SELECT sync_version FROM companies WHERE id=${id}`;
+  await tx`ALTER TABLE companies DISABLE TRIGGER sync_bump_version_companies`;
+  await tx`ALTER TABLE companies DISABLE TRIGGER sync_enqueue_companies`;
+  await tx`UPDATE companies SET nama_pt=nama_pt || ' synthetic drift' WHERE id=${id}`;
+  const [{hash}]=await tx`SELECT public.sync_content_hash('companies') AS hash`;
+  assert.notEqual(hash,before.content_hash);
+  const [{sync_version:afterVersion}]=await tx`SELECT sync_version FROM companies WHERE id=${id}`;
+  assert.equal(afterVersion,version);
+  await tx`UPDATE companies SET created_at=created_at + interval '1 second' WHERE id=${id}`;
+  const [{hash:outside}]=await tx`SELECT public.sync_content_hash('companies') AS hash`;
+  assert.equal(outside,hash);
+  throw rollback;
+ }),e=>e===rollback);
+ assert.equal((await get('/sync/v2/checksum/companies')).content_hash,before.content_hash);
+ const triggers=await db`SELECT tgenabled FROM pg_trigger WHERE tgname IN ('sync_bump_version_companies','sync_enqueue_companies')`;
+ assert.equal(triggers.length,2);assert.ok(triggers.every(t=>t.tgenabled==='O'));
+});
+
+test('monitor can only GET health and v2 checksums; source allowlist ignores forwarded headers',async()=>{
+ const monitor={authorization:`Bearer ${monitorToken}`};
+ for(const remoteAddress of ['127.0.0.1','::1','10.11.20.216']){
+  for(const url of ['/health',...SYNC_ENTITIES.map(e=>'/sync/v2/checksum/'+e)])
+   assert.equal((await app.inject({url,headers:monitor,remoteAddress})).statusCode,200);
+ }
+ for(const url of ['/sync/v1/events','/sync/v2/events','/sync/v1/snapshot/companies','/sync/v2/snapshot/companies','/sync/v2/start','/sync/v1/checksum/companies'])
+  assert.ok([401,403].includes((await app.inject({url,headers:monitor})).statusCode));
+ for(const method of ['PUT','POST','DELETE','PATCH','HEAD'])for(const url of ['/health','/sync/v2/checksum/companies','/sync/v1/schedules/test','/unknown'])
+  assert.ok([401,403].includes((await app.inject({url,method,headers:monitor})).statusCode));
+ for(const remoteAddress of ['192.0.2.1','10.11.26.196','10.11.20.217'])
+  assert.equal((await app.inject({url:'/sync/v2/checksum/companies',headers:{...monitor,'x-forwarded-for':'127.0.0.1'},remoteAddress})).statusCode,403);
 });
 after(async()=>{if(app)await app.close();if(db)await db.end();});
 async function get(url){const r=await app.inject({url,headers});assert.equal(r.statusCode,200,r.body);return r.json();}
