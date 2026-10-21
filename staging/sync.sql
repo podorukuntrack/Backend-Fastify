@@ -13,6 +13,28 @@ ALTER TABLE payment_history
  ADD COLUMN IF NOT EXISTS diverifikasi_pada timestamptz,
  ADD COLUMN IF NOT EXISTS dikunci_si boolean NOT NULL DEFAULT false;
 ALTER TABLE public.payment_history ADD COLUMN IF NOT EXISTS si_jadwal_id uuid;
+-- Keputusan pemilik 21 Oktober 2026: pembayaran yang sudah tercatat di Track sebelum
+-- cutover dianggap sah (produksi tidak punya kolom verifikasi/jenis). Jenis lama:
+-- auto-injeksi KPR -> pencairan_kpr, lainnya -> uang_muka. Dijalankan sekali; penanda
+-- mencegah pembayaran yang masuk sesudah cutover ikut disahkan saat skrip diulang.
+-- Status yang sudah ditetapkan (mis. ditolak) dan nilai jenis yang ada tidak diubah.
+CREATE TABLE IF NOT EXISTS public.si_legacy_backfill (
+ singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+ applied_at timestamptz NOT NULL DEFAULT now(), rows_updated integer NOT NULL
+);
+REVOKE ALL ON public.si_legacy_backfill FROM PUBLIC;
+DO $$ DECLARE n integer; BEGIN
+ IF NOT EXISTS (SELECT 1 FROM public.si_legacy_backfill) THEN
+  UPDATE public.payment_history SET
+    jenis = coalesce(jenis, CASE WHEN coalesce(is_auto_inject, false) THEN 'pencairan_kpr' ELSE 'uang_muka' END),
+    status_verifikasi = CASE WHEN status_verifikasi = 'menunggu' AND diverifikasi_pada IS NULL THEN 'terverifikasi' ELSE status_verifikasi END,
+    diverifikasi_oleh = CASE WHEN status_verifikasi = 'menunggu' AND diverifikasi_pada IS NULL THEN 'Sistem lama (sebelum cutover billing SI)' ELSE diverifikasi_oleh END,
+    diverifikasi_pada = CASE WHEN status_verifikasi = 'menunggu' AND diverifikasi_pada IS NULL THEN now() ELSE diverifikasi_pada END
+  WHERE si_jadwal_id IS NULL AND (jenis IS NULL OR (status_verifikasi = 'menunggu' AND diverifikasi_pada IS NULL));
+  GET DIAGNOSTICS n = ROW_COUNT;
+  INSERT INTO public.si_legacy_backfill (rows_updated) VALUES (n);
+ END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS public.sync_outbox (
  seq bigserial PRIMARY KEY, entity varchar(30) NOT NULL, entity_id uuid NOT NULL,
  op char(1) NOT NULL CHECK (op IN ('I','U','D')), row_version bigint NOT NULL,
