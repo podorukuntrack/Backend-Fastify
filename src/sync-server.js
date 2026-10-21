@@ -3,7 +3,7 @@ import Fastify from 'fastify';
 import postgres from 'postgres';
 import syncRoutes,{syncRoutesV2} from './modules/sync/sync.routes.js';
 import {createSyncService} from './modules/sync/sync.service.js';
-import {createSyncRepository} from './modules/sync/sync.repository.js';
+import {createSyncRepository,readOnly as readOnlyTx} from './modules/sync/sync.repository.js';
 import billingRoutes from './modules/sync/billing.routes.js';
 
 const required=['TRACK_SYNC_DATABASE_URL','TRACK_SYNC_TOKEN','TRACK_SYNC_SOURCE_ID','TRACK_SYNC_ALLOWED_IPS'];
@@ -36,8 +36,9 @@ try {
  await checkRole(reader);
  const [rights]=await reader`SELECT has_table_privilege(current_user,'public.payment_history','INSERT,DELETE') OR has_any_column_privilege(current_user,'public.payment_history','UPDATE') AS writes`;
  if(!application && rights.writes) throw new Error('Sync reader must be a restricted read-only role');
- const [{transaction_read_only:readOnly}]=await reader`SHOW transaction_read_only`;
- if(readOnly!=='on') throw new Error('Integration reader connection must use read-only transactions');
+ // Poolers ignore startup parameters; verify the per-transaction guard that every read uses.
+ const [{transaction_read_only:readOnly}]=await readOnlyTx(reader,tx=>tx`SHOW transaction_read_only`,'read committed');
+ if(readOnly!=='on') throw new Error('Integration reader transactions must be read-only');
  app.addHook('onRequest',async(req,reply)=>{if(!ips.includes(req.ip)) return reply.code(403).send({message:'Forbidden'});});
  const service=createSyncService({repository:createSyncRepository(reader)});
  await app.register(syncRoutes,{prefix:'/sync/v1',service,token:process.env.TRACK_SYNC_TOKEN});

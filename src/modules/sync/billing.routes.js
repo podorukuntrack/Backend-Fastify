@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { bearerTokenMatches,parseLimit,parsePageAfterId } from './sync.service.js';
+import { readOnly } from './sync.repository.js';
 
 const uuid = z.uuid();
 const amount = z.union([z.string(), z.number()]).transform(String).refine(v => /^\d{1,16}(\.\d{1,2})?$/.test(v), 'Invalid amount');
@@ -30,14 +31,17 @@ export default async function billingRoutes(app, { db, token, allowedIps = [] })
     const after=parsePageAfterId(request.query.after_id);
     const limit=parseLimit(request.query.limit);
     let rows;
-    if(request.params.entity==='schedules') rows=await db`SELECT s.id,s.assignment_id,s.no_urut,to_char(s.tanggal,'YYYY-MM-DD') AS tanggal,
+    // Read-only and timeouts per transaction: poolers ignore connection startup parameters.
+    rows=await readOnly(db,tx=>{
+    if(request.params.entity==='schedules') return tx`SELECT s.id,s.assignment_id,s.no_urut,to_char(s.tanggal,'YYYY-MM-DD') AS tanggal,
       s.jumlah::text,s.jenis,s.keterangan,s.aktif,s.realisasi::text,p.si_contract_total::text AS nilai_kontrak
       FROM public.si_schedules s JOIN public.property_assignments p ON p.id=s.assignment_id
       WHERE (${after}::text IS NULL OR s.id::text COLLATE "C">${after}::text COLLATE "C") ORDER BY s.id::text COLLATE "C" LIMIT ${limit+1}`;
-    else if(request.params.entity==='results') rows=await db`SELECT id,si_jadwal_id,status_si,alasan_si,jurnal_si FROM public.payment_history
+    if(request.params.entity==='results') return tx`SELECT id,si_jadwal_id,status_si,alasan_si,jurnal_si FROM public.payment_history
       WHERE si_jadwal_id IS NOT NULL AND (${after}::text IS NULL OR id::text COLLATE "C">${after}::text COLLATE "C")
       ORDER BY id::text COLLATE "C" LIMIT ${limit+1}`;
-    else throw fail('Unknown billing entity',404);
+    throw fail('Unknown billing entity',404);
+    },'read committed');
     return {rows:rows.slice(0,limit),has_more:rows.length>limit};
   });
   async function receive(request, schema, apply) {
@@ -47,6 +51,8 @@ export default async function billingRoutes(app, { db, token, allowedIps = [] })
     const body = parsed.data;
     const fingerprint = createHash('sha256').update(JSON.stringify([request.routeOptions.url, request.params.id, body])).digest('hex');
     return db.begin(async tx => {
+      await tx`SET LOCAL statement_timeout = '15s'`;
+      await tx`SET LOCAL lock_timeout = '5s'`;
       await tx`SELECT pg_advisory_xact_lock(hashtextextended(${key.data},0))`;
       const [previous] = await tx`SELECT fingerprint,response FROM public.si_sync_inbox WHERE id=${key.data}`;
       if (previous) {
