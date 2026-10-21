@@ -121,7 +121,22 @@ PORT=3000
 FRONTEND_URL=https://podorukuntrack.pages.dev,https://podorukuntrack.com
 
 # Database PostgreSQL (GANTI dengan kredensial database prod Anda!)
-DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/DB_NAME
+# Bila penyedia database menawarkan beberapa mode koneksi, pakai transaction
+# pooler di sini — koneksi server dipakai bergantian antar transaksi, sehingga
+# kuota koneksi tidak habis oleh proses PM2 cluster.
+# Nomor port berbeda antar penyedia; pada Sumopod 6432 = transaction pooler.
+# Tambahkan ?sslmode=require hanya bila penyedia melayani TLS; bila tidak,
+# sambungan justru gagal dengan pesan "SSL routines: wrong version number".
+DATABASE_URL=postgres://USER:PASSWORD@HOST:6432/DB_NAME
+
+# Khusus drizzle-kit dan pg_dump/psql. Wajib session pooler atau direct
+# connection (pada Sumopod: 6433) — DDL dan prepared statement gagal lewat
+# transaction pooler.
+MIGRATION_DATABASE_URL=postgres://USER:PASSWORD@HOST:6433/DB_NAME
+
+# Koneksi pool per proses Node. Total ke database = nilai ini x jumlah instance
+# PM2 (satu per vCPU). Jaga hasil kalinya di bawah kuota koneksi paket Anda.
+DB_POOL_MAX=10
 
 # Redis (biarkan jika menggunakan Docker Compose di VPS yang sama)
 REDIS_URL=redis://localhost:6379
@@ -431,6 +446,16 @@ docker exec -it podorukuntrack_redis_prod redis-cli ping
 Akses `https://api.podorukuntrack.com/health` dan periksa field `checks`:
 - `database: "error"` → Periksa `DATABASE_URL` di file `.env`
 - `redis: "not_connected"` → Pastikan container Redis berjalan (`docker ps`)
+
+Bila error database berbunyi *too many connections*, kuota koneksi penyedia
+terlampaui. Total koneksi = `DB_POOL_MAX` dikali jumlah instance PM2, jadi
+menambah vCPU ikut menambah koneksi. Turunkan `DB_POOL_MAX` di `.env` lalu
+`pm2 restart podorukuntrack-api --update-env`.
+
+### Memindahkan database ke penyedia lain
+
+Ikuti [DB_MIGRATION_RUNBOOK.md](./DB_MIGRATION_RUNBOOK.md) — prosedur lengkap
+beserta langkah pembuktian bahwa data di penyedia baru identik dengan yang lama.
 
 ### GitHub Actions gagal deploy
 

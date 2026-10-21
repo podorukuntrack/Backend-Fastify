@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "test": "vitest run",
     "sync:start": "node src/sync-server.js",
-    "test:sync": "node --test sync-tests/sync.test.js"
+    "test:sync": "node --test sync-tests/sync.test.js",
+    "verify:db": "node scripts/verify-db-migration.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",

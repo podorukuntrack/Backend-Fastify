@@ -16,10 +16,22 @@ if (!connectionString) {
   );
 }
 
+// Batas koneksi per proses. PM2 cluster mode menjalankan satu proses per vCPU,
+// dan tiap proses membuka pool-nya sendiri — jadi total koneksi ke database
+// adalah nilai ini dikali jumlah instance. Layanan database berlangganan punya
+// kuota koneksi (paket Starter Sumopod: 50), sehingga angka ini perlu ikut
+// turun bila vCPU ditambah. Dibuat dapat ditimpa lewat env supaya penyesuaian
+// tidak menuntut perubahan kode.
+const maxConnections = parseInt(process.env.DB_POOL_MAX, 10) || 10;
+
 // Buat koneksi postgres
 const client = postgres(connectionString, {
-  prepare: false,      // wajib jika pakai Neon transaction pool
-  max: 10,             // maksimum koneksi
+  // Wajib false di belakang connection pooler mode transaction (PgBouncer,
+  // Supavisor, Neon pooler): pooler memindahkan koneksi server antar klien
+  // tiap transaksi, sehingga prepared statement yang dibuat di satu koneksi
+  // tidak ditemukan saat dieksekusi.
+  prepare: false,
+  max: maxConnections,
   idle_timeout: 20,    // timeout koneksi idle
   connect_timeout: 10, // timeout koneksi awal
 });
