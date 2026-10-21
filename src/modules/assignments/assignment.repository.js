@@ -1,4 +1,5 @@
-import { db } from "../../config/database.js";
+import { db, client } from "../../config/database.js";
+import { createBillingCapture } from '../sync/billing.capture.js';
 import { sql } from "drizzle-orm";
 import { clearDashboardCache } from "../../shared/utils/cache.js";
 import { AppError } from '../../shared/utils/AppError.js';
@@ -35,11 +36,13 @@ const mapAssignmentRow = (row) => ({
     harga_total: Number(row.harga_total ?? 0),
     dp: Number(row.dp ?? 0),
     total_dibayar: Number(row.total_dibayar ?? 0),
+    // Terisi setelah SI mengirim nilai kontrak; sejak itu auto-injeksi KPR tidak dihitung di total_dibayar.
+    si_contract_total: row.si_contract_total == null ? null : Number(row.si_contract_total),
     jatuh_tempo_kpr: row.jatuh_tempo_kpr,
     reminder_kpr_dates: row.reminder_kpr_dates || [],
     tenor_bulan: row.tenor_bulan,
     keterangan_kpr: row.keterangan_kpr,
-    persentase_dibayar: row.tipe_pembayaran === 'kredit_kpr'
+    persentase_dibayar: row.tipe_pembayaran === 'kredit_kpr' && row.si_contract_total == null
       ? (Number(row.dp ?? 0) > 0 
           ? (function() {
               const kprAmount = Number(row.harga_total ?? 0) - Number(row.dp ?? 0);
@@ -83,7 +86,8 @@ export const findAllAssignments = async (userContext, filters = {}) => {
       pa.tanggal_pembelian,
       pa.status_kepemilikan,
       pa.tipe_pembayaran,
-      pa.harga_total,
+      coalesce((to_jsonb(pa)->>'si_contract_total')::numeric,pa.harga_total) AS harga_total,
+      to_jsonb(pa)->>'si_contract_total' AS si_contract_total,
       pa.dp,
       pa.total_dibayar,
       pa.jatuh_tempo_kpr,
@@ -152,7 +156,8 @@ export const findAssignmentById = async (id, userContext) => {
       pa.tanggal_pembelian,
       pa.status_kepemilikan,
       pa.tipe_pembayaran,
-      pa.harga_total,
+      coalesce((to_jsonb(pa)->>'si_contract_total')::numeric,pa.harga_total) AS harga_total,
+      to_jsonb(pa)->>'si_contract_total' AS si_contract_total,
       pa.dp,
       pa.total_dibayar,
       pa.jatuh_tempo_kpr,
@@ -224,7 +229,7 @@ export const insertAssignment = async (data, userContext) => {
 
   const assignmentId = rows[0].id;
   
-  if (data.tipe_pembayaran === 'kredit_kpr') {
+  if (data.tipe_pembayaran === 'kredit_kpr' && process.env.SI_BILLING_ENABLED!=='true') {
     const kprAmount = Number(data.harga_total ?? 0) - Number(data.dp ?? 0);
     if (kprAmount > 0) {
       await db.execute(sql`
@@ -258,6 +263,7 @@ export const updateAssignment = async (id, data, userContext) => {
 
   const isTipeChanged =
     !!data.tipe_pembayaran && data.tipe_pembayaran !== existing.pembayaran.tipe;
+  if (isTipeChanged && process.env.SI_BILLING_ENABLED==='true') throw new AppError('Perubahan tipe pembayaran pada mode SI memerlukan adendum Keuangan.',409);
 
   /**
    * PENJAGA GANTI TIPE PEMBAYARAN
@@ -397,6 +403,10 @@ export const findPaymentsByAssignmentId = async (assignmentId, userContext) => {
       ph.bukti_pembayaran,
       ph.is_auto_inject,
       ph.created_at,
+      to_jsonb(ph)->>'si_jadwal_id' AS si_jadwal_id,
+      to_jsonb(ph)->>'status_si' AS status_si,
+      to_jsonb(ph)->>'alasan_si' AS alasan_si,
+      to_jsonb(ph)->>'jurnal_si' AS jurnal_si,
       creator.nama AS dicatat_oleh
     FROM payment_history ph
     LEFT JOIN users creator ON creator.id = ph.created_by
@@ -408,6 +418,12 @@ export const findPaymentsByAssignmentId = async (assignmentId, userContext) => {
 export const insertPayment = async (assignmentId, data, userContext) => {
   const assignment = await findAssignmentById(assignmentId, userContext);
   if (!assignment) return null;
+  if (process.env.SI_BILLING_ENABLED==='true' || data.si_jadwal_id) {
+    if (process.env.SI_BILLING_ENABLED!=='true') throw new AppError('Pembayaran tagihan SI belum diaktifkan.',409);
+    const result=await createBillingCapture(client)(assignmentId,data,userContext.sub);
+    await clearDashboardCache();
+    return result;
+  }
 
   const buktiPembayaran = Array.isArray(data.bukti_pembayaran) 
     ? JSON.stringify(data.bukti_pembayaran) 
@@ -450,6 +466,17 @@ export const insertPayment = async (assignmentId, data, userContext) => {
 
   await clearDashboardCache();
   return rows[0];
+};
+
+export const isSiBillingEnabled = () => process.env.SI_BILLING_ENABLED==='true';
+
+export const findSiBills = async (assignmentId,userContext) => {
+  const assignment=await findAssignmentById(assignmentId,userContext);
+  if (!assignment) return null;
+  if (!isSiBillingEnabled()) return [];
+  return client`SELECT s.*, (s.jumlah-s.realisasi)::text AS sisa,
+    EXISTS(SELECT 1 FROM public.payment_history p WHERE p.si_jadwal_id=s.id AND p.status_si IN ('menunggu','dijurnal','perlu_ditinjau')) AS sedang_diproses
+    FROM public.si_schedules s WHERE s.assignment_id=${assignmentId} ORDER BY s.no_urut,s.id`;
 };
 
 export const updatePayment = async (assignmentId, paymentId, data, userContext) => {

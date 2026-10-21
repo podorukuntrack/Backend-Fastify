@@ -43,13 +43,20 @@ export const assignmentIdParamSchema = {
 export const createPaymentSchema = {
   params: z.object({ id: z.string().uuid() }),
   body: z.object({
-    jumlah_bayar: z.coerce.number().refine(val => val !== 0, "Jumlah tidak boleh 0"),
+    jumlah_bayar: z.coerce.number().refine(val => val !== 0, "Jumlah tidak boleh 0").optional(),
+    si_jadwal_id: z.uuid().optional(),
+    request_id: z.uuid().optional(),
+    rekening_tujuan: z.string().trim().min(1).max(30).optional(),
     tanggal_bayar: z.string().optional(),
     catatan: z.string().optional(),
     bukti_pembayaran: z.union([
       z.string().url("Bukti pembayaran harus berupa URL valid yang diunggah"),
       z.array(z.string().url("Setiap bukti pembayaran harus berupa URL valid"))
     ]).optional(),
+  }).superRefine((b,ctx)=>{
+    if (!b.si_jadwal_id && b.jumlah_bayar===undefined) ctx.addIssue({code:'custom',message:'Nominal atau tagihan SI wajib diisi'});
+    if (b.si_jadwal_id && (!b.request_id || !b.tanggal_bayar || !b.bukti_pembayaran || !b.rekening_tujuan)) ctx.addIssue({code:'custom',message:'Pengajuan tagihan memerlukan request_id, tanggal, bukti, dan rekening tujuan'});
+    if (b.si_jadwal_id && (!z.iso.date().safeParse(b.tanggal_bayar).success || (Array.isArray(b.bukti_pembayaran) && !b.bukti_pembayaran.length))) ctx.addIssue({code:'custom',message:'Tanggal harus YYYY-MM-DD dan bukti tidak boleh kosong'});
   }),
 };
 

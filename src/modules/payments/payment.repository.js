@@ -24,7 +24,7 @@ export const findPaymentsByUnitId = async (unitId, userContext) => {
     SELECT
       ph.id,
       ph.jumlah_bayar AS amount,
-      'diterima' AS status,
+      CASE WHEN to_jsonb(ph)->>'si_jadwal_id' IS NULL THEN 'diterima' WHEN to_jsonb(ph)->>'status_si'='dijurnal' THEN 'diterima' ELSE to_jsonb(ph)->>'status_si' END AS status,
       'transfer' AS method,
       ph.tanggal_bayar AS "paymentDate",
       ph.bukti_pembayaran AS "receiptUrl",

@@ -2,9 +2,18 @@ import { authorize } from "../../middleware/authorize.js";
 import { validate } from "../../middleware/validate.js";
 import * as schema from "./assignment.schema.js";
 import * as controller from "./assignment.controller.js";
+import { findSiBills, isSiBillingEnabled } from './assignment.repository.js';
 
 export default async function assignmentRoutes(fastify, options) {
   fastify.addHook("preValidation", fastify.authenticate);
+  fastify.get('/:id/tagihan',{
+    preHandler:[authorize('super_admin','owner','admin','direksi','customer'),validate(schema.assignmentIdParamSchema)],
+    schema:{tags:['Assignments'],description:'Tagihan dari Keuangan SI beserta nominal, sisa, dan status pengajuan. billing_enabled=false berarti pembayaran memakai input lama.'},
+  },async (request,reply)=>{
+    const data=await findSiBills(request.params.id,request.user);
+    if (!data) return reply.code(404).send({success:false,message:'Penjualan tidak ditemukan'});
+    return {success:true,message:'Success',data,billing_enabled:isSiBillingEnabled()};
+  });
 
 
   // GET - Dapatkan semua assignments

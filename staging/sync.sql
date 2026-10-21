@@ -12,6 +12,7 @@ ALTER TABLE payment_history
  ADD COLUMN IF NOT EXISTS diverifikasi_oleh varchar(150),
  ADD COLUMN IF NOT EXISTS diverifikasi_pada timestamptz,
  ADD COLUMN IF NOT EXISTS dikunci_si boolean NOT NULL DEFAULT false;
+ALTER TABLE public.payment_history ADD COLUMN IF NOT EXISTS si_jadwal_id uuid;
 CREATE TABLE IF NOT EXISTS public.sync_outbox (
  seq bigserial PRIMARY KEY, entity varchar(30) NOT NULL, entity_id uuid NOT NULL,
  op char(1) NOT NULL CHECK (op IN ('I','U','D')), row_version bigint NOT NULL,
@@ -37,7 +38,7 @@ BEGIN
  WHEN 'units' THEN ARRAY['id','cluster_id','nomor_unit','tipe_rumah','luas_tanah','luas_bangunan','status_pembangunan']
  WHEN 'customers' THEN ARRAY['id','nama','email','nomor_telepon']
  WHEN 'assignments' THEN ARRAY['id','user_id','unit_id','tipe_pembayaran','harga_total','dp','status_kepemilikan','tanggal_pembelian']
- WHEN 'payments' THEN ARRAY['id','assignment_id','jumlah_bayar','tanggal_bayar','catatan','bukti_pembayaran','is_auto_inject','created_at','jenis','status_verifikasi','rekening_tujuan','diverifikasi_oleh','diverifikasi_pada']
+ WHEN 'payments' THEN ARRAY['id','assignment_id','jumlah_bayar','tanggal_bayar','catatan','bukti_pembayaran','is_auto_inject','created_at','jenis','status_verifikasi','rekening_tujuan','diverifikasi_oleh','diverifikasi_pada','si_jadwal_id']
  ELSE NULL END;
  IF fields IS NULL THEN RAISE EXCEPTION 'Unknown entity'; END IF;
  SELECT jsonb_object_agg(k, r->k) INTO result FROM unnest(fields) k;
@@ -79,12 +80,29 @@ UPDATE public.sync_outbox SET txid = '0'::xid8 WHERE txid IS NULL; -- pre-v2 row
 ALTER TABLE public.sync_outbox ALTER COLUMN txid SET DEFAULT pg_current_xact_id();
 ALTER TABLE public.sync_outbox ALTER COLUMN txid SET NOT NULL;
 CREATE INDEX IF NOT EXISTS sync_outbox_txid_seq_idx ON public.sync_outbox (txid, seq);
+CREATE TABLE IF NOT EXISTS public.sync_feed (
+ singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),
+ source_id uuid NOT NULL DEFAULT gen_random_uuid(), pruned_txid xid8 NOT NULL DEFAULT '0', pruned_seq bigint NOT NULL DEFAULT 0
+);
+INSERT INTO public.sync_feed(singleton) VALUES(true) ON CONFLICT DO NOTHING;
 -- Retention (contract: events older than 30 days may be removed). Run by the
 -- owner role from a scheduled job; the read-only runtime role cannot call it.
 CREATE OR REPLACE FUNCTION public.sync_prune_outbox(keep interval DEFAULT interval '30 days') RETURNS bigint
-LANGUAGE sql AS $$
- WITH gone AS (DELETE FROM public.sync_outbox WHERE created_at < now() - greatest(keep, interval '7 days') RETURNING 1)
- SELECT count(*) FROM gone;
+LANGUAGE plpgsql AS $$
+DECLARE watermark xid8; boundary record; removed bigint;
+BEGIN
+ PERFORM 1 FROM public.sync_feed WHERE singleton FOR UPDATE;
+ watermark:=pg_snapshot_xmin(pg_current_snapshot());
+ SELECT o.txid,o.seq INTO boundary FROM public.sync_outbox o
+   WHERE o.txid<watermark AND o.created_at<now()-greatest(keep,interval '7 days')
+     AND NOT EXISTS(SELECT 1 FROM public.sync_outbox y WHERE y.created_at>=now()-greatest(keep,interval '7 days') AND (y.txid,y.seq)<=(o.txid,o.seq))
+   ORDER BY o.txid DESC,o.seq DESC LIMIT 1;
+ IF boundary IS NULL THEN RETURN 0; END IF;
+ DELETE FROM public.sync_outbox WHERE (txid,seq)<=(boundary.txid,boundary.seq);
+ GET DIAGNOSTICS removed=ROW_COUNT;
+ UPDATE public.sync_feed SET pruned_txid=boundary.txid,pruned_seq=boundary.seq WHERE singleton;
+ RETURN removed;
+END;
 $$;
 REVOKE ALL ON FUNCTION public.sync_prune_outbox(interval) FROM PUBLIC;
 
@@ -100,7 +118,7 @@ BEGIN
  WHEN 'units' THEN ARRAY['cluster_id','nomor_unit','tipe_rumah','luas_tanah','luas_bangunan','status_pembangunan']
  WHEN 'customers' THEN ARRAY['nama','email','nomor_telepon']
  WHEN 'assignments' THEN ARRAY['user_id','unit_id','tipe_pembayaran','harga_total','dp','status_kepemilikan','tanggal_pembelian']
- WHEN 'payments' THEN ARRAY['assignment_id','jumlah_bayar','tanggal_bayar','catatan','bukti_pembayaran','is_auto_inject','created_at','jenis','status_verifikasi','rekening_tujuan','diverifikasi_oleh','diverifikasi_pada']
+ WHEN 'payments' THEN ARRAY['assignment_id','jumlah_bayar','tanggal_bayar','catatan','bukti_pembayaran','is_auto_inject','created_at','jenis','status_verifikasi','rekening_tujuan','diverifikasi_oleh','diverifikasi_pada','si_jadwal_id']
  ELSE NULL END;
  IF fields IS NULL THEN RAISE EXCEPTION 'Unknown entity'; END IF;
  FOREACH k IN ARRAY fields LOOP
@@ -120,7 +138,7 @@ BEGIN
 END $$;
 
 CREATE OR REPLACE FUNCTION public.sync_content_hash(entity text) RETURNS text
-LANGUAGE plpgsql STABLE SET search_path = pg_catalog, public SET timezone = 'UTC' AS $$
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public SET timezone = 'UTC' AS $$
 DECLARE tbl text; result text;
 BEGIN
  tbl := CASE entity WHEN 'companies' THEN 'companies' WHEN 'projects' THEN 'projects'

@@ -49,17 +49,17 @@ export function createSyncService({ repository } = {}) {
       return { events, next_after_seq: events.at(-1)?.seq ?? afterSeq, has_more: rows.length > limit, server_time: new Date().toISOString() };
     },
     async listEventsV2({ afterTxid, afterSeq, limit }) {
-      const { rows, xmin, held } = await repository.listEventsV2({ afterTxid, afterSeq, limit: limit + 1 });
+      const { rows, xmin, held,sourceId } = await repository.listEventsV2({ afterTxid, afterSeq, limit: limit + 1 });
       const page = rows.slice(0, limit);
       const events = page.map(e => ({ ...toEvent(e), cursor: cursorV2(e.txid, e.seq) }));
       return { events, next_after: events.at(-1)?.cursor ?? cursorV2(afterTxid, afterSeq), has_more: rows.length > limit,
         // true: committed events exist past the watermark, waiting for an older open Track transaction
-        held_by_open_transaction: Boolean(held), watermark: String(safeNumber(xmin)), server_time: new Date().toISOString() };
+        held_by_open_transaction: Boolean(held), watermark: String(safeNumber(xmin)),source_id:sourceId, contract_version:2, server_time: new Date().toISOString() };
     },
     // Initial load: take this cursor BEFORE the first snapshot page, then replay events after it.
     async startCursorV2() {
-      const { xmin } = await repository.startCursorV2();
-      return { after: cursorV2(xmin, 0), server_time: new Date().toISOString() };
+      const { xmin,sourceId } = await repository.startCursorV2();
+      return { after: cursorV2(xmin, 0),source_id:sourceId,contract_version:2, server_time: new Date().toISOString() };
     },
     async getSnapshot({ entity, pageAfterId, limit }) {
       assertEntity(entity);

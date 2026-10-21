@@ -5,7 +5,7 @@ export const BUSINESS_FIELDS = Object.freeze({
   units: ['id', 'cluster_id', 'nomor_unit', 'tipe_rumah', 'luas_tanah', 'luas_bangunan', 'status_pembangunan'],
   customers: ['id', 'nama', 'email', 'nomor_telepon'],
   assignments: ['id', 'user_id', 'unit_id', 'tipe_pembayaran', 'harga_total', 'dp', 'status_kepemilikan', 'tanggal_pembelian'],
-  payments: ['id', 'assignment_id', 'jumlah_bayar', 'tanggal_bayar', 'catatan', 'bukti_pembayaran', 'is_auto_inject', 'created_at', 'jenis', 'status_verifikasi', 'rekening_tujuan', 'diverifikasi_oleh', 'diverifikasi_pada'],
+  payments: ['id', 'assignment_id', 'jumlah_bayar', 'tanggal_bayar', 'catatan', 'bukti_pembayaran', 'is_auto_inject', 'created_at', 'jenis', 'status_verifikasi', 'rekening_tujuan', 'diverifikasi_oleh', 'diverifikasi_pada', 'si_jadwal_id'],
 });
 export const SYNC_ENTITIES = Object.keys(BUSINESS_FIELDS);
 // Sync is available only in the isolated staging entrypoint, never in the business server.

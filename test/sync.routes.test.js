@@ -11,7 +11,7 @@ function makeApp(service) {
   process.env.NODE_ENV = 'test';
   process.env.SYNC_READ_ENABLED = 'true';
   process.env.SYNC_READ_TOKEN = TOKEN;
-  return app.register(syncRoutes, { prefix: '/sync/v1', service });
+  return app.register(syncRoutes, { prefix: '/sync/v1', service,token:TOKEN });
 }
 
 describe('read-only sync API', () => {
@@ -31,7 +31,7 @@ describe('read-only sync API', () => {
     const app = await makeApp({
       listEvents: async (input) => {
         calls.push(input);
-        return [{ seq: 4, entity: 'companies', operation: 'update', data: { id: 'c1' } }];
+        return {events:[{ seq: 4, entity: 'companies', op: 'U', payload: { id: 'c1' } }],next_after_seq:4,has_more:false};
       },
     });
     const response = await app.inject({ method: 'GET', url: '/sync/v1/events?after_seq=3', headers: { authorization: `Bearer ${TOKEN}` } });
@@ -59,7 +59,7 @@ describe('read-only sync API', () => {
     const row = pickBusinessFields('customers', {
       id: 'u1', email: 'customer@example.test', password_hash: 'do-not-return', refresh_token: 'do-not-return', api_token: 'do-not-return', role: 'customer',
     });
-    expect(row).toEqual({ id: 'u1', email: 'customer@example.test', role: 'customer' });
+    expect(row).toEqual({ id: 'u1', email: 'customer@example.test' });
     expect(row).not.toHaveProperty('password_hash');
     expect(row).not.toHaveProperty('refresh_token');
     expect(row).not.toHaveProperty('api_token');
@@ -77,18 +77,17 @@ describe('sync service', () => {
   it('never enables the sync routes in production or without an explicit environment', () => {
     expect(isSyncReadEnabled({ NODE_ENV: 'production', SYNC_READ_ENABLED: 'true', SYNC_READ_TOKEN: TOKEN })).toBe(false);
     expect(isSyncReadEnabled({ SYNC_READ_ENABLED: 'true', SYNC_READ_TOKEN: TOKEN })).toBe(false);
-    expect(isSyncReadEnabled({ NODE_ENV: 'staging', SYNC_READ_ENABLED: 'true', SYNC_READ_TOKEN: TOKEN })).toBe(true);
+    expect(isSyncReadEnabled({ NODE_ENV: 'staging', SYNC_READ_ENABLED: 'true', SYNC_READ_TOKEN: TOKEN })).toBe(false);
   });
 
   it('enforces limit and sanitizes repository rows', async () => {
     const service = createSyncService({
       repository: {
-        getMaxSeq: async () => 8,
-        getSnapshotRows: async () => [{ id: 'c1', nama_pt: 'Dummy', password_hash: 'secret' }],
+        getSnapshot: async () => ({max_seq:8,rows:[{ id: 'c1', nama_pt: 'Dummy', password_hash: 'secret',row_version:2 }]}),
       },
     });
     const result = await service.getSnapshot({ entity: 'companies', pageAfterId: null, limit: 500 });
-    expect(result.rows).toEqual([{ id: 'c1', nama_pt: 'Dummy' }]);
+    expect(result.rows).toEqual([{ id: 'c1', nama_pt: 'Dummy',row_version:2 }]);
     expect(result).toMatchObject({ has_more: false, max_seq: 8 });
   });
 });

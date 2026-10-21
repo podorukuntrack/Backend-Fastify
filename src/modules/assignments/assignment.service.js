@@ -40,6 +40,9 @@ export const createAssignmentPayment = async (id, data, userContext) => {
   const result = await repo.insertPayment(id, data, userContext);
   if (!result) throw new AppError('Data penugasan tidak ditemukan atau Anda tidak memiliki akses.', 404);
 
+  // Submission is not payment confirmation; SI owns verification and posting.
+  if (result.si_jadwal_id) return result;
+
   // Kirim notifikasi push ke pelanggan
   try {
     const assignment = await repo.findAssignmentById(id, userContext);
