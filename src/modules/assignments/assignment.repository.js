@@ -235,7 +235,7 @@ export const insertAssignment = async (data, userContext) => {
 
   const assignmentId = rows[0].id;
   
-  if (data.tipe_pembayaran === 'kredit_kpr' && process.env.SI_BILLING_ENABLED!=='true') {
+  if (data.tipe_pembayaran === 'kredit_kpr' && !(await siBillingAppliesTo(assignmentId))) {
     const kprAmount = Number(data.harga_total ?? 0) - Number(data.dp ?? 0);
     if (kprAmount > 0) {
       await db.execute(sql`
@@ -269,7 +269,7 @@ export const updateAssignment = async (id, data, userContext) => {
 
   const isTipeChanged =
     !!data.tipe_pembayaran && data.tipe_pembayaran !== existing.pembayaran.tipe;
-  if (isTipeChanged && process.env.SI_BILLING_ENABLED==='true') throw new AppError('Perubahan tipe pembayaran pada mode SI memerlukan adendum Keuangan.',409);
+  if (isTipeChanged && await siBillingAppliesTo(id)) throw new AppError('Perubahan tipe pembayaran pada mode SI memerlukan adendum Keuangan.',409);
 
   /**
    * PENJAGA GANTI TIPE PEMBAYARAN
@@ -424,8 +424,9 @@ export const findPaymentsByAssignmentId = async (assignmentId, userContext) => {
 export const insertPayment = async (assignmentId, data, userContext) => {
   const assignment = await findAssignmentById(assignmentId, userContext);
   if (!assignment) return null;
-  if (process.env.SI_BILLING_ENABLED==='true' || data.si_jadwal_id) {
-    if (process.env.SI_BILLING_ENABLED!=='true') throw new AppError('Pembayaran tagihan SI belum diaktifkan.',409);
+  const billing = await siBillingAppliesTo(assignmentId);
+  if (billing || data.si_jadwal_id) {
+    if (!billing) throw new AppError('Pembayaran tagihan SI belum diaktifkan untuk penjualan ini.',409);
     const result=await createBillingCapture(client)(assignmentId,data,userContext.sub);
     await clearDashboardCache();
     return result;
@@ -476,10 +477,18 @@ export const insertPayment = async (assignmentId, data, userContext) => {
 
 export const isSiBillingEnabled = () => process.env.SI_BILLING_ENABLED==='true';
 
+// Saklar env + cakupan perusahaan di database (si_billing_config.enabled/company_ids).
+// Env mati = false tanpa query, sehingga aman sebelum migrasi billing diterapkan.
+export const siBillingAppliesTo = async (assignmentId) => {
+  if (!isSiBillingEnabled()) return false;
+  const [row] = await db.execute(sql`SELECT public.si_billing_applies(${assignmentId}::uuid) AS ok`);
+  return row?.ok === true;
+};
+
 export const findSiBills = async (assignmentId,userContext) => {
   const assignment=await findAssignmentById(assignmentId,userContext);
   if (!assignment) return null;
-  if (!isSiBillingEnabled()) return [];
+  if (!(await siBillingAppliesTo(assignmentId))) return [];
   return client`SELECT s.*, (s.jumlah-s.realisasi)::text AS sisa,
     EXISTS(SELECT 1 FROM public.payment_history p WHERE p.si_jadwal_id=s.id AND p.status_si IN ('menunggu','dijurnal','perlu_ditinjau')) AS sedang_diproses
     FROM public.si_schedules s WHERE s.assignment_id=${assignmentId} ORDER BY s.no_urut,s.id`;

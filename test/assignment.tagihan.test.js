@@ -2,13 +2,16 @@ import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // database.js memuat .env dan membuka koneksi; tes route tidak boleh menyentuh database apa pun.
-vi.mock('../src/config/database.js', () => ({ db: {}, client: vi.fn() }));
+// db.execute menjawab public.si_billing_applies(); scope.inPilot mengatur hasilnya per tes.
+const scope = { inPilot: true };
+vi.mock('../src/config/database.js', () => ({ db: { execute: vi.fn(async () => [{ ok: scope.inPilot }]) }, client: vi.fn() }));
 vi.mock('../src/modules/assignments/assignment.repository.js', async (importOriginal) => ({
   ...(await importOriginal()),
   findSiBills: vi.fn(),
 }));
 
 const { findSiBills } = await import('../src/modules/assignments/assignment.repository.js');
+const { db } = await import('../src/config/database.js');
 const { default: assignmentRoutes } = await import('../src/modules/assignments/assignment.routes.js');
 
 const ASSIGNMENT_ID = '00000000-0000-4000-8000-000000000001';
@@ -23,7 +26,7 @@ async function makeApp(role = 'admin') {
 
 describe('GET /assignments/:id/tagihan', () => {
   const original = process.env.SI_BILLING_ENABLED;
-  beforeEach(() => { vi.mocked(findSiBills).mockReset(); });
+  beforeEach(() => { vi.mocked(findSiBills).mockReset(); vi.mocked(db.execute).mockClear(); scope.inPilot = true; });
   afterEach(() => {
     if (original === undefined) delete process.env.SI_BILLING_ENABLED;
     else process.env.SI_BILLING_ENABLED = original;
@@ -61,6 +64,25 @@ describe('GET /assignments/:id/tagihan', () => {
       const res = await app.inject({ method: 'GET', url: `/assignments/${ASSIGNMENT_ID}/tagihan` });
       expect(res.json().billing_enabled).toBe(false);
     }
+    await app.close();
+  });
+
+  it('reports billing_enabled=false for assignments outside the pilot companies', async () => {
+    process.env.SI_BILLING_ENABLED = 'true';
+    scope.inPilot = false;
+    vi.mocked(findSiBills).mockResolvedValue([]);
+    const app = await makeApp();
+    const res = await app.inject({ method: 'GET', url: `/assignments/${ASSIGNMENT_ID}/tagihan` });
+    expect(res.json()).toMatchObject({ data: [], billing_enabled: false });
+    await app.close();
+  });
+
+  it('does not query the database scope while the env switch is off', async () => {
+    process.env.SI_BILLING_ENABLED = 'false';
+    vi.mocked(findSiBills).mockResolvedValue([]);
+    const app = await makeApp();
+    await app.inject({ method: 'GET', url: `/assignments/${ASSIGNMENT_ID}/tagihan` });
+    expect(db.execute).not.toHaveBeenCalled();
     await app.close();
   });
 

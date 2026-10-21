@@ -76,7 +76,7 @@ export default async function billingRoutes(app, { db, token, allowedIps = [] })
     if(b.nilaiKontrak) await tx`UPDATE public.property_assignments SET si_contract_total=${b.nilaiKontrak},si_contract_version=${b.versi},
       total_dibayar=(SELECT coalesce(sum(jumlah_bayar),0) FROM public.payment_history WHERE assignment_id=${b.trackAssignmentId}
         AND ((si_jadwal_id IS NULL AND NOT coalesce(is_auto_inject,false)) OR (si_jadwal_id IS NOT NULL AND status_si='dijurnal')))
-      WHERE id=${b.trackAssignmentId} AND si_contract_version<${b.versi}`;
+      WHERE id=${b.trackAssignmentId} AND si_contract_version<${b.versi} AND public.si_billing_applies(${b.trackAssignmentId}::uuid)`;
     await tx`INSERT INTO public.si_schedules(id,assignment_id,no_urut,tanggal,jumlah,jenis,keterangan,aktif,realisasi,versi,payload_hash)
       VALUES(${b.siJadwalId},${b.trackAssignmentId},${b.noUrut ?? old.no_urut},${b.tanggal ?? old.tanggal},${b.jumlah ?? old.jumlah},${b.jenis},${b.keterangan ?? null},${b.aktif},${b.realisasi},${b.versi},${hash(b)})
       ON CONFLICT(id) DO UPDATE SET no_urut=excluded.no_urut,tanggal=excluded.tanggal,jumlah=excluded.jumlah,

@@ -180,6 +180,19 @@ CREATE TABLE IF NOT EXISTS public.si_billing_config (
  singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton), enabled boolean NOT NULL DEFAULT false
 );
 INSERT INTO public.si_billing_config(singleton) VALUES(true) ON CONFLICT DO NOTHING;
+-- Cakupan pilot: NULL = semua perusahaan; berisi id = hanya assignment perusahaan tersebut.
+ALTER TABLE public.si_billing_config ADD COLUMN IF NOT EXISTS company_ids uuid[];
+-- SECURITY DEFINER: role integrasi terbatas cukup memanggil fungsi ini tanpa SELECT ke tabel master.
+CREATE OR REPLACE FUNCTION public.si_billing_applies(aid uuid) RETURNS boolean LANGUAGE sql STABLE
+ SECURITY DEFINER SET search_path = public, pg_temp AS $$
+ SELECT coalesce((SELECT c.enabled AND (c.company_ids IS NULL OR p.company_id = ANY(c.company_ids))
+   FROM public.si_billing_config c
+   CROSS JOIN public.property_assignments a
+   JOIN public.units u ON u.id = a.unit_id
+   JOIN public.clusters k ON k.id = u.cluster_id
+   JOIN public.projects p ON p.id = k.project_id
+   WHERE c.singleton AND a.id = aid), false)
+$$;
 CREATE TABLE IF NOT EXISTS public.si_schedules (
  id uuid PRIMARY KEY, assignment_id uuid NOT NULL REFERENCES public.property_assignments(id),
  no_urut integer NOT NULL, tanggal date NOT NULL, jumlah numeric(18,2) NOT NULL CHECK(jumlah>0),
@@ -209,7 +222,7 @@ DO $$ BEGIN
 END $$;
 CREATE INDEX IF NOT EXISTS payment_si_jadwal_idx ON public.payment_history(si_jadwal_id);
 CREATE OR REPLACE FUNCTION public.si_guard_payment() RETURNS trigger LANGUAGE plpgsql AS $$
-DECLARE bill public.si_schedules; enabled boolean;
+DECLARE bill public.si_schedules;
 BEGIN
  IF current_setting('prtrack.finance_writer',true)='result' THEN
   IF TG_OP<>'UPDATE' OR (to_jsonb(NEW)-ARRAY['status_si','alasan_si','jurnal_si','versi_si','dikunci_si','sync_version','updated_at','si_result_hash'])
@@ -220,8 +233,7 @@ BEGIN
  IF TG_OP<>'INSERT' AND (OLD.si_jadwal_id IS NOT NULL OR OLD.dikunci_si) THEN
   RAISE EXCEPTION 'Pembayaran terikat tagihan; koreksi melalui Keuangan SI' USING ERRCODE='23514';
  END IF;
- SELECT c.enabled INTO enabled FROM public.si_billing_config c WHERE singleton;
- IF TG_OP='INSERT' AND (enabled OR NEW.si_jadwal_id IS NOT NULL) THEN
+ IF TG_OP='INSERT' AND (public.si_billing_applies(NEW.assignment_id) OR NEW.si_jadwal_id IS NOT NULL) THEN
   IF NEW.si_jadwal_id IS NULL THEN RAISE EXCEPTION 'Pilih tagihan SI' USING ERRCODE='23514'; END IF;
   SELECT * INTO bill FROM public.si_schedules WHERE id=NEW.si_jadwal_id FOR UPDATE;
   IF NOT FOUND OR NOT bill.aktif OR bill.assignment_id<>NEW.assignment_id OR bill.realisasi>=bill.jumlah THEN
