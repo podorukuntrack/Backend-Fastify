@@ -242,9 +242,9 @@ BEGIN
    RAISE EXCEPTION 'Tagihan sudah memiliki pembayaran yang sedang diproses' USING ERRCODE='23514'; END IF;
   IF NEW.jumlah_bayar<>bill.jumlah-bill.realisasi THEN
    RAISE EXCEPTION 'Nominal wajib sama dengan sisa tagihan SI' USING ERRCODE='23514'; END IF;
-  IF NEW.tanggal_bayar IS NULL OR NEW.bukti_pembayaran IS NULL OR btrim(NEW.bukti_pembayaran::text) IN ('','[]','null')
-    OR NEW.rekening_tujuan IS NULL OR btrim(NEW.rekening_tujuan)='' THEN
-   RAISE EXCEPTION 'Tanggal aktual, bukti, dan rekening tujuan wajib diisi' USING ERRCODE='23514'; END IF;
+  -- Rekening tujuan tidak lagi diisi di Track; SI memakai akun kas default bila kosong.
+  IF NEW.tanggal_bayar IS NULL OR NEW.bukti_pembayaran IS NULL OR btrim(NEW.bukti_pembayaran::text) IN ('','[]','null') THEN
+   RAISE EXCEPTION 'Tanggal aktual dan bukti wajib diisi' USING ERRCODE='23514'; END IF;
   NEW.jenis:=bill.jenis; NEW.status_verifikasi:='menunggu'; NEW.status_si:='menunggu';
   NEW.alasan_si:='Menunggu verifikasi Keuangan SI.';
   NEW.is_auto_inject:=false; NEW.dikunci_si:=false; NEW.versi_si:=0;
