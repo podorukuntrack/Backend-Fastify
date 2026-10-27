@@ -55,7 +55,7 @@ export const createPaymentSchema = {
     ]).optional(),
   }).superRefine((b,ctx)=>{
     if (!b.si_jadwal_id && b.jumlah_bayar===undefined) ctx.addIssue({code:'custom',message:'Nominal atau tagihan SI wajib diisi'});
-    if (b.si_jadwal_id && (!b.request_id || !b.tanggal_bayar || !b.bukti_pembayaran || !b.rekening_tujuan)) ctx.addIssue({code:'custom',message:'Pengajuan tagihan memerlukan request_id, tanggal, bukti, dan rekening tujuan'});
+    if (b.si_jadwal_id && (!b.request_id || !b.tanggal_bayar || !b.bukti_pembayaran)) ctx.addIssue({code:'custom',message:'Pengajuan tagihan memerlukan request_id, tanggal, dan bukti'});
     if (b.si_jadwal_id && (!z.iso.date().safeParse(b.tanggal_bayar).success || (Array.isArray(b.bukti_pembayaran) && !b.bukti_pembayaran.length))) ctx.addIssue({code:'custom',message:'Tanggal harus YYYY-MM-DD dan bukti tidak boleh kosong'});
   }),
 };
