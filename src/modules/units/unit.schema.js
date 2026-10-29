@@ -6,6 +6,13 @@ const statusPembangunanEnum = z.enum([
   'selesai',
 ]);
 
+// Link foto 360: hanya http(s) karena dirender sebagai href. '' atau null = hapus link.
+const linkFoto360Schema = z.union([
+  z.string().trim().max(2000, "Link foto 360 terlalu panjang")
+    .refine((v) => v === '' || /^https?:\/\/\S+$/i.test(v), "Link foto 360 harus diawali http:// atau https://"),
+  z.null(),
+]).optional();
+
 export const createUnitSchema = {
   body: z.object({
     clusterId: z.string().uuid("Format Cluster ID tidak valid").optional(),
@@ -57,6 +64,8 @@ export const updateUnitSchema = {
     progress_percentage: z.number().int().min(0).max(100).optional(),
     imageUrl: z.string().optional().nullable(),
     image_url: z.string().optional().nullable(),
+    linkFoto360: linkFoto360Schema,
+    link_foto_360: linkFoto360Schema,
   }),
 };
 

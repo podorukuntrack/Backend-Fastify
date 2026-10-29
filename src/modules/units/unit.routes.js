@@ -33,6 +33,7 @@ const baseUnitProperties = {
   progress_percentage: { type: 'integer' },
   imageUrl: { type: ['string', 'null'] },
   image_url: { type: ['string', 'null'] },
+  link_foto_360: { type: ['string', 'null'] },
   admin_phone: { type: ['string', 'null'] },
   cluster: { type: ['object', 'null'], additionalProperties: true },
   created_at: { type: 'string', format: 'date-time' },

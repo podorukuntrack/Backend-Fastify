@@ -15,6 +15,7 @@ const mapUnitRow = (row) => ({
   status_pembangunan: row.status_pembangunan,
   progress_percentage: row.progress_percentage,
   image_url: row.image_url,
+  link_foto_360: row.link_foto_360 ?? null,
   created_at: row.created_at,
   updated_at: row.updated_at,
   nama_perusahaan: row.nama_perusahaan,
@@ -74,6 +75,7 @@ export const findAllUnits = async (userContext, filters = {}) => {
       u.status_pembangunan,
       u.progress_percentage,
       u.image_url,
+      u.link_foto_360,
       u.created_at,
       u.updated_at,
       c.nama_cluster,
@@ -120,6 +122,7 @@ export const findUnitById = async (id, userContext) => {
       u.status_pembangunan,
       u.progress_percentage,
       u.image_url,
+      u.link_foto_360,
       u.created_at,
       u.updated_at,
       c.nama_cluster,
@@ -192,7 +195,7 @@ export const insertUnit = async (data) => {
       ${value.progress_percentage ?? null},
       ${value.image_url ?? null}
     )
-    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, created_at, updated_at
+    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, link_foto_360, created_at, updated_at
   `);
 
   return mapUnitRow(rows[0]);
@@ -236,6 +239,11 @@ export const updateUnit = async (id, data, userContext) => {
   if (!existing) return null;
 
   const value = normalizeUnitInput(data);
+  // Link foto 360 boleh dikosongkan, jadi tidak memakai COALESCE: kirim '' atau null
+  // untuk menghapus, abaikan field untuk membiarkan nilai lama.
+  const linkProvided = data.link_foto_360 !== undefined || data.linkFoto360 !== undefined;
+  const linkRaw = data.link_foto_360 !== undefined ? data.link_foto_360 : data.linkFoto360;
+  const linkValue = typeof linkRaw === 'string' && linkRaw.trim() !== '' ? linkRaw.trim() : null;
   const rows = await db.execute(sql`
     UPDATE units
        SET cluster_id = COALESCE(${value.cluster_id ?? null}, cluster_id),
@@ -246,9 +254,10 @@ export const updateUnit = async (id, data, userContext) => {
            status_pembangunan = COALESCE(${value.status_pembangunan ?? null}, status_pembangunan),
            progress_percentage = COALESCE(${value.progress_percentage ?? null}, progress_percentage),
            image_url = COALESCE(${value.image_url ?? null}, image_url),
+           link_foto_360 = CASE WHEN ${linkProvided}::boolean THEN ${linkValue}::text ELSE link_foto_360 END,
            updated_at = NOW()
      WHERE id = ${id}
-    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, created_at, updated_at
+    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, link_foto_360, created_at, updated_at
   `);
 
   return mapUnitRow(rows[0]);
@@ -266,7 +275,7 @@ export const deleteUnit = async (id, userContext) => {
   const rows = await db.execute(sql`
     DELETE FROM units
      WHERE id = ${id}
-    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, created_at, updated_at
+    RETURNING id, cluster_id, nomor_unit, tipe_rumah, luas_tanah, luas_bangunan, status_pembangunan, progress_percentage, image_url, link_foto_360, created_at, updated_at
   `);
 
   return mapUnitRow(rows[0]);
