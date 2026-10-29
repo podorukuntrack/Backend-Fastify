@@ -143,6 +143,9 @@ export const units = pgTable("units", {
   progressPercentage: integer("progress_percentage").notNull().default(0),
   imageUrl: text("image_url"),
 
+  // Link foto 360 unit; bisa diisi sejak masa pembangunan (lepas dari retensi)
+  linkFoto360: text("link_foto_360"),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })
